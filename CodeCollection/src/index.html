@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>School Project Website</title>
+    
+    <!-- Link to the shared global styles (navbar, footer, fonts) -->
+    <link rel="stylesheet" href="css/global.css">
+    <!-- Link to styles that only apply to this home page -->
+    <link rel="stylesheet" href="css/index.css">
+</head>
+<body>
+
+    <!-- SHARED NAVIGATION BAR -->
+    <!-- Pro-tip: Copy and paste this exact <header> block into the top of every page -->
+    <header class="main-navbar">
+        <div class="logo">
+            <a href="index.html">ProjectLogo</a>
+        </div>
+        <nav>
+            <ul>
+                <li><a href="index.html" class="active">Home</a></li>
+                <!-- Note the "pages/" path for your teammates' files -->
+                <li><a href="pages/about.html">About</a></li>
+                <li><a href="pages/projects.html">Projects</a></li>
+                <li><a href="pages/gallery.html">Gallery</a></li>
+                <li><a href="pages/contact.html">Contact</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <!-- HERO SECTION (Main Welcome Area) -->
+    <main>
+        <section class="hero">
+            <div class="hero-content">
+                <h1>Welcome to Our Group Project</h1>
+                <p>A collaborative web development assignment created by Team of 5.</p>
+                <a href="pages/projects.html" class="cta-btn">View Our Work</a>
+            </div>
+        </section>
+
+        <!-- INTRO/FEATURES SECTION -->
+        <section class="intro-features">
+            <h2>Project Overview</h2>
+            <p>This website represents our collective research and development over the past few weeks.</p>
+            
+            <div class="feature-grid">
+                <div class="card">
+                    <h3>Research</h3>
+                    <p>Dive into our background data and academic findings on the About page.</p>
+                </div>
+                <div class="card">
+                    <h3>Deliverables</h3>
+                    <p>Check out our practical solutions and live models on the Projects page.</p>
+                </div>
+                <div class="card">
+                    <h3>Media</h3>
+                    <p>Browse through our visual content and graphics on the Gallery page.</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- SHARED FOOTER -->
+    <footer class="main-footer">
+        <p>&copy; 2026 Web Dev Project Group 5. All rights reserved.</p>
+    </footer>
+
+    <!-- Shared JavaScript file -->
+    <script src="js/main.js"></script>
+</body>
+</html>
