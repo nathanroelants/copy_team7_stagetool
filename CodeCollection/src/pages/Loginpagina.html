@@ -1,0 +1,32 @@
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stage.be - Login</title>
+    <link rel="stylesheet" href="index.css">
+</head>
+<body>
+    <div class="login-container">
+        <!-- Logo "STAGE.BE" -->
+        <div class="header-box" id="header-box">
+            STAGE.BE
+        </div>
+        
+        <!-- Login -->
+        <form class="login-form" id="login-form" onsubmit="event.preventDefault();">
+            <div class="input-group">
+                <input type="email" id="email" placeholder="Email" required>
+            </div>
+            <div class="input-group">
+                <input type="password" id="password" placeholder="Password" required>
+            </div>
+            <button type="submit" id="login-btn" class="login-button">Login</button>
+        </form>
+    </div>
+    
+    <!-- Erasmus Hogeschool Brussel Logo -->
+    <div class="logo-container" id="logo-container">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/5/57/EhB-logo-transparant%281%29.png" alt="Erasmushogeschool Brussel Logo" class="erasmus-logo">
+    </div>
+</body>
+</html>
