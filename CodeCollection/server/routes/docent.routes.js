@@ -52,10 +52,7 @@ router.get('/studenten', requireAuth, requireDocent, async (req, res) => {
       ),
       stagevoorstel:stagevoorstellen!stagevoorstel_id (
         id,
-        bedrijfsnaam,
-        stage_begin,
-        stage_einde,
-        status
+        bedrijfsnaam
       )
     `)
     .eq('docent_id', docentId);
@@ -115,14 +112,13 @@ router.get('/studenten', requireAuth, requireDocent, async (req, res) => {
       email:      stage.student?.email      ?? '',
       opleiding:  opleidingPerStudent[stage.student?.id] ?? '',
       bedrijf:    stage.stagevoorstel?.bedrijfsnaam ?? '',
-      start_datum: stage.stagevoorstel?.stage_begin ?? stage.start_datum,
-      eind_datum:  stage.stagevoorstel?.stage_einde ?? stage.eind_datum,
+      start_datum:  stage.start_datum,
+      eind_datum:   stage.eind_datum,
       mentor_naam: stage.stagementor
         ? `${stage.stagementor.voornaam} ${stage.stagementor.achternaam}`.trim()
         : null,
-      stagevoorstel_status: stage.stagevoorstel?.status ?? 'Niet ingediend',
-      logboek_status:       logboekStatus,
-      evaluatie_status:     stage.status ?? 'Niet beschikbaar',
+      stagevoorstel_status: stage.status ?? 'Niet ingediend',
+      logboek_status:       logboekStatus
     };
   });
 

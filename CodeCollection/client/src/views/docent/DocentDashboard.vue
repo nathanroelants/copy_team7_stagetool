@@ -81,12 +81,6 @@
                     {{ student.logboek_status || '—' }}
                   </span>
                 </div>
-                <div class="badge-group">
-                  <span class="badge-label">Evaluatie</span>
-                  <span :class="['badge', badgeKlasse(student.evaluatie_status)]">
-                    {{ student.evaluatie_status || '—' }}
-                  </span>
-                </div>
               </div>
             </div>
           </div>
