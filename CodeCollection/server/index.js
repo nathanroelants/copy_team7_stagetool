@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import { createClient } from '@supabase/supabase-js';
 import authRoutes from './routes/auth.js';
+import docentRoutes from './routes/docent.routes.js';
 
 dotenv.config();
 
@@ -17,7 +18,9 @@ const supabase = createClient(
 app.set('supabase', supabase);
 app.use(cors());
 app.use(express.json());
+
 app.use('/api/auth', authRoutes);
+app.use('/api/docent', docentRoutes);
 
 app.get('/api/test', (req, res) => {
   res.json({ message: 'Backend werkt! 🚀' });
