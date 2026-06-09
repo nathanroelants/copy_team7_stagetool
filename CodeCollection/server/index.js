@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import { createClient } from '@supabase/supabase-js';
 import authRoutes from './routes/auth.js';
+import stagevoorstellenRoutes from './routes/stagevoorstellen.js';
 
 dotenv.config();
 
@@ -18,6 +19,7 @@ app.set('supabase', supabase);
 app.use(cors());
 app.use(express.json());
 app.use('/api/auth', authRoutes);
+app.use('/api/stagevoorstellen', stagevoorstellenRoutes);
 
 app.get('/api/test', (req, res) => {
   res.json({ message: 'Backend werkt! 🚀' });
