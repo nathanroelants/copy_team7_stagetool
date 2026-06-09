@@ -5,7 +5,7 @@ const routes = [
   { path: '/', component: LoginView },
   { path: '/login', component: LoginView },
   { path: '/student', component: () => import('../views/student/DashboardView.vue') },
-  { path: '/docent', component: () => import('../views/docent/DashboardView.vue') },
+  { path: '/docent', component: () => import('../views/docent/DocentDashboard.vue') },
   { path: '/mentor', component: () => import('../views/mentor/DashboardView.vue') },
   { path: '/stagecommissie', component: () => import('../views/stagecommissie/DashboardView.vue') },
   { path: '/administratie', component: () => import('../views/administratie/DashboardView.vue') },
