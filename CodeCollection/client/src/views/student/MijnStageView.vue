@@ -1,115 +1,25 @@
 <template>
   <div class="mijn-stage">
 
-    <!-- Header com botão -->
-    <div class="page-header">
-      <h2>Mijn stagevoorstellen</h2>
-      <button v-if="view === 'lijst'" @click="view = 'nieuw'" class="btn-primary">
-        + Nieuw voorstel
-      </button>
-      <button v-else @click="goBackToList" class="btn-secondary">
-        ← Terug naar lijst
-      </button>
-    </div>
+    <!-- FORMULÁRIO: sem stage OU foi afgekeurd e quer criar novo -->
+    <div v-if="!stage || (stage.status === 'afgekeurd' && criarNovo)">
+      <h2>Stagevoorstel indienen</h2>
 
-    <!-- VISTA 1: Lista de voorstellen -->
-    <div v-if="view === 'lijst'">
-      <div v-if="voorstellen.length === 0" class="empty-state">
-        <p>Je hebt nog geen stagevoorstellen ingediend.</p>
-        <button @click="view = 'nieuw'" class="btn-primary">
-          + Eerste voorstel indienen
-        </button>
-      </div>
-
-      <div v-else class="voorstellen-lijst">
-        <div
-          v-for="v in voorstellen"
-          :key="v.id"
-          class="voorstel-card"
-          @click="openVoorstel(v)"
-        >
-          <div class="voorstel-header">
-            <h3>{{ v.bedrijfsnaam }}</h3>
-            <span class="status-badge" :class="v.status">{{ statusLabel(v.status) }}</span>
-          </div>
-          <div class="voorstel-info">
-            <span>📅 {{ formatDate(v.stage_begin) }} → {{ formatDate(v.stage_einde) }}</span>
-            <span>📍 {{ v.adres }}</span>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- VISTA 2: Detalhes (modo leitura) -->
-    <div v-else-if="view === 'detalhes' && selectedVoorstel" class="card">
-      <div v-if="selectedVoorstel.status === 'ingediend'" class="alert">
-        Je aanvraag is verzonden en wordt momenteel beoordeeld door de stagecommissie.
-      </div>
-      <div v-if="selectedVoorstel.status === 'goedgekeurd'" class="alert success">
-        ✅ Je stagevoorstel is goedgekeurd!
-      </div>
-      <div v-if="selectedVoorstel.status === 'afgekeurd'" class="alert error">
-        ❌ Je stagevoorstel is afgekeurd.
-      </div>
-
-      <h3>Gegevens bedrijf</h3>
-      <div class="info-grid">
-        <div class="info-item">
-          <div class="field-display">{{ selectedVoorstel.bedrijfsnaam }}</div>
-          <label>Bedrijfsnaam</label>
-        </div>
-        <div class="info-item">
-          <div class="field-display">{{ selectedVoorstel.adres }}</div>
-          <label>Werkadres</label>
-        </div>
-      </div>
-
-      <h3>Stageperiode</h3>
-      <div class="info-grid">
-        <div class="info-item">
-          <div class="field-display">{{ formatDate(selectedVoorstel.stage_begin) }}</div>
-          <label>Startdatum</label>
-        </div>
-        <div class="info-item">
-          <div class="field-display">{{ formatDate(selectedVoorstel.stage_einde) }}</div>
-          <label>Einddatum</label>
-        </div>
-      </div>
-
-      <h3>Stageopdracht</h3>
-      <div class="info-item full">
-        <div class="field-display textarea-display">{{ selectedVoorstel.beschrijving }}</div>
-        <label>Omschrijving stageopdracht</label>
-      </div>
-
-      <div v-if="selectedVoorstel.feedback" class="feedback">
-        <label>Feedback van stagecommissie:</label>
-        <p>{{ selectedVoorstel.feedback }}</p>
-      </div>
-    </div>
-
-    <!-- VISTA 3: Formulário novo voorstel -->
-    <div v-else-if="view === 'nieuw'">
       <form @submit.prevent="handleSubmit" class="card">
+
         <h3>Gegevens bedrijf</h3>
         <div class="form-grid">
           <div class="form-group">
-            <input
-              v-model="form.bedrijfsnaam"
-              type="text"
-              placeholder="Cronos Group NV"
-              required
-            />
+            <input v-model="form.bedrijfsnaam" type="text" placeholder="Cronos Group NV" required />
             <label>Bedrijfsnaam</label>
           </div>
           <div class="form-group">
-            <input
-              v-model="form.adres"
-              type="text"
-              placeholder="Luchthavenlei 1, 2100 Antwerpen"
-              required
-            />
-            <label>Werkadres</label>
+            <input v-model="form.naam_stagementor" type="text" placeholder="Thomas Peeters" required />
+            <label>Naam stagementor</label>
+          </div>
+          <div class="form-group">
+            <input v-model="form.email_stagementor" type="email" placeholder="t.peeters@cronos.be" required />
+            <label>E-mail stagementor</label>
           </div>
         </div>
 
@@ -136,12 +46,42 @@
           <label>Omschrijving stageopdracht</label>
         </div>
 
+        <h3>Competenties</h3>
+        <div class="form-grid">
+          <div class="form-group">
+            <input v-model="form.technische_skills" type="text" placeholder="React, JavaScript" />
+            <label>Technische skills</label>
+          </div>
+          <div class="form-group">
+            <input v-model="form.tools" type="text" placeholder="REST API, Git" />
+            <label>Tools</label>
+          </div>
+        </div>
+
+        <h3>Werkadres</h3>
+        <div class="form-grid">
+          <div class="form-group">
+            <input v-model="form.straat" type="text" placeholder="Luchthavenlei" required />
+            <label>Straat</label>
+          </div>
+          <div class="form-group">
+            <input v-model="form.huisnummer" type="text" placeholder="1" />
+            <label>Huisnummer</label>
+          </div>
+          <div class="form-group">
+            <input v-model="form.gemeente" type="text" placeholder="2100 Antwerpen" required />
+            <label>Gemeente</label>
+          </div>
+          <div class="form-group">
+            <input v-model="form.land" type="text" placeholder="België" />
+            <label>Land</label>
+          </div>
+        </div>
+
         <div v-if="errorMessage" class="error">{{ errorMessage }}</div>
 
         <div class="actions">
-          <button type="button" @click="handleAnnuleren" class="btn-cancel">
-            Annuleren
-          </button>
+          <button type="button" @click="handleAnnuleren" class="btn-cancel">Annuleren</button>
           <button type="submit" :disabled="loading" class="btn-submit">
             {{ loading ? 'Bezig met indienen...' : 'Indienen' }}
           </button>
@@ -149,71 +89,152 @@
       </form>
     </div>
 
+    <!-- VISTA DE LEITURA -->
+    <div v-else>
+      <div class="card">
+
+        <div v-if="stage.status === 'niet gestart'" class="alert">
+          ⏳ Je aanvraag is verzonden en wordt momenteel beoordeeld door de stagecommissie.
+        </div>
+        <div v-if="stage.status === 'lopend'" class="alert success">
+          ✅ Je stage is goedgekeurd en momenteel lopend!
+        </div>
+        <div v-if="stage.status === 'afgerond'" class="alert success">
+          🎓 Je stage is afgerond!
+        </div>
+        <div v-if="stage.status === 'afgekeurd'" class="alert error">
+          ❌ Je stagevoorstel is afgekeurd. Je kan een nieuw voorstel indienen.
+        </div>
+
+        <h3>Gegevens bedrijf</h3>
+        <div class="info-grid">
+          <div class="info-item">
+            <div class="field-display">{{ info.bedrijfsnaam }}</div>
+            <label>Bedrijfsnaam</label>
+          </div>
+        </div>
+
+        <h3>Stageperiode</h3>
+        <div class="info-grid">
+          <div class="info-item">
+            <div class="field-display">{{ formatDate(info.stage_begin) }}</div>
+            <label>Startdatum</label>
+          </div>
+          <div class="info-item">
+            <div class="field-display">{{ formatDate(info.stage_einde) }}</div>
+            <label>Einddatum</label>
+          </div>
+        </div>
+
+        <h3>Stageopdracht</h3>
+        <div class="info-item full">
+          <div class="field-display textarea-display">{{ info.beschrijving }}</div>
+          <label>Omschrijving stageopdracht</label>
+        </div>
+
+        <h3>Competenties</h3>
+        <div class="info-grid">
+          <div class="info-item">
+            <div class="field-display">{{ info.technische_skills || '-' }}</div>
+            <label>Technische skills</label>
+          </div>
+          <div class="info-item">
+            <div class="field-display">{{ info.tools || '-' }}</div>
+            <label>Tools</label>
+          </div>
+        </div>
+
+        <h3>Werkadres</h3>
+        <div class="info-grid">
+          <div class="info-item">
+            <div class="field-display">{{ info.straat || '-' }}</div>
+            <label>Straat</label>
+          </div>
+          <div class="info-item">
+            <div class="field-display">{{ info.huisnummer || '-' }}</div>
+            <label>Huisnummer</label>
+          </div>
+          <div class="info-item">
+            <div class="field-display">{{ info.gemeente || '-' }}</div>
+            <label>Gemeente</label>
+          </div>
+          <div class="info-item">
+            <div class="field-display">{{ info.land || '-' }}</div>
+            <label>Land</label>
+          </div>
+        </div>
+
+        <div v-if="stage.status === 'afgekeurd' && info.feedback" class="feedback">
+          <label>Feedback van stagecommissie:</label>
+          <p>{{ info.feedback }}</p>
+        </div>
+
+        <div v-if="stage.status === 'afgekeurd'" class="actions">
+          <button @click="criarNovo = true" class="btn-submit">
+            + Nieuw voorstel indienen
+          </button>
+        </div>
+      </div>
+    </div>
+
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 
-const view = ref('lijst') // 'lijst' | 'nieuw' | 'detalhes'
-const voorstellen = ref([])
-const selectedVoorstel = ref(null)
+const stage = ref(null)
+const criarNovo = ref(false)
 const loading = ref(false)
 const errorMessage = ref('')
 
 const initialForm = {
   bedrijfsnaam: '',
-  adres: '',
+  naam_stagementor: '',
+  email_stagementor: '',
   stage_begin: '',
   stage_einde: '',
-  beschrijving: ''
+  beschrijving: '',
+  technische_skills: '',
+  tools: '',
+  straat: '',
+  huisnummer: '',
+  gemeente: '',
+  land: ''
 }
 
 const form = ref({ ...initialForm })
+
+// Computed: stageinfo aninhada na stage
+const info = computed(() => stage.value?.stageinfo || {})
 
 function formatDate(dateStr) {
   if (!dateStr) return ''
   return new Date(dateStr).toLocaleDateString('nl-BE')
 }
 
-function statusLabel(status) {
-  const labels = {
-    'concept': 'Concept',
-    'ingediend': 'In afwachting',
-    'in_beoordeling': 'In beoordeling',
-    'goedgekeurd': 'Goedgekeurd',
-    'afgekeurd': 'Afgekeurd'
-  }
-  return labels[status] || status
-}
-
-async function loadVoorstellen() {
+async function loadStage() {
   const token = localStorage.getItem('token')
   try {
     const response = await fetch('/api/stagevoorstellen/mijn', {
       headers: { Authorization: `Bearer ${token}` }
     })
-    voorstellen.value = await response.json()
+    const data = await response.json()
+
+    if (Array.isArray(data) && data.length > 0) {
+      stage.value = data[0]
+    } else {
+      stage.value = null
+    }
   } catch (err) {
     console.error(err)
   }
 }
 
-function openVoorstel(v) {
-  selectedVoorstel.value = v
-  view.value = 'detalhes'
-}
-
-function goBackToList() {
-  view.value = 'lijst'
-  selectedVoorstel.value = null
-  form.value = { ...initialForm }
-  errorMessage.value = ''
-}
-
 function handleAnnuleren() {
   form.value = { ...initialForm }
-  goBackToList()
+  errorMessage.value = ''
+  criarNovo.value = false
 }
 
 async function handleSubmit() {
@@ -234,10 +255,10 @@ async function handleSubmit() {
     const data = await response.json()
     if (!response.ok) throw new Error(data.error)
 
-    // Voorstel guardado → recarregar lista e voltar
-    await loadVoorstellen()
+    // Recarregar a página para mostrar a vista de leitura
+    await loadStage()
     form.value = { ...initialForm }
-    view.value = 'lijst'
+    criarNovo.value = false
 
   } catch (err) {
     errorMessage.value = err.message || 'Indienen mislukt'
@@ -246,7 +267,7 @@ async function handleSubmit() {
   }
 }
 
-onMounted(loadVoorstellen)
+onMounted(loadStage)
 </script>
 
 <style scoped>
@@ -256,102 +277,12 @@ onMounted(loadVoorstellen)
   margin: 0 auto;
 }
 
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1.5rem;
-}
-
-.page-header h2 {
+h2 {
   color: #333;
   font-size: 1.4rem;
-}
-
-/* Lista vazia */
-.empty-state {
-  background: white;
-  padding: 3rem;
-  text-align: center;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-}
-
-.empty-state p {
-  color: #888;
   margin-bottom: 1.5rem;
 }
 
-/* Lista de voorstellen */
-.voorstellen-lijst {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.voorstel-card {
-  background: white;
-  padding: 1.25rem 1.5rem;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  cursor: pointer;
-  transition: transform 0.15s, box-shadow 0.15s;
-}
-
-.voorstel-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-.voorstel-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 0.5rem;
-}
-
-.voorstel-header h3 {
-  color: #333;
-  font-size: 1.05rem;
-}
-
-.voorstel-info {
-  display: flex;
-  gap: 1.5rem;
-  font-size: 0.85rem;
-  color: #666;
-}
-
-/* Status badges */
-.status-badge {
-  padding: 0.3rem 0.75rem;
-  border-radius: 4px;
-  font-size: 0.8rem;
-  font-weight: 600;
-}
-
-.status-badge.concept {
-  background: #e0e0e0;
-  color: #555;
-}
-
-.status-badge.ingediend,
-.status-badge.in_beoordeling {
-  background: #fff3a3;
-  color: #8a6d00;
-}
-
-.status-badge.goedgekeurd {
-  background: #c8f0c8;
-  color: #2d6b2d;
-}
-
-.status-badge.afgekeurd {
-  background: #f5c6c6;
-  color: #8b1a1a;
-}
-
-/* Card detalhes / formulário */
 .card {
   background: white;
   border-radius: 8px;
@@ -364,9 +295,11 @@ h3 {
   font-size: 1.1rem;
   margin: 1.5rem 0 1rem 0;
   font-weight: 500;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #eee;
 }
 
-h3:first-child {
+h3:first-of-type {
   margin-top: 0;
 }
 
@@ -483,8 +416,6 @@ h3:first-child {
   margin-top: 1rem;
 }
 
-.btn-primary,
-.btn-secondary,
 .btn-cancel,
 .btn-submit {
   padding: 0.65rem 1.5rem;
@@ -495,13 +426,20 @@ h3:first-child {
   font-weight: 500;
 }
 
-.btn-primary,
+.btn-cancel {
+  background: #d9d9d9;
+  color: #333;
+}
+
+.btn-cancel:hover {
+  background: #c4c4c4;
+}
+
 .btn-submit {
   background: #4a90c9;
   color: white;
 }
 
-.btn-primary:hover,
 .btn-submit:hover:not(:disabled) {
   background: #357ab0;
 }
@@ -509,16 +447,5 @@ h3:first-child {
 .btn-submit:disabled {
   opacity: 0.6;
   cursor: not-allowed;
-}
-
-.btn-secondary,
-.btn-cancel {
-  background: #d9d9d9;
-  color: #333;
-}
-
-.btn-secondary:hover,
-.btn-cancel:hover {
-  background: #c4c4c4;
 }
 </style>
