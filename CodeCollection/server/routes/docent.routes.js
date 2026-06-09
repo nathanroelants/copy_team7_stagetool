@@ -2,9 +2,11 @@ import express from 'express';
 import jwt from 'jsonwebtoken';
 
 const router = express.Router();
-console.log('Docent routes geladen');
 
-// ── Middleware: JWT controleren ──────────────────────────────────────────────
+router.get('/test', (req, res) => {
+  res.json({ ok: true });
+});
+
 function requireAuth(req, res, next) {
   const authHeader = req.headers.authorization;
   if (!authHeader?.startsWith('Bearer ')) {
@@ -19,7 +21,6 @@ function requireAuth(req, res, next) {
   }
 }
 
-// ── Middleware: alleen docenten ──────────────────────────────────────────────
 function requireDocent(req, res, next) {
   if (req.user.rol !== 'docent') {
     return res.status(403).json({ error: 'Geen toegang' });
@@ -27,17 +28,11 @@ function requireDocent(req, res, next) {
   next();
 }
 
-// ── GET /api/docent/studenten ────────────────────────────────────────────────
-// Geeft alle studenten terug waarvan de ingelogde docent docent_begeleider_id is.
-// Joins: gebruikers (student), stagevoorstellen, logboeken (meest recente week)
-router.get('/test', (req, res) => {
-  res.json({ ok: true });
-});
 router.get('/studenten', requireAuth, requireDocent, async (req, res) => {
   const supabase = req.app.get('supabase');
   const docentId = req.user.id;
 
-  // 1. Haal alle stages op waar deze docent begeleider van is
+  // 1. Haal stages op voor deze docent, met alle gerelateerde data in één query
   const { data: stages, error: stagesError } = await supabase
     .from('stages')
     .select(`
@@ -45,23 +40,29 @@ router.get('/studenten', requireAuth, requireDocent, async (req, res) => {
       status,
       start_datum,
       eind_datum,
-      stagevoorstel_id,
-      student:gebruikers!stages_student_id_fkey (
+      student:gebruikers!student_id (
         id,
         voornaam,
         achternaam,
         email
       ),
-      bedrijfsbegeleider:gebruikers!stages_bedrijfsbegeleider_id_fkey (
+      stagementor:gebruikers!stagementor_id (
         voornaam,
         achternaam
+      ),
+      stagevoorstel:stagevoorstellen!stagevoorstel_id (
+        id,
+        bedrijfsnaam,
+        stage_begin,
+        stage_einde,
+        status
       )
     `)
     .eq('docent_id', docentId);
 
   if (stagesError) {
     console.error('Fout bij ophalen stages:', stagesError);
-    return res.status(500).json({ error: 'Kon stage studenten niet ophalen' });
+    return res.status(500).json({ error: 'Kon studenten niet ophalen' });
   }
 
   if (!stages || stages.length === 0) {
@@ -69,28 +70,26 @@ router.get('/studenten', requireAuth, requireDocent, async (req, res) => {
   }
 
   const stageIds = stages.map(s => s.id);
-  const voorstelIds = stages.map(s => s.stagevoorstel_id).filter(Boolean);
+  const studentIds = stages.map(s => s.student?.id).filter(Boolean);
 
-  // 2. Haal stagevoorstellen op (status + bedrijfsnaam)
-  const { data: voorstellen } = await supabase
-    .from('stagevoorstellen')
-    .select('id, status, bedrijfsnaam, stage_begin, stage_einde')
-    .in('id', voorstelIds.length > 0 ? voorstelIds : [0]);
+  // 2. Haal opleidingen op via gebruiker_id
+  const { data: opleidingen } = await supabase
+    .from('opleidingen')
+    .select('gebruiker_id, naam')
+    .in('gebruiker_id', studentIds.length > 0 ? studentIds : [0]);
 
-  // 3. Haal het meest recente logboek per stage op
+  const opleidingPerStudent = {};
+  for (const o of opleidingen || []) {
+    opleidingPerStudent[o.gebruiker_id] = o.naam;
+  }
+
+  // 3. Haal meest recente logboek per stage op
   const { data: logboeken } = await supabase
     .from('logboeken')
-    .select('stage_id, week_nummer, status, afgetekend')
+    .select('stage_id, week_nummer, afgetekend')
     .in('stage_id', stageIds)
     .order('week_nummer', { ascending: false });
 
-  // ── Indexeren voor snelle lookup ─────────────────────────────────────────
-  const voorstelPerId = {};
-  for (const v of voorstellen || []) {
-    voorstelPerId[v.id] = v;
-  }
-
-  // Meest recente logboekweek per stage (eerste na desc sort)
   const logboekPerStage = {};
   for (const l of logboeken || []) {
     if (!logboekPerStage[l.stage_id]) {
@@ -98,45 +97,36 @@ router.get('/studenten', requireAuth, requireDocent, async (req, res) => {
     }
   }
 
-  // ── Samenstellen response ─────────────────────────────────────────────────
+  // 4. Samenstellen response
   const result = stages.map(stage => {
-    const voorstel = voorstelPerId[stage.stagevoorstel_id];
-    const logboek  = logboekPerStage[stage.id];
+    const logboek = logboekPerStage[stage.id];
 
-    // Logboek statustekst
     let logboekStatus = 'Niet ingediend';
     if (logboek) {
-      if (logboek.afgetekend) {
-        logboekStatus = `Week ${logboek.week_nummer} afgetekend`;
-      } else {
-        logboekStatus = `Week ${logboek.week_nummer} in afwachting`;
-      }
+      logboekStatus = logboek.afgetekend
+        ? `Week ${logboek.week_nummer} afgetekend`
+        : `Week ${logboek.week_nummer} in afwachting`;
     }
 
     return {
-      id: stage.id,
-      voornaam:  stage.student?.voornaam  ?? '',
+      id:         stage.id,
+      voornaam:   stage.student?.voornaam   ?? '',
       achternaam: stage.student?.achternaam ?? '',
-      email:     stage.student?.email     ?? '',
-      bedrijf:   voorstel?.bedrijfsnaam   ?? stage.bedrijfsbegeleider
-                   ? `${stage.bedrijfsbegeleider?.voornaam ?? ''} ${stage.bedrijfsbegeleider?.achternaam ?? ''}`.trim()
-                   : '',
-      opleiding: '',           // koppel opleidingen-tabel indien gewenst (zie opmerking onderaan)
-      start_datum: voorstel?.stage_begin ?? stage.start_datum,
-      eind_datum:  voorstel?.stage_einde ?? stage.eind_datum,
-      mentor_naam: stage.bedrijfsbegeleider
-        ? `${stage.bedrijfsbegeleider.voornaam} ${stage.bedrijfsbegeleider.achternaam}`.trim()
+      email:      stage.student?.email      ?? '',
+      opleiding:  opleidingPerStudent[stage.student?.id] ?? '',
+      bedrijf:    stage.stagevoorstel?.bedrijfsnaam ?? '',
+      start_datum: stage.stagevoorstel?.stage_begin ?? stage.start_datum,
+      eind_datum:  stage.stagevoorstel?.stage_einde ?? stage.eind_datum,
+      mentor_naam: stage.stagementor
+        ? `${stage.stagementor.voornaam} ${stage.stagementor.achternaam}`.trim()
         : null,
-      stagevoorstel_status: voorstel?.status ?? 'Niet ingediend',
+      stagevoorstel_status: stage.stagevoorstel?.status ?? 'Niet ingediend',
       logboek_status:       logboekStatus,
-      evaluatie_status:     stage.status   ?? 'Niet beschikbaar',
+      evaluatie_status:     stage.status ?? 'Niet beschikbaar',
     };
   });
 
   res.json(result);
-})
-router.get('/test', (req, res) => {
-  res.json({ ok: false });
 });
 
 export default router;

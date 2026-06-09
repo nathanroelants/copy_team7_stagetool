@@ -31,7 +31,7 @@
         <div class="section-header">
           <h2>Mijn studenten</h2>
           <p class="subtitle" v-if="!loading && !fout">
-            {{ studenten.length }} studenten toegewezen aan jou dit semester
+            {{ studenten.length }} studenten zijn momenteel toegewezen aan jou dit semester
           </p>
         </div>
 
