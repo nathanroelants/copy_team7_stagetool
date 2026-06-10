@@ -41,7 +41,7 @@
             v-for="student in studenten"
             :key="student.id"
             class="student-card"
-            @click="$router.push('/stagecommissie_voorstellen')"
+            @click="$router.push(`/stagecommissie/studenten/${student.id}/voorstel`)"
             style="cursor: pointer;"
           >
             <div class="student-avatar">
