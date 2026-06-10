@@ -2,8 +2,7 @@ import express from 'express';
 import jwt from 'jsonwebtoken';
 
 const router = express.Router();
-console.log('Docent routes geladen');
-
+console.log('Stagecommissie routes geladen');
 router.get('/test', (req, res) => {
   res.json({ ok: true });
 });
@@ -23,7 +22,7 @@ function requireAuth(req, res, next) {
 }
 
 function requireDocent(req, res, next) {
-  if (req.user.rol !== 'docent') {
+  if (req.user.rol !== 'stagecommissie') {
     return res.status(403).json({ error: 'Geen toegang' });
   }
   next();
@@ -55,8 +54,7 @@ router.get('/studenten', requireAuth, requireDocent, async (req, res) => {
         id,
         bedrijfsnaam
       )
-    `)
-    .eq('docent_id', docentId);
+    `);
 
   if (stagesError) {
     console.error('Fout bij ophalen stages:', stagesError);
