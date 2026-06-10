@@ -101,10 +101,10 @@ const gebruikerNaam = `${user.voornaam || ''} ${user.naam || ''}`.trim() || user
 function badgeKlasse(status) {
   if (!status) return 'badge-grijs'
   const s = status.toLowerCase()
-  if (s.includes('goedgekeurd') || s.includes('afgerond') || s.includes('afgetekend')) return 'badge-groen'
-  if (s.includes('open') || s.includes('afwachting')) return 'badge-geel'
-  if (s.includes('niet') || s.includes('afgekeurd') || s.includes('ingediend') === false) return 'badge-rood'
-  if (s.includes('ingediend')) return 'badge-blauw'
+  if (s.includes('goedgekeurd') || s.includes('geaccepteerd') || s.includes('afgetekend')) return 'badge-groen'
+  if (s.includes('ingediend')) return 'badge-geel'
+  if (s.includes('afgekeurd')|| s.includes('geweigerd')|| s.includes('aanpassingen') === false) return 'badge-rood'
+  if (s.includes('lopend')) return 'badge-blauw'
   return 'badge-grijs'
 }
 
