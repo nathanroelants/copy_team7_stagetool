@@ -57,10 +57,10 @@
               </div>
               <div class="student-meta">
                 <span class="meta-item">
-                  📅 {{ formatDatum(student.start_datum) }} → {{ formatDatum(student.eind_datum) }}
+                  {{ formatDatum(student.start_datum) }} → {{ formatDatum(student.eind_datum) }}
                 </span>
                 <span class="meta-item" v-if="student.mentor_naam">
-                  🏢 Stagementor: {{ student.mentor_naam }}
+                  Stagementor: {{ student.mentor_naam }}
                 </span>
               </div>
 
@@ -99,7 +99,7 @@ function badgeKlasse(status) {
   const s = status.toLowerCase()
   if (s.includes('goedgekeurd') || s.includes('geaccepteerd') || s.includes('afgetekend')) return 'badge-groen'
   if (s.includes('ingediend')) return 'badge-geel'
-  if (s.includes('afgekeurd')|| s.includes('geweigerd')|| s.includes('aanpassingen') === false) return 'badge-rood'
+  if (s.includes('geweigerd')|| s.includes('aanpassingen')) return 'badge-rood'
   if (s.includes('lopend')) return 'badge-blauw'
   return 'badge-grijs'
 }

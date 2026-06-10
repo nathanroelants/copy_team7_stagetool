@@ -54,7 +54,7 @@
             <!-- Bedrijfsgegevens -->
             <div class="card">
               <div class="card-header">
-                <span class="card-icon">🏢</span>
+    
                 <h2 class="card-title">Gegevens bedrijf</h2>
               </div>
               <div class="card-body">
@@ -86,7 +86,7 @@
             <!-- Stageperiode -->
             <div class="card">
               <div class="card-header">
-                <span class="card-icon">📅</span>
+         
                 <h2 class="card-title">Stageperiode</h2>
               </div>
               <div class="card-body">
@@ -110,7 +110,7 @@
             <!-- Adres -->
             <div class="card">
               <div class="card-header">
-                <span class="card-icon">📍</span>
+   
                 <h2 class="card-title">Adres</h2>
               </div>
               <div class="card-body">
@@ -127,7 +127,7 @@
             <!-- Beschrijving -->
             <div class="card card-wide">
               <div class="card-header">
-                <span class="card-icon">📝</span>
+     
                 <h2 class="card-title">Beschrijving</h2>
               </div>
               <div class="card-body">
@@ -138,7 +138,7 @@
             <!-- Competenties -->
             <div class="card card-wide">
               <div class="card-header">
-                <span class="card-icon">🛠️</span>
+      
                 <h2 class="card-title">Competenties</h2>
               </div>
               <div class="card-body competenties-body">
@@ -167,7 +167,53 @@
                 </div>
               </div>
             </div>
+<!-- Beoordeling stagevoorstel -->
+<div class="card card-wide">
+  <div class="card-header">
+    <h2 class="card-title">Beoordeling stagevoorstel</h2>
+  </div>
 
+  <div class="card-body">
+    <div class="actie-buttons">
+      <button
+        class="actie-btn btn-groen"
+        :disabled="actieLoading"
+        @click="wijzigStageVoorstelStatus('stagevoorstel geaccepteerd')"
+      >
+        Accepteren
+      </button>
+
+      <button
+        class="actie-btn btn-rood"
+        :disabled="actieLoading"
+        @click="wijzigStageVoorstelStatus('stagevoorstel geweigerd')"
+      >
+        Weigeren
+      </button>
+    </div>
+
+    <div class="feedback-section">
+      <label class="field-label">
+        Feedback voor vereiste aanpassingen
+      </label>
+
+      <textarea
+        v-model="feedbackTekst"
+        class="feedback-input"
+        rows="5"
+        placeholder="Beschrijf welke aanpassingen nodig zijn..."
+      />
+
+      <button
+        class="actie-btn btn-oranje"
+        :disabled="actieLoading || !feedbackTekst.trim()"
+        @click="wijzigStageVoorstelStatus('stagevoorstel aanpassingen vereist')"
+      >
+        Aanpassingen vereisen
+      </button>
+    </div>
+  </div>
+</div>
           </div>
         </template>
 
@@ -191,6 +237,10 @@ const student = ref({})
 const stage = ref({})
 const voorstel = ref(null)
 const mentor = ref({})
+
+const actieLoading = ref(false)
+const feedbackTekst = ref('')
+
 
 const user = JSON.parse(localStorage.getItem('user') || '{}')
 const gebruikerNaam = `${user.voornaam || ''} ${user.naam || ''}`.trim() || user.email || 'Docent'
@@ -220,9 +270,54 @@ function badgeKlasse(status) {
   const s = status.toLowerCase()
   if (s.includes('goedgekeurd') || s.includes('geaccepteerd') || s.includes('afgetekend')) return 'badge-groen'
   if (s.includes('ingediend')) return 'badge-geel'
-  if (s.includes('afgekeurd') || s.includes('geweigerd')) return 'badge-rood'
+  if (s.includes('afgekeurd') || s.includes('geweigerd')|| s.includes('aanpassingen')) return 'badge-rood'
   if (s.includes('lopend')) return 'badge-blauw'
   return 'badge-grijs'
+}
+
+async function wijzigStageVoorstelStatus(status) {
+  try {
+    actieLoading.value = true
+
+    const token = localStorage.getItem('token')
+
+    const res = await fetch(
+      `/api/stagecommissie/studenten/${stage.value.id}/voorstel-status`,
+      {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          status,
+          feedback:
+            status === 'stagevoorstel aanpassingen vereist'
+              ? feedbackTekst.value
+              : ''
+        })
+      }
+    )
+
+    const data = await res.json()
+
+    if (!res.ok) {
+      throw new Error(data.error || 'Fout bij opslaan')
+    }
+
+    stage.value.status = status
+    student.value.stagevoorstel_status = status
+
+    if (status !== 'stagevoorstel aanpassingen vereist') {
+      feedbackTekst.value = ''
+    }
+
+    alert('Stagevoorstel succesvol bijgewerkt')
+  } catch (err) {
+    alert(err.message)
+  } finally {
+    actieLoading.value = false
+  }
 }
 
 async function laadDetail() {
@@ -640,4 +735,54 @@ onMounted(laadDetail)
 .badge-rood   { background: #f44336; color: #fff; }
 .badge-blauw  { background: #2196f3; color: #fff; }
 .badge-grijs  { background: #aaa;    color: #fff; }
+
+
+.feedback-section {
+  margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.feedback-input {
+  width: 100%;
+  min-height: 120px;
+  resize: vertical;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  padding: 0.75rem;
+  font-family: inherit;
+}
+
+.actie-buttons {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.actie-btn {
+  border: none;
+  border-radius: 6px;
+  padding: 0.75rem 1.25rem;
+  font-weight: 700;
+  cursor: pointer;
+  color: white;
+}
+
+.btn-groen {
+  background: #4caf50;
+}
+
+.btn-rood {
+  background: #f44336;
+}
+
+.btn-oranje {
+  background: #ff9800;
+}
+
+.actie-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
 </style>
