@@ -302,4 +302,65 @@ router.put(
   }
 );
 
+router.put(
+  '/studenten/:stageId/docent',
+  requireAuth,
+  requireDocent,
+  async (req, res) => {
+    const supabase = req.app.get('supabase')
+
+    const stageId = parseInt(req.params.stageId, 10)
+
+    const { voornaam, achternaam } = req.body
+
+    if (!voornaam || !achternaam) {
+      return res.status(400).json({
+        error: 'Voornaam en achternaam zijn verplicht'
+      })
+    }
+
+    const { data: docent, error: docentError } = await supabase
+      .from('gebruikers')
+      .select('id')
+      .eq('voornaam', voornaam.trim())
+      .eq('achternaam', achternaam.trim())
+      .eq('rol', 'docent')
+      .maybeSingle()
+
+    if (docentError) {
+      console.error(docentError)
+
+      return res.status(500).json({
+        error: 'Fout bij zoeken docent'
+      })
+    }
+
+    if (!docent) {
+      return res.status(404).json({
+        error: 'Docent niet gevonden'
+      })
+    }
+
+    const { error: updateError } = await supabase
+      .from('stages')
+      .update({
+        docent_id: docent.id
+      })
+      .eq('id', stageId)
+
+    if (updateError) {
+      console.error(updateError)
+
+      return res.status(500).json({
+        error: 'Kon docent niet koppelen'
+      })
+    }
+
+    res.json({
+      success: true,
+      docentId: docent.id
+    })
+  }
+);
+
 export default router;

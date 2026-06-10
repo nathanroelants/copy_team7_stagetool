@@ -167,6 +167,42 @@
                 </div>
               </div>
             </div>
+
+<div class="card card-wide">
+  <div class="card-header">
+    <h2 class="card-title">Docent toewijzen</h2>
+  </div>
+
+  <div class="card-body">
+    <div class="docent-form">
+      <input
+        v-model="docentVoornaam"
+        class="docent-input"
+        placeholder="Voornaam docent"
+      />
+
+      <input
+        v-model="docentAchternaam"
+        class="docent-input"
+        placeholder="Achternaam docent"
+      />
+
+      <button
+        class="actie-btn btn-blauw"
+        :disabled="
+          docentLoading ||
+          !docentVoornaam.trim() ||
+          !docentAchternaam.trim()
+        "
+        @click="wijsDocentToe"
+      >
+        Toewijzen
+      </button>
+    </div>
+  </div>
+</div>
+
+
 <!-- Beoordeling stagevoorstel -->
 <div class="card card-wide">
   <div class="card-header">
@@ -240,6 +276,10 @@ const mentor = ref({})
 
 const actieLoading = ref(false)
 const feedbackTekst = ref('')
+
+const docentVoornaam = ref('')
+const docentAchternaam = ref('')
+const docentLoading = ref(false)
 
 
 const user = JSON.parse(localStorage.getItem('user') || '{}')
@@ -342,6 +382,45 @@ async function laadDetail() {
     fout.value = err.message || 'Kon gegevens niet laden.'
   } finally {
     loading.value = false
+  }
+}
+
+
+async function wijsDocentToe() {
+  try {
+    docentLoading.value = true
+
+    const token = localStorage.getItem('token')
+
+    const res = await fetch(
+      `/api/stagecommissie/studenten/${stage.value.id}/docent`,
+      {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          voornaam: docentVoornaam.value,
+          achternaam: docentAchternaam.value
+        })
+      }
+    )
+
+    const data = await res.json()
+
+    if (!res.ok) {
+      throw new Error(data.error || 'Kon docent niet toewijzen')
+    }
+
+    alert('Docent succesvol toegewezen')
+
+    docentVoornaam.value = ''
+    docentAchternaam.value = ''
+  } catch (err) {
+    alert(err.message)
+  } finally {
+    docentLoading.value = false
   }
 }
 
@@ -785,4 +864,23 @@ onMounted(laadDetail)
   opacity: 0.6;
   cursor: not-allowed;
 }
+
+.docent-form {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.docent-input {
+  padding: 0.75rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  min-width: 220px;
+}
+
+.btn-blauw {
+  background: #2196f3;
+}
+
 </style>
