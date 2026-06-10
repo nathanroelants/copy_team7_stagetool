@@ -29,7 +29,6 @@
       <!-- Student list -->
       <section class="content-area">
         <div class="section-header">
-          <h2>Actieve studenten</h2>
         </div>
 
         <div v-if="loading" class="status-message">Studenten laden...</div>
