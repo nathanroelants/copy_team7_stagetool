@@ -2,7 +2,7 @@
   <div class="mijn-stage">
 
     <!-- FORMULÁRIO: sem stage OU foi afgekeurd e quer criar novo -->
-    <div v-if="!stage || (stage.status === 'afgekeurd' && criarNovo)">
+    <div v-if="!stage || (stage.status === 'stagevoorstel geweigerd' && criarNovo)">
       <h2>Stagevoorstel indienen</h2>
 
       <form @submit.prevent="handleSubmit" class="card">
@@ -90,26 +90,29 @@
     </div>
 
     <!-- VISTA DE LEITURA -->
-    <div v-else>
+    <div v-else-if="stage">
       <div class="card">
 
-        <div v-if="stage.status === 'niet gestart'" class="alert">
-          ⏳ Je aanvraag is verzonden en wordt momenteel beoordeeld door de stagecommissie.
-        </div>
-        <div v-if="stage.status === 'lopend'" class="alert success">
-          ✅ Je stage is goedgekeurd en momenteel lopend!
-        </div>
-        <div v-if="stage.status === 'afgerond'" class="alert success">
-          🎓 Je stage is afgerond!
-        </div>
-        <div v-if="stage.status === 'afgekeurd'" class="alert error">
-          ❌ Je stagevoorstel is afgekeurd. Je kan een nieuw voorstel indienen.
-        </div>
+        <div v-if="stage.status === 'stagevoorstel ingediend'" class="alert">
+  ⏳ Je aanvraag is verzonden en wordt momenteel beoordeeld door de stagecommissie.
+</div>
+<div v-if="stage.status === 'stagevoorstel geaccepteerd' || stage.status === 'lopend'" class="alert success">
+  ✅ Je stage is goedgekeurd!
+</div>
+<div v-if="stage.status === 'afgerond'" class="alert success">
+  🎓 Je stage is afgerond!
+</div>
+<div v-if="stage.status === 'stagevoorstel aanpassingen vereist'" class="alert">
+  ✏️ Je stagevoorstel heeft aanpassingen nodig.
+</div>
+<div v-if="stage.status === 'stagevoorstel geweigerd'" class="alert error">
+  ❌ Je stagevoorstel is afgekeurd. Je kan een nieuw voorstel indienen.
+</div>
 
         <h3>Gegevens bedrijf</h3>
         <div class="info-grid">
           <div class="info-item">
-            <div class="field-display">{{ info.bedrijfsnaam }}</div>
+            <div class="field-display">{{ info.bedrijfsnaam || '-' }}</div>
             <label>Bedrijfsnaam</label>
           </div>
         </div>
@@ -117,18 +120,18 @@
         <h3>Stageperiode</h3>
         <div class="info-grid">
           <div class="info-item">
-            <div class="field-display">{{ formatDate(info.stage_begin) }}</div>
+            <div class="field-display">{{ formatDate(stage.start_datum) }}</div>
             <label>Startdatum</label>
           </div>
           <div class="info-item">
-            <div class="field-display">{{ formatDate(info.stage_einde) }}</div>
+            <div class="field-display">{{ formatDate(stage.eind_datum) }}</div>
             <label>Einddatum</label>
           </div>
         </div>
 
         <h3>Stageopdracht</h3>
         <div class="info-item full">
-          <div class="field-display textarea-display">{{ info.beschrijving }}</div>
+          <div class="field-display textarea-display">{{ info.beschrijving || '-' }}</div>
           <label>Omschrijving stageopdracht</label>
         </div>
 
@@ -164,16 +167,16 @@
           </div>
         </div>
 
-        <div v-if="stage.status === 'afgekeurd' && info.feedback" class="feedback">
-          <label>Feedback van stagecommissie:</label>
-          <p>{{ info.feedback }}</p>
-        </div>
+        <div v-if="stage.status === 'stagevoorstel geweigerd' && info.feedback" class="feedback">
+  <label>Feedback van stagecommissie:</label>
+  <p>{{ info.feedback }}</p>
+</div>
 
-        <div v-if="stage.status === 'afgekeurd'" class="actions">
-          <button @click="criarNovo = true" class="btn-submit">
-            + Nieuw voorstel indienen
-          </button>
-        </div>
+        <div v-if="stage.status === 'stagevoorstel geweigerd'" class="actions">
+  <button @click="criarNovo = true" class="btn-submit">
+    + Nieuw voorstel indienen
+  </button>
+</div>
       </div>
     </div>
 
@@ -205,8 +208,8 @@ const initialForm = {
 
 const form = ref({ ...initialForm })
 
-// Computed: stageinfo aninhada na stage
-const info = computed(() => stage.value?.stageinfo || {})
+// Computed: stagevoorstellen aninhada na stage
+const info = computed(() => stage.value?.stagevoorstellen || {})
 
 function formatDate(dateStr) {
   if (!dateStr) return ''
@@ -255,7 +258,6 @@ async function handleSubmit() {
     const data = await response.json()
     if (!response.ok) throw new Error(data.error)
 
-    // Recarregar a página para mostrar a vista de leitura
     await loadStage()
     form.value = { ...initialForm }
     criarNovo.value = false

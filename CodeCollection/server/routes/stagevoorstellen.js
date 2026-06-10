@@ -19,24 +19,24 @@ function verifyToken(req, res, next) {
   }
 }
 
-// Helper: genereert random wachtwoord
 function generatePassword() {
   return Math.random().toString(36).slice(-10);
 }
 
-// GET /api/stagevoorstellen/mijn - haalt het meest recente voorstel op van de ingelogde student
+// GET /api/stagevoorstellen/mijn - haalt de meest recente stage van de student op
 router.get('/mijn', verifyToken, async (req, res) => {
   const supabase = req.app.get('supabase');
 
-  // Haal stages op van de student met hun stageinfo
   const { data, error } = await supabase
     .from('stages')
     .select(`
       id,
       status,
+      start_datum,
+      eind_datum,
       docent_id,
       stagementor_id,
-      stageinfo (*)
+      stagevoorstellen (*)
     `)
     .eq('student_id', req.user.id)
     .order('aangemaakt_op', { ascending: false });
@@ -48,7 +48,7 @@ router.get('/mijn', verifyToken, async (req, res) => {
   res.json(data);
 });
 
-// POST /api/stagevoorstellen - maakt een nieuw voorstel
+// POST /api/stagevoorstellen - maakt nieuw voorstel + stage
 router.post('/', verifyToken, async (req, res) => {
   const supabase = req.app.get('supabase');
 
@@ -73,7 +73,7 @@ router.post('/', verifyToken, async (req, res) => {
     return res.status(400).json({ error: 'Verplichte velden ontbreken' });
   }
 
-  // STAP 1: Check of stagementor al bestaat in gebruikers
+  // STAP 1: stagementor zoeken of aanmaken
   let stagementorId;
 
   const { data: bestaandeMentor } = await supabase
@@ -83,10 +83,8 @@ router.post('/', verifyToken, async (req, res) => {
     .single();
 
   if (bestaandeMentor) {
-    // Stagementor bestaat al → gebruik bestaande
     stagementorId = bestaandeMentor.id;
   } else {
-    // Stagementor bestaat niet → maak nieuwe aan
     const voornaam = naam_stagementor.split(' ')[0] || naam_stagementor;
     const achternaam = naam_stagementor.split(' ').slice(1).join(' ') || '';
 
@@ -109,12 +107,11 @@ router.post('/', verifyToken, async (req, res) => {
     stagementorId = nieuweMentor.id;
   }
 
-  // STAP 2: Maak de stageinfo aan
-  const { data: stageinfo, error: infoError } = await supabase
-    .from('stageinfo')
+  // STAP 2: stagevoorstel aanmaken
+  const { data: voorstel, error: voorstelError } = await supabase
+    .from('stagevoorstellen')
     .insert([{
       bedrijfsnaam,
-   
       beschrijving,
       technische_skills,
       tools,
@@ -127,19 +124,19 @@ router.post('/', verifyToken, async (req, res) => {
     .select()
     .single();
 
-  if (infoError) {
-    return res.status(500).json({ error: 'Fout bij aanmaken stageinfo: ' + infoError.message });
+  if (voorstelError) {
+    return res.status(500).json({ error: 'Fout bij aanmaken stagevoorstel: ' + voorstelError.message });
   }
 
-  // STAP 3: Maak de stage aan
+  // STAP 3: stage aanmaken
   const { data: stage, error: stageError } = await supabase
     .from('stages')
     .insert([{
       student_id: req.user.id,
-      stageinfo_id: stageinfo.id,
+      stagevoorstel_id: voorstel.id,
       stagementor_id: stagementorId,
       docent_id: null,
-      status: 'niet gestart',
+      status: 'stagevoorstel ingediend',
       start_datum: stage_begin,
       eind_datum: stage_einde
     }])
@@ -150,11 +147,7 @@ router.post('/', verifyToken, async (req, res) => {
     return res.status(500).json({ error: 'Fout bij aanmaken stage: ' + stageError.message });
   }
 
-  // Geef alles terug
-  res.json({
-    stage,
-    stageinfo
-  });
+  res.json({ stage, voorstel });
 });
 
 export default router;
