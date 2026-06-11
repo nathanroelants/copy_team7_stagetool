@@ -75,13 +75,13 @@
                   <label
                     v-for="optie in scoreOpties"
                     :key="optie.waarde"
-                    :class="['score-optie', { geselecteerd: getEvaluatie(competentie.id)?.score === optie.waarde }]"
+                    :class="['score-optie', { geselecteerd: Number(getEvaluatie(competentie.id)?.score) === optie.waarde }]"
                   >
                     <input
                       type="radio"
                       :name="'score-' + competentie.id"
                       :value="optie.waarde"
-                      :checked="getEvaluatie(competentie.id)?.score === optie.waarde"
+                      :checked="Number(getEvaluatie(competentie.id)?.score) === optie.waarde"
                       @change="setScore(competentie.id, optie.waarde)"
                       :disabled="opgeslagen[competentie.id]"
                     />

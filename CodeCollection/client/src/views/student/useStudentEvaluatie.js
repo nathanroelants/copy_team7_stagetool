@@ -123,6 +123,12 @@ export function useStudentEvaluatie() {
       if (!evalRes.ok) throw new Error(evalData.error || 'Fout bij laden evaluaties')
       competenties.value = compData
       evaluaties.value = evalData
+
+      for (const e of evalData) {
+        if (e.beoordelaar_id === user.id) {
+          opgeslagen.value[e.competentie_id] = true
+        }
+      }
     } catch (err) {
       fout.value = err.message || 'Kon data niet laden.'
     } finally {
