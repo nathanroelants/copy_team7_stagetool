@@ -45,94 +45,64 @@
         <div v-if="loading" class="status-message">Competenties laden...</div>
         <div v-else-if="fout" class="status-message error">{{ fout }}</div>
 
-        <div v-else class="competenties-lijst">
+        <div v-else class="rubriek-tabel">
+
+          <div class="rubriek-header">
+            <div class="col-criteria">Criteria</div>
+            <div class="col-score" v-for="optie in scoreOpties" :key="optie.waarde">
+              <span class="score-punten">{{ optie.waarde }} punten</span>
+              <span class="score-label">{{ optie.label }}</span>
+            </div>
+            <div class="col-zelfevaluatie">Zelfevaluatie</div>
+          </div>
+
           <div
             v-for="(competentie, index) in competenties"
             :key="competentie.id"
-            class="competentie-blok"
+            class="rubriek-rij"
           >
-            <button
-              class="competentie-header"
-              @click="toggleCompetentie(competentie.id)"
+            <div class="col-criteria">
+              <span class="lo-badge">LO{{ index + 1 }}</span>
+              <span class="lo-naam">{{ competentie.naam }}</span>
+            </div>
+
+            <div
+              class="col-score"
+              v-for="optie in scoreOpties"
+              :key="optie.waarde"
+              :class="{ geselecteerd: Number(getEvaluatie(competentie.id)?.score) === optie.waarde }"
+              @click="!opgeslagen[competentie.id] && setScore(competentie.id, optie.waarde)"
             >
-              <div class="competentie-titel">
-                <span class="lo-label">LO{{ index + 1 }}</span>
-                <span class="lo-naam">{{ competentie.naam }}</span>
-              </div>
-              <div class="competentie-rechts">
-                <span class="score-preview" v-if="getEvaluatie(competentie.id)?.score != null">
-                  {{ getEvaluatie(competentie.id).score }}/5
-                </span>
-                <span class="chevron" :class="{ open: openCompetentie === competentie.id }">›</span>
-              </div>
-            </button>
+              <p class="optie-beschrijving">{{ optie.beschrijving }}</p>
+              <input
+                type="radio"
+                :name="'score-' + competentie.id"
+                :value="optie.waarde"
+                :checked="Number(getEvaluatie(competentie.id)?.score) === optie.waarde"
+                :disabled="opgeslagen[competentie.id]"
+              />
+            </div>
 
-            <div v-if="openCompetentie === competentie.id" class="competentie-body">
-
-              <div class="score-sectie">
-                <p class="sectie-label">Jouw score</p>
-                <div class="score-opties">
-                  <label
-                    v-for="optie in scoreOpties"
-                    :key="optie.waarde"
-                    :class="['score-optie', { geselecteerd: Number(getEvaluatie(competentie.id)?.score) === optie.waarde }]"
-                  >
-                    <input
-                      type="radio"
-                      :name="'score-' + competentie.id"
-                      :value="optie.waarde"
-                      :checked="Number(getEvaluatie(competentie.id)?.score) === optie.waarde"
-                      @change="setScore(competentie.id, optie.waarde)"
-                      :disabled="opgeslagen[competentie.id]"
-                    />
-                    <div class="optie-inhoud">
-                      <span class="optie-punt">{{ optie.waarde }}pt — {{ optie.label }}</span>
-                      <span class="optie-beschrijving">{{ optie.beschrijving }}</span>
-                    </div>
-                  </label>
-                </div>
-              </div>
-
-              <div class="tekst-sectie">
-                <label class="sectie-label">Jouw zelfevaluatie</label>
-                <textarea
-                  class="tekstvak"
-                  placeholder="Beschrijf hoe jij deze competentie hebt toegepast tijdens je stage..."
-                  :value="getEvaluatie(competentie.id)?.feedback || ''"
-                  @input="setFeedback(competentie.id, $event.target.value)"
-                  :disabled="opgeslagen[competentie.id]"
-                ></textarea>
-              </div>
-
-              <div class="mentor-sectie">
-                <div class="mentor-veld">
-                  <span class="sectie-label">Score stagementor</span>
-                  <span class="mentor-waarde">
-                    {{ getMentorEvaluatie(competentie.id)?.score != null
-                      ? getMentorEvaluatie(competentie.id).score + '/5'
-                      : 'Nog niet ingevuld door stagementor.' }}
-                  </span>
-                </div>
-                <div class="mentor-veld">
-                  <span class="sectie-label">Feedback stagementor</span>
-                  <span class="mentor-waarde">
-                    {{ getMentorEvaluatie(competentie.id)?.feedback || 'Nog geen feedback van stagementor.' }}
-                  </span>
-                </div>
-              </div>
-
+            <div class="col-zelfevaluatie">
+              <textarea
+                class="tekstvak"
+                placeholder="Jouw zelfevaluatie..."
+                :value="getEvaluatie(competentie.id)?.feedback || ''"
+                @input="setFeedback(competentie.id, $event.target.value)"
+                :disabled="opgeslagen[competentie.id]"
+              ></textarea>
               <div class="opslaan-rij">
                 <button
                   class="opslaan-btn"
                   @click="slaOp(competentie.id)"
-                  :disabled="bezig[competentie.id]"
+                  :disabled="bezig[competentie.id] || opgeslagen[competentie.id]"
                 >
                   {{ bezig[competentie.id] ? 'Opslaan...' : 'Opslaan' }}
                 </button>
                 <span v-if="opgeslagen[competentie.id]" class="opgeslagen-melding">✓ Opgeslagen</span>
               </div>
-
             </div>
+
           </div>
         </div>
 
@@ -598,5 +568,113 @@ const {
   font-size: 0.88rem;
   color: #43a047;
   font-weight: 700;
+}
+
+/* ── Rubriek tabel ── */
+.rubriek-tabel {
+  width: 100%;
+  border: 1px solid #c5d5e0;
+  border-radius: 8px;
+  overflow: hidden;
+  background: white;
+}
+
+.rubriek-header,
+.rubriek-rij {
+  display: grid;
+  grid-template-columns: 180px repeat(5, 1fr) 180px;
+  border-bottom: 1px solid #c5d5e0;
+}
+
+.rubriek-rij:last-child {
+  border-bottom: none;
+}
+
+.rubriek-header {
+  background: #4a90b8;
+  color: white;
+  font-weight: 700;
+  font-size: 0.82rem;
+}
+
+.rubriek-header > div {
+  padding: 0.75rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  border-right: 1px solid rgba(255,255,255,0.2);
+}
+
+.score-punten {
+  font-weight: 800;
+  font-size: 0.85rem;
+}
+
+.score-label {
+  font-size: 0.75rem;
+  opacity: 0.85;
+}
+
+.col-criteria {
+  padding: 0.85rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  border-right: 1px solid #c5d5e0;
+  background: #f4f8fb;
+}
+
+.lo-badge {
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: white;
+  background: #4a90b8;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  width: fit-content;
+}
+
+.lo-naam {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #1a1a2e;
+}
+
+.col-score {
+  padding: 0.75rem 0.6rem;
+  border-right: 1px solid #c5d5e0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.col-score:hover {
+  background: #f0f6fb;
+}
+
+.col-score.geselecteerd {
+  background: #daeaf5;
+  border-left: 3px solid #4a90b8;
+}
+
+.col-score .optie-beschrijving {
+  font-size: 0.78rem;
+  color: #555;
+  line-height: 1.4;
+  flex: 1;
+}
+
+.col-score input[type="radio"] {
+  margin-top: 0.5rem;
+  accent-color: #4a90b8;
+}
+
+.col-zelfevaluatie {
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 </style>
