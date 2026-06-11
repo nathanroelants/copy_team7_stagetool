@@ -1,18 +1,12 @@
 import express from 'express';
-
 import cors from 'cors';
-
 import dotenv from 'dotenv';
-
 import { createClient } from '@supabase/supabase-js';
-
 import authRoutes from './routes/auth.js';
 import docentRoutes from './routes/docent.routes.js';
 import stagecommissieRoutes from './routes/stagecommissie.routes.js';
+import stagevoorstellenRoutes from './routes/Studentstagevoorstellen-routes.js';
 
-import docentRoutes from './routes/docent.routes.js';
-
-import stagecommissieRoutes from './routes/stagecommissie.routes.js';
  
 dotenv.config();
  
@@ -37,11 +31,9 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/api/docent', docentRoutes);
 app.use('/api/stagecommissie', stagecommissieRoutes)
+app.use('/api/stagevoorstellen', stagevoorstellenRoutes);
 
-app.use('/api/docent', docentRoutes);
 
-app.use('/api/stagecommissie', stagecommissieRoutes)
- 
 app.get('/api/test', (req, res) => {
 
   res.json({ message: 'Backend werkt! 🚀' });
