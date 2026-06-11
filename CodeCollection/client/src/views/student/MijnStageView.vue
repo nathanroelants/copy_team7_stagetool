@@ -260,6 +260,12 @@ function formatDate(dateStr) {
   return new Date(dateStr).toLocaleDateString('nl-BE')
 }
 
+function gaNaarLogboeken() {
+  router.push('/studentlogboeken')
+}
+
+
+
 async function loadStage() {
   const token = localStorage.getItem('token')
   try {

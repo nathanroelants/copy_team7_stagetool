@@ -4,13 +4,21 @@
     <aside class="sidebar">
       <div class="logo">STAGE.BE</div>
       <nav>
-        <button
-          :class="{ active: activeView === 'mijn-stage' }"
-          @click="activeView = 'mijn-stage'"
-        >
-          Mijn stage
-        </button>
-      </nav>
+  <button
+    :class="{ active: activeView === 'mijn-stage' }"
+    @click="activeView = 'mijn-stage'"
+  >
+    Mijn stage
+  </button>
+
+  <button
+    v-if=true
+    @click="router.push('/studentlogboeken')"
+  >
+    Logboeken
+  </button>
+</nav>
+      
       <button class="logout-btn" @click="handleLogout">Uitloggen</button>
     </aside>
 
