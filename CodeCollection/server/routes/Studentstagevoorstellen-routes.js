@@ -49,13 +49,13 @@ router.post('/', verifyToken, async (req, res) => {
   const supabase = req.app.get('supabase');
 
   const {
-    bedrijfsnaam, naam_stagementor, email_stagementor,
+    bedrijfsnaam, voornaam_stagementor, achternaam_stagementor, email_stagementor,
     stage_begin, stage_einde, beschrijving,
     technische_skills, tools, straat, huisnummer, gemeente, land
   } = req.body;
 
   if (!bedrijfsnaam || !stage_begin || !stage_einde || !beschrijving ||
-      !naam_stagementor || !email_stagementor || !straat || !gemeente) {
+      !voornaam_stagementor || !achternaam_stagementor || !email_stagementor || !straat || !gemeente) {
     return res.status(400).json({ error: 'Verplichte velden ontbreken' });
   }
 
@@ -70,13 +70,11 @@ router.post('/', verifyToken, async (req, res) => {
   if (bestaandeMentor) {
     stagementorId = bestaandeMentor.id;
   } else {
-    const voornaam = naam_stagementor.split(' ')[0] || naam_stagementor;
-    const achternaam = naam_stagementor.split(' ').slice(1).join(' ') || '';
-
     const { data: nieuweMentor, error: mentorError } = await supabase
       .from('gebruikers')
       .insert([{
-        voornaam, achternaam,
+        voornaam: voornaam_stagementor,
+        achternaam: achternaam_stagementor,
         email: email_stagementor,
         wachtwoord_hash: generatePassword(),
         rol: 'stagementor',

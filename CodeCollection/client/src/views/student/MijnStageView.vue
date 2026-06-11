@@ -22,7 +22,11 @@
             <label>Bedrijfsnaam</label>
           </div>
           <div class="form-group">
-            <input v-model="form.naam_stagementor" type="text" placeholder="Thomas Peeters" required />
+            <input v-model="form.voornaam_stagementor" type="text" placeholder="Thomas Peeters" required />
+            <label>Naam stagementor</label>
+          </div>
+          <div class="form-group">
+            <input v-model="form.achternaam_stagementor" type="text" placeholder="Thomas Peeters" required />
             <label>Naam stagementor</label>
           </div>
           <div class="form-group">
@@ -201,7 +205,8 @@ const errorMessage = ref('')
 
 const initialForm = {
   bedrijfsnaam: '',
-  naam_stagementor: '',
+  voornaam_stagementor: '',
+  achternaam_stagementor: '',
   email_stagementor: '',
   stage_begin: '',
   stage_einde: '',
@@ -222,7 +227,8 @@ watch(stage, (newStage) => {
   if (newStage?.status === 'stagevoorstel aanpassingen vereist') {
     form.value = {
       bedrijfsnaam: info.value.bedrijfsnaam || '',
-      naam_stagementor: '',
+      voornaam_stagementor: '',
+      achternaam_stagementor: '',
       email_stagementor: '',
       stage_begin: newStage.start_datum || '',
       stage_einde: newStage.eind_datum || '',

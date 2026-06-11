@@ -3,7 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import { createClient } from '@supabase/supabase-js';
 import authRoutes from './routes/auth.js';
-import stagevoorstellenRoutes from './routes/stagevoorstellen.js';
+import stagevoorstellenRoutes from './routes/Studentstagevoorstellen-routes.js';
 
 dotenv.config();
 
