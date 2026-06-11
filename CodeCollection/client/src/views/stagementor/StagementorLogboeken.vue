@@ -1,40 +1,45 @@
 <template>
-  <div class="logboek">
+  <div class="dashboard-layout">
 
-    <div class="topbar">
-      <span class="topbar-titel">Student Logboek</span>
-      <span class="topbar-naam">{{ mentor.naam }}</span>
-      <span class="topbar-logo">erasmus</span>
-    </div>
-
-    <div class="layout">
-
-      <div class="sidebar">
-        <div class="sidebar-logo">STAGE.BE</div>
-        <button class="sidebar-knop" :class="{ actief: pagina === 'logboek' }"    @click="pagina = 'logboek'">Logboek</button>
-        <button class="sidebar-knop" :class="{ actief: pagina === 'stageinfo' }"  @click="pagina = 'stageinfo'">Stagevoorstel</button>
-        <button class="sidebar-knop" :class="{ actief: pagina === 'evaluatie' }"  @click="pagina = 'evaluatie'">Evaluatie</button>
-        <button class="sidebar-knop" :class="{ actief: pagina === 'documenten' }" @click="pagina = 'documenten'">Documenten</button>
-        <button class="sidebar-knop sidebar-uitloggen" @click="uitloggen">Uitloggen</button>
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <span class="brand-text">STAGE.BE</span>
       </div>
 
-      <div class="pagina-inhoud">
+      <nav class="sidebar-nav">
+        <button class="nav-item" :class="{ active: pagina === 'logboek' }"    @click="pagina = 'logboek'">Logboek</button>
+        <button class="nav-item" :class="{ active: pagina === 'stageinfo' }"  @click="pagina = 'stageinfo'">Stagevoorstel</button>
+        <button class="nav-item" :class="{ active: pagina === 'evaluatie' }"  @click="pagina = 'evaluatie'">Evaluatie</button>
+        <button class="nav-item" :class="{ active: pagina === 'documenten' }" @click="pagina = 'documenten'">Documenten</button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <button class="logout-btn" @click="uitloggen">Uitloggen</button>
+      </div>
+    </aside>
+
+    <main class="main-content">
+
+      <header class="topbar">
+        <div class="topbar-user">{{ mentor.naam }}</div>
+        <img src="../../assets/erasmus-logo.png" alt="Erasmus Hogeschool Brussel" class="topbar-logo" />
+      </header>
+
+      <section class="content-area">
 
         <div v-if="pagina === 'logboek'">
-          <div class="logboek-header">
-            <div>
-              <div class="pagina-titel">Logboek van {{ student.naam }}</div>
-              <div class="pagina-subtitel">Stageperiode: {{ student.startDatum }} – {{ student.eindDatum }} | {{ student.bedrijf }}</div>
-            </div>
+          <div class="section-header">
+            <h2>Logboek van {{ student.naam }}</h2>
+            <p class="sectie-subtitel">Stageperiode: {{ student.startDatum }} – {{ student.eindDatum }} | {{ student.bedrijf }}</p>
           </div>
 
-          <div v-if="weken.length === 0" class="leeg-bericht">Nog geen dagen ingevoerd door de student.</div>
+          <div v-if="weken.length === 0" class="status-message">Nog geen dagen ingevoerd door de student.</div>
 
           <div v-for="week in weken" :key="week.nummer" class="week-kaart">
             <div class="week-header">
               <div class="week-titel">
                 Week {{ week.nummer }}
-                <span class="status-badge" :class="statusKleur(week.status)">{{ week.status }}</span>
+                <span class="badge" :class="statusKleur(week.status)">{{ week.status }}</span>
               </div>
               <div class="week-acties">
                 <button
@@ -75,7 +80,9 @@
         </div>
 
         <div v-if="pagina === 'stageinfo'">
-          <div class="pagina-titel">Stagevoorstel</div>
+          <div class="section-header">
+            <h2>Stagevoorstel</h2>
+          </div>
           <div class="info-kaart">
             <div><strong>Student:</strong> {{ student.naam }}</div>
             <div><strong>Leergroep:</strong> {{ student.leergroep }}</div>
@@ -86,7 +93,9 @@
         </div>
 
         <div v-if="pagina === 'evaluatie'">
-          <div class="pagina-titel">Evaluatie</div>
+          <div class="section-header">
+            <h2>Evaluatie</h2>
+          </div>
           <div class="info-kaart">
             <div><strong>Tussentijdse score:</strong> {{ evaluatie.tussentijds ?? '—' }}</div>
             <div><strong>Eindscore:</strong> {{ evaluatie.eind ?? '—' }}</div>
@@ -95,16 +104,18 @@
         </div>
 
         <div v-if="pagina === 'documenten'">
-          <div class="pagina-titel">Documenten</div>
-          <div v-if="documenten.length === 0" class="leeg-bericht">Geen documenten beschikbaar.</div>
+          <div class="section-header">
+            <h2>Documenten</h2>
+          </div>
+          <div v-if="documenten.length === 0" class="status-message">Geen documenten beschikbaar.</div>
           <div v-for="doc in documenten" :key="doc.naam" class="document-rij">
             <span>{{ doc.naam }}</span>
             <a :href="doc.url" target="_blank" class="knop-blauw">Downloaden</a>
           </div>
         </div>
 
-      </div>
-    </div>
+      </section>
+    </main>
   </div>
 </template>
 
@@ -147,18 +158,13 @@ export default {
       },
     ])
 
-    const evaluatie = reactive({
-      tussentijds: null,
-      eind: null,
-      opmerking: null,
-    })
-
+    const evaluatie = reactive({ tussentijds: null, eind: null, opmerking: null })
     const documenten = reactive([])
 
     function statusKleur(status) {
-      if (status === 'Afgetekend')    return 'status-groen'
-      if (status === 'Ingediend')     return 'status-blauw'
-      return 'status-grijs'
+      if (status === 'Afgetekend') return 'badge-groen'
+      if (status === 'Ingediend')  return 'badge-blauw'
+      return 'badge-grijs'
     }
 
     function tekenAf(week) {
@@ -174,153 +180,151 @@ export default {
     }
 
     return {
-      pagina,
-      mentor,
-      student,
-      weken,
-      evaluatie,
-      documenten,
-      statusKleur,
-      tekenAf,
-      uitloggen,
+      pagina, mentor, student, weken, evaluatie, documenten,
+      statusKleur, tekenAf, uitloggen,
     }
   },
 }
 </script>
 
 <style scoped>
-html, body, #app {
-  margin: 0;
-  padding: 0;
-  width: 100%;
-  height: 100%;
-}
-
-.logboek {
-  font-family: 'Segoe UI', sans-serif;
-  background: #f4f6fb;
+.dashboard-layout {
+  display: flex;
   min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-}
-
-.topbar {
-  background: #1e3a5f;
-  color: white;
-  padding: 14px 28px;
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.topbar-titel {
-  font-size: 18px;
-  font-weight: 700;
-  flex: 1;
-}
-
-.topbar-naam {
-  font-size: 14px;
-  opacity: 0.85;
-}
-
-.topbar-logo {
-  font-size: 13px;
-  font-weight: 600;
-  opacity: 0.6;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-}
-
-.layout {
-  display: flex;
-  flex: 1;
+  font-family: Arial, Helvetica, sans-serif;
+  background: #f0f4f8;
 }
 
 .sidebar {
-  width: 200px;
-  background: #ffffff;
-  border-right: 1px solid #dde3f0;
-  padding: 20px 0;
+  width: 180px;
+  background: #29a8e0;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  flex-shrink: 0;
 }
 
-.sidebar-logo {
-  font-size: 16px;
-  font-weight: 700;
-  color: #1e3a5f;
-  padding: 0 20px 16px 20px;
-  border-bottom: 1px solid #eee;
-  margin-bottom: 8px;
+.sidebar-brand {
+  padding: 1.25rem 1rem;
+  background: #1ec8f0;
 }
 
-.sidebar-knop {
-  background: none;
-  border: none;
-  border-left: 3px solid transparent;
-  padding: 12px 20px;
-  cursor: pointer;
-  font-size: 14px;
-  color: #444;
-  text-align: left;
-  width: 100%;
-  transition: background 0.2s;
+.brand-text {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: 0.5px;
 }
 
-.sidebar-knop:hover {
-  background: #f0f4ff;
-}
-
-.sidebar-knop.actief {
-  background: #e8eeff;
-  border-left: 3px solid #3b6fd4;
-  color: #1e3a5f;
-  font-weight: 600;
-}
-
-.sidebar-uitloggen {
-  margin-top: auto;
-  color: #c0392b;
-}
-
-.pagina-inhoud {
+.sidebar-nav {
   flex: 1;
-  padding: 28px 32px;
+  padding: 1rem 0.75rem;
 }
 
-.pagina-titel {
-  font-size: 22px;
-  font-weight: 700;
-  color: #1e3a5f;
-  margin-bottom: 4px;
+.nav-item {
+  width: 100%;
+  text-align: left;
+  background: white;
+  border: none;
+  border-radius: 6px;
+  padding: 0.65rem 1rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #222;
+  cursor: pointer;
+  margin-bottom: 0.5rem;
+  transition: background 0.15s;
 }
 
-.pagina-subtitel {
-  font-size: 13px;
-  color: #888;
-  margin-bottom: 20px;
+.nav-item:hover,
+.nav-item.active {
+  background: #f0f0f0;
 }
 
-.logboek-header {
+.sidebar-footer {
+  padding: 1rem 0.75rem;
+}
+
+.logout-btn {
+  width: 100%;
+  background: white;
+  border: none;
+  border-radius: 6px;
+  padding: 0.65rem 1rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #222;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.logout-btn:hover {
+  background: #f0f0f0;
+}
+
+.main-content {
+  flex: 1;
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 20px;
+  flex-direction: column;
+  overflow: hidden;
 }
 
-.leeg-bericht {
-  color: #888;
+.topbar {
+  background: white;
+  padding: 0.75rem 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.topbar-user {
+  background: #e8e8e8;
+  border-radius: 6px;
+  padding: 0.4rem 1rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #222;
+}
+
+.topbar-logo {
+  height: 36px;
+  object-fit: contain;
+}
+
+.content-area {
+  padding: 1.5rem 2rem;
+  overflow-y: auto;
+}
+
+.section-header {
+  margin-bottom: 1.25rem;
+}
+
+.section-header h2 {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #111;
+  margin: 0 0 0.25rem;
+}
+
+.sectie-subtitel {
+  font-size: 0.85rem;
+  color: #555;
+  margin: 0;
+}
+
+.status-message {
+  color: #555;
+  padding: 1rem 0;
+  font-size: 0.95rem;
   font-style: italic;
-  margin-top: 20px;
 }
 
 .week-kaart {
   background: white;
   border-radius: 10px;
-  padding: 20px;
-  margin-bottom: 20px;
+  padding: 1.25rem;
+  margin-bottom: 1.25rem;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
@@ -332,9 +336,9 @@ html, body, #app {
 }
 
 .week-titel {
-  font-size: 16px;
+  font-size: 1rem;
   font-weight: 700;
-  color: #1e3a5f;
+  color: #111;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -352,17 +356,6 @@ html, body, #app {
   text-align: right;
 }
 
-.status-badge {
-  font-size: 12px;
-  padding: 3px 10px;
-  border-radius: 20px;
-  font-weight: 600;
-}
-
-.status-groen { background: #d4edda; color: #1a7a3a; }
-.status-blauw { background: #d0e4ff; color: #1e3a5f; }
-.status-grijs  { background: #e9ecef; color: #666; }
-
 .dag-tabel {
   width: 100%;
   border-collapse: collapse;
@@ -371,7 +364,7 @@ html, body, #app {
 
 .dag-tabel th {
   background: #f0f4ff;
-  color: #1e3a5f;
+  color: #111;
   padding: 8px 12px;
   text-align: left;
   font-weight: 600;
@@ -390,14 +383,13 @@ html, body, #app {
 .info-kaart {
   background: white;
   border-radius: 10px;
-  padding: 20px 24px;
+  padding: 1.25rem 1.5rem;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   display: flex;
   flex-direction: column;
   gap: 10px;
   font-size: 14px;
   color: #333;
-  margin-top: 12px;
 }
 
 .document-rij {
@@ -412,34 +404,47 @@ html, body, #app {
   font-size: 14px;
 }
 
+.badge {
+  display: inline-block;
+  padding: 0.3rem 0.75rem;
+  border-radius: 5px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.badge-groen { background: #4caf50; color: #fff; }
+.badge-blauw { background: #2196f3; color: #fff; }
+.badge-grijs  { background: #aaa;    color: #fff; }
+
 .knop-blauw {
-  background: #3b6fd4;
+  background: #29a8e0;
   color: white;
   border: none;
-  padding: 8px 16px;
+  padding: 0.5rem 1rem;
   border-radius: 6px;
   cursor: pointer;
-  font-size: 13px;
+  font-size: 0.85rem;
   font-weight: 600;
   text-decoration: none;
 }
 
 .knop-blauw:hover {
-  background: #2d58b0;
+  background: #1e90c0;
 }
 
 .knop-groen {
-  background: #1a7a3a;
+  background: #4caf50;
   color: white;
   border: none;
-  padding: 8px 16px;
+  padding: 0.5rem 1rem;
   border-radius: 6px;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 0.85rem;
   font-weight: 600;
 }
 
 .knop-groen:hover {
-  background: #145e2d;
+  background: #388e3c;
 }
 </style>
