@@ -5,6 +5,7 @@ import { createClient } from '@supabase/supabase-js';
 import authRoutes from './routes/auth.js';
 import docentRoutes from './routes/docent.routes.js';
 import stagecommissieRoutes from './routes/stagecommissie.routes.js';
+import studentEvaluatieRoutes from './routes/student.evaluatie.routes.js';
 
 dotenv.config();
 
@@ -22,7 +23,8 @@ app.use(express.json());
 
 app.use('/api/auth', authRoutes);
 app.use('/api/docent', docentRoutes);
-app.use('/api/stagecommissie', stagecommissieRoutes)
+app.use('/api/stagecommissie', stagecommissieRoutes);
+app.use('/api/student', studentEvaluatieRoutes);
 
 app.get('/api/test', (req, res) => {
   res.json({ message: 'Backend werkt! 🚀' });
