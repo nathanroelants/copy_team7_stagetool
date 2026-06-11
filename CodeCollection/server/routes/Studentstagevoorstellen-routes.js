@@ -2,6 +2,12 @@ import express from 'express';
 import jwt from 'jsonwebtoken';
 
 const router = express.Router();
+console.log('Studentstagevoorstellen routes geladen');
+
+router.get('/test', (req, res) => {
+  res.json({ ok: true });
+});
+
 
 function verifyToken(req, res, next) {
   const authHeader = req.headers.authorization;

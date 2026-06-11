@@ -29,105 +29,123 @@
       <!-- Content -->
       <section class="content-area">
 
-        <!-- Page header -->
-        <div class="page-header">
-          <div class="student-identity">
-            <div class="avatar-circle">{{ initialen(student.naam) }}</div>
-            <div>
-              <h1 class="student-fullname">Mijn logboek</h1>
-              <p class="student-sub">
-                {{ student.startDatum }} – {{ student.eindDatum }} &nbsp;·&nbsp; {{ student.bedrijf }}
-              </p>
+        <!-- Laadfout -->
+        <div v-if="fout" class="error-banner">
+          {{ fout }}
+        </div>
+
+        <!-- Laden -->
+        <div v-if="isLaden" class="loading-state">
+          Logboek wordt geladen…
+        </div>
+
+        <template v-else>
+          <!-- Page header -->
+          <div class="page-header">
+            <div class="student-identity">
+              <div class="avatar-circle">{{ initialen(student.naam) }}</div>
+              <div>
+                <h1 class="student-fullname">Mijn logboek</h1>
+                <p class="student-sub">
+                  {{ student.startDatum }} – {{ student.eindDatum }} &nbsp;·&nbsp; {{ student.bedrijf }}
+                </p>
+              </div>
             </div>
+            <button class="actie-btn btn-blauw" @click="openDagModal">+ Nieuwe dag</button>
           </div>
-          <button class="actie-btn btn-blauw" @click="openDagModal">+ Nieuwe dag</button>
-        </div>
 
-        <!-- Empty state -->
-        <div v-if="weken.length === 0" class="empty-state">
-          Nog geen dagen ingevoerd. Klik op "+ Nieuwe dag" om te starten.
-        </div>
+          <!-- Empty state -->
+          <div v-if="weken.length === 0" class="empty-state">
+            Nog geen dagen ingevoerd. Klik op "+ Nieuwe dag" om te starten.
+          </div>
 
-        <!-- Week cards -->
-        <div class="cards-stack">
-          <div v-for="(week, wi) in weken" :key="wi" class="card">
+          <!-- Week cards -->
+          <div class="cards-stack">
+            <div v-for="(week, wi) in weken" :key="week.nummer" class="card">
 
-            <!-- Week header (clickable) -->
-            <div
-              class="card-header week-header-row"
-              :class="{ open: week.open }"
-              @click="week.open = !week.open"
-            >
-              <div class="week-header-left">
-                <span class="week-toggle">{{ week.open ? '▲' : '▼' }}</span>
-                <span class="card-title">Week {{ week.nummer }} — {{ week.van }} – {{ week.tot }}</span>
+              <!-- Week header (clickable) -->
+              <div
+                class="card-header week-header-row"
+                :class="{ open: week.open }"
+                @click="week.open = !week.open"
+              >
+                <div class="week-header-left">
+                  <span class="week-toggle">{{ week.open ? '▲' : '▼' }}</span>
+                  <span class="card-title">Week {{ week.nummer }} — {{ week.van }} – {{ week.tot }}</span>
+                </div>
+                <div class="week-header-right">
+                  <span class="uren-pill">{{ totaalUren(week) }}/{{ week.maxUren }}u</span>
+                  <span class="badge" :class="statusKleur(week.status)">{{ week.status }}</span>
+                </div>
               </div>
-              <div class="week-header-right">
-                <span class="uren-pill">{{ totaalUren(week) }}/{{ week.maxUren }}u</span>
-                <span class="badge" :class="statusKleur(week.status)">{{ week.status }}</span>
-              </div>
-            </div>
 
-            <!-- Week body -->
-            <div v-if="week.open" class="card-body">
-              <div class="entry-subtitle">Dagen — Week {{ week.nummer }} ({{ totaalUren(week) }}/{{ week.maxUren }}u)</div>
+              <!-- Week body -->
+              <div v-if="week.open" class="card-body">
+                <div class="entry-subtitle">Dagen — Week {{ week.nummer }} ({{ totaalUren(week) }}/{{ week.maxUren }}u)</div>
 
-              <table class="entry-tabel">
-                <thead>
-                  <tr>
-                    <th class="kol-datum">Datum</th>
-                    <th class="kol-taak">Taak</th>
-                    <th class="kol-uren">Uren</th>
-                    <th class="kol-los">LO's</th>
-                    <th class="kol-knop"></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <template v-for="(entry, ei) in week.entries" :key="ei">
-                    <tr class="entry-rij">
-                      <td>{{ entry.datum }}</td>
-                      <td>{{ entry.taak }}</td>
-                      <td>{{ entry.uren }}u</td>
-                      <td class="los-cel">{{ entry.los }}</td>
-                      <td>
-                        <button class="actie-btn btn-blauw klein" @click="entry.open = !entry.open">
-                          {{ entry.open ? 'Sluiten' : 'Bekijk' }}
-                        </button>
-                      </td>
+                <table class="entry-tabel">
+                  <thead>
+                    <tr>
+                      <th class="kol-datum">Datum</th>
+                      <th class="kol-taak">Taak</th>
+                      <th class="kol-uren">Uren</th>
+                      <th class="kol-los">LO's</th>
+                      <th class="kol-knop"></th>
                     </tr>
-                    <tr v-if="entry.open" class="entry-detail-rij">
-                      <td colspan="5">
-                        <div class="entry-detail">
-                          <div class="detail-kolom">
-                            <div class="detail-naam">{{ entry.taak }}</div>
-                            <div class="field-label">Beschrijving taken</div>
-                            <div class="tag-list">
-                              <span v-for="lo in entry.losArray" :key="lo" class="tag tag-blue">{{ lo }}</span>
+                  </thead>
+                  <tbody>
+                    <template v-for="(entry, ei) in week.entries" :key="entry.id ?? ei">
+                      <tr class="entry-rij">
+                        <td>{{ entry.datum }}</td>
+                        <td>{{ entry.taak }}</td>
+                        <td>{{ entry.uren }}u</td>
+                        <td class="los-cel">{{ entry.los }}</td>
+                        <td>
+                          <button class="actie-btn btn-blauw klein" @click="entry.open = !entry.open">
+                            {{ entry.open ? 'Sluiten' : 'Bekijk' }}
+                          </button>
+                        </td>
+                      </tr>
+                      <tr v-if="entry.open" class="entry-detail-rij">
+                        <td colspan="5">
+                          <div class="entry-detail">
+                            <div class="detail-kolom">
+                              <div class="detail-naam">{{ entry.taak }}</div>
+                              <div class="field-label">Beschrijving taken</div>
+                              <div class="tag-list">
+                                <span v-for="lo in entry.losArray" :key="lo" class="tag tag-blue">{{ lo }}</span>
+                              </div>
+                              <div class="field-label" style="margin-top: 8px;">Behaalde competenties</div>
                             </div>
-                            <div class="field-label" style="margin-top: 8px;">Behaalde competenties</div>
+                            <div class="detail-kolom">
+                              <div class="detail-waarde">{{ entry.reflectie || '—' }}</div>
+                              <div class="field-label">Reflectie</div>
+                            </div>
+                            <div class="detail-kolom">
+                              <div class="detail-waarde">{{ entry.leerpunten || '—' }}</div>
+                              <div class="field-label">Leerpunten</div>
+                            </div>
                           </div>
-                          <div class="detail-kolom">
-                            <div class="detail-waarde">{{ entry.reflectie || '—' }}</div>
-                            <div class="field-label">Reflectie</div>
-                          </div>
-                          <div class="detail-kolom">
-                            <div class="detail-waarde">{{ entry.leerpunten || '—' }}</div>
-                            <div class="field-label">Leerpunten</div>
-                          </div>
-                        </div>
-                      </td>
-                    </tr>
-                  </template>
-                </tbody>
-              </table>
+                        </td>
+                      </tr>
+                    </template>
+                  </tbody>
+                </table>
 
-              <div class="week-footer">
-                <button class="actie-btn btn-oranje" @click="weekIndienen(wi)">Week indienen</button>
+                <div class="week-footer">
+                  <button
+                    class="actie-btn btn-oranje"
+                    :disabled="week.status === 'ingediend' || week.status === 'Afgehandeld' || week.isBezig"
+                    @click="weekIndienen(wi)"
+                  >
+                    {{ week.isBezig ? 'Bezig…' : 'Week indienen' }}
+                  </button>
+                </div>
               </div>
-            </div>
 
+            </div>
           </div>
-        </div>
+        </template>
 
       </section>
     </main>
@@ -148,9 +166,12 @@
         <textarea v-model="dagForm.reflectie" placeholder="Wat heb je gedaan en geleerd?"></textarea>
         <label>Leerpunten</label>
         <textarea v-model="dagForm.leerpunten" placeholder="Verbeterpunten of opmerkingen..."></textarea>
+        <div v-if="modalFout" class="modal-fout">{{ modalFout }}</div>
         <div class="modal-acties">
-          <button class="actie-btn btn-grijs" @click="toonDagModal = false">Annuleren</button>
-          <button class="actie-btn btn-blauw" @click="slaDagOp">Opslaan</button>
+          <button class="actie-btn btn-grijs" :disabled="dagForm.isBezig" @click="toonDagModal = false">Annuleren</button>
+          <button class="actie-btn btn-blauw" :disabled="dagForm.isBezig" @click="slaDagOp">
+            {{ dagForm.isBezig ? 'Opslaan…' : 'Opslaan' }}
+          </button>
         </div>
       </div>
     </div>
@@ -159,55 +180,154 @@
 </template>
 
 <script>
-import { ref, reactive } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
+
+const API_BASE = import.meta.env.VITE_API_URL ?? ''
+
+function authHeaders() {
+  const token = localStorage.getItem('token') ?? ''
+  return {
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${token}`,
+  }
+}
+
+async function apiGet(path) {
+  const res = await fetch(`${API_BASE}${path}`, { headers: authHeaders() })
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}))
+    throw new Error(body.error ?? `HTTP ${res.status}`)
+  }
+  return res.json()
+}
+
+async function apiPost(path, data) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify(data),
+  })
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}))
+    throw new Error(body.error ?? `HTTP ${res.status}`)
+  }
+  return res.json()
+}
+
+async function apiPatch(path) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    method: 'PATCH',
+    headers: authHeaders(),
+  })
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}))
+    throw new Error(body.error ?? `HTTP ${res.status}`)
+  }
+  return res.json()
+}
 
 export default {
   name: 'Logboek',
   setup() {
     const toonDagModal = ref(false)
+    const isLaden = ref(true)
+    const fout = ref(null)
+    const modalFout = ref(null)
+    const stageId = ref(null)
 
     const student = reactive({
-      naam: 'Nathan Roelaerts',
-      leergroep: 'Leergroep IVI',
-      startDatum: '02/02/2026',
-      eindDatum: '29/05/2026',
-      bedrijf: 'Cronos Group NV',
-      mentor: 'Jan Janssen',
-      adres: 'Industrielaan 5, 2000 Antwerpen',
+      naam: '',
+      startDatum: '',
+      eindDatum: '',
+      bedrijf: '',
     })
 
-    const weken = reactive([
-      {
-        nummer: 1, van: '02/02', tot: '08/02/2026', maxUren: 40,
-        status: 'Afgehandeld', open: false,
-        entries: [
-          { datum: '02/02', taak: 'Kennismaking team', uren: 8, los: 'LO5: Communiceren', reflectie: 'Eerste dag op de werkvloer.', leerpunten: 'Geen problemen.', losArray: ['LO5: Communiceren'], open: false },
-          { datum: '03/02', taak: 'Omgeving installeren', uren: 8, los: 'LO2: IT-oplossingen', reflectie: 'Node, Vue en Git opgezet.', leerpunten: 'Kleine versieconflicten opgelost.', losArray: ['LO2: IT-oplossingen'], open: false },
-        ],
-      },
-      {
-        nummer: 2, van: '09/02', tot: '15/02/2026', maxUren: 40,
-        status: 'Afgehandeld', open: false,
-        entries: [
-          { datum: '09/02', taak: 'Dashboard front-end', uren: 8, los: 'LO2: IT-oplossingen, LO4: Technologie', reflectie: 'Vue componenten gebouwd.', leerpunten: 'Geen problemen.', losArray: ['LO2: IT-oplossingen', 'LO4: Technologie'], open: false },
-          { datum: '10/02', taak: 'Unit tests schrijven', uren: 8, los: 'LO3: Implementatie', reflectie: 'Jest opgezet voor de componenten.', leerpunten: '', losArray: ['LO3: Implementatie'], open: false },
-        ],
-      },
-      {
-        nummer: 3, van: '16/02', tot: '22/02/2026', maxUren: 40,
-        status: 'in afwachting', open: true,
-        entries: [
-          { datum: '19/02', taak: 'API-integratie klantportaal', uren: 8, los: 'LO2: IT-oplossingen, LO4: Technologie', reflectie: 'Geleerd hoe REST API werkt.', leerpunten: 'Geen problemen.', losArray: ['LO2: IT-oplossingen', 'LO4: Technologie'], open: false },
-          { datum: '18/02', taak: 'Database design', uren: 8, los: 'LO2: IT-oplossingen', reflectie: 'Schema opgemaakt in MySQL.', leerpunten: '', losArray: ['LO2: IT-oplossingen'], open: false },
-        ],
-      },
-    ])
+    const weken = reactive([])
 
-    const dagForm = reactive({ datum: '', taak: '', uren: 8, los: '', reflectie: '', leerpunten: '' })
+    const dagForm = reactive({
+      datum: '', taak: '', uren: 8, los: '', reflectie: '', leerpunten: '', isBezig: false,
+    })
+
+    // ── Laden ────────────────────────────────────────────────────────────────
+
+    onMounted(async () => {
+      try {
+        // 1. Haal stageinfo op
+        const stageInfo = await apiGet('/api/studentlogboeken/mijn-stage')
+        stageId.value = stageInfo.stageId
+        student.naam = stageInfo.naam
+        student.startDatum = formatApiDatum(stageInfo.startDatum)
+        student.eindDatum = formatApiDatum(stageInfo.eindDatum)
+        student.bedrijf = stageInfo.bedrijf
+
+        // 2. Haal weken op
+        await laadWeken()
+      } catch (e) {
+        fout.value = e.message
+      } finally {
+        isLaden.value = false
+      }
+    })
+
+    async function laadWeken() {
+      const data = await apiGet(`/api/studentlogboeken/${stageId.value}/weken`)
+      weken.splice(0, weken.length, ...data)
+    }
+
+    // ── Dag opslaan ──────────────────────────────────────────────────────────
+
+    function openDagModal() {
+      Object.assign(dagForm, { datum: '', taak: '', uren: 8, los: '', reflectie: '', leerpunten: '', isBezig: false })
+      modalFout.value = null
+      toonDagModal.value = true
+    }
+
+    async function slaDagOp() {
+      if (!dagForm.datum) { modalFout.value = 'Selecteer een datum.'; return }
+      if (!dagForm.taak)  { modalFout.value = 'Vul een taak in.'; return }
+
+      dagForm.isBezig = true
+      modalFout.value = null
+
+      try {
+        await apiPost(`/api/studentlogboeken/${stageId.value}/dag`, {
+          datum:     dagForm.datum,
+          taak:      dagForm.taak,
+          uren:      dagForm.uren,
+          los:       dagForm.los,
+          reflectie: dagForm.reflectie,
+          leerpunten: dagForm.leerpunten,
+        })
+        toonDagModal.value = false
+        await laadWeken()
+      } catch (e) {
+        modalFout.value = e.message
+      } finally {
+        dagForm.isBezig = false
+      }
+    }
+
+    // ── Week indienen ────────────────────────────────────────────────────────
+
+    async function weekIndienen(wi) {
+      const week = weken[wi]
+      if (!week || week.isBezig) return
+
+      week.isBezig = true
+      try {
+        await apiPatch(`/api/studentlogboeken/${stageId.value}/week/${week.nummer}/indienen`)
+        week.status = 'ingediend'
+      } catch (e) {
+        fout.value = e.message
+      } finally {
+        week.isBezig = false
+      }
+    }
+
+    // ── Hulpfuncties ─────────────────────────────────────────────────────────
 
     function initialen(naam) {
-      const delen = (naam || '').split(' ')
-      return delen.map(d => d[0] || '').join('').toUpperCase().slice(0, 2)
+      return (naam || '').split(' ').map(d => d[0] || '').join('').toUpperCase().slice(0, 2)
     }
 
     function totaalUren(week) {
@@ -217,84 +337,31 @@ export default {
     function statusKleur(s) {
       if (!s) return 'badge-grijs'
       const l = s.toLowerCase()
-      if (l === 'afgehandeld') return 'badge-groen'
+      if (l === 'afgehandeld' || l === 'afgetekend') return 'badge-groen'
       if (l === 'ingediend') return 'badge-geel'
       if (l === 'afgekeurd') return 'badge-rood'
       return 'badge-blauw'
     }
 
-    function weekIndienen(wi) {
-      weken[wi].status = 'ingediend'
-    }
-
-    function getMaandag(dateObj) {
-      const d = new Date(dateObj)
-      const dag = d.getDay()
-      const diff = dag === 0 ? -6 : 1 - dag
-      d.setDate(d.getDate() + diff)
-      return d
-    }
-
-    function formatDatum(dateObj) {
-      const dd = String(dateObj.getDate()).padStart(2, '0')
-      const mm = String(dateObj.getMonth() + 1).padStart(2, '0')
-      return dd + '/' + mm
-    }
-
-    function formatDatumVolledig(dateObj) {
-      return formatDatum(dateObj) + '/' + dateObj.getFullYear()
-    }
-
-    function slaDagOp() {
-      if (!dagForm.datum) return
-      const gekozenDatum = new Date(dagForm.datum)
-      const maandag = getMaandag(gekozenDatum)
-      const zondag = new Date(maandag)
-      zondag.setDate(zondag.getDate() + 6)
-      const weekVan = formatDatum(maandag)
-      const weekTot = formatDatumVolledig(zondag)
-      const losArray = dagForm.los.split(',').map(s => s.trim()).filter(Boolean)
-      const dd = String(gekozenDatum.getDate()).padStart(2, '0')
-      const mm = String(gekozenDatum.getMonth() + 1).padStart(2, '0')
-      const datumLabel = dd + '/' + mm
-      const nieuweEntry = {
-        datum: datumLabel, taak: dagForm.taak, uren: dagForm.uren,
-        los: dagForm.los, reflectie: dagForm.reflectie,
-        leerpunten: dagForm.leerpunten, losArray, open: false,
-      }
-      const bestaand = weken.find(w => w.van === weekVan)
-      if (bestaand) {
-        bestaand.entries.push(nieuweEntry)
-        bestaand.open = true
-      } else {
-        weken.push({
-          nummer: weken.length + 1, van: weekVan, tot: weekTot,
-          maxUren: 40, status: 'in afwachting', open: true, entries: [nieuweEntry],
-        })
-        weken.sort((a, b) => {
-          const [daA, maA] = a.van.split('/').map(Number)
-          const [daB, maB] = b.van.split('/').map(Number)
-          return maA !== maB ? maA - maB : daA - daB
-        })
-        weken.forEach((w, i) => { w.nummer = i + 1 })
-      }
-      Object.assign(dagForm, { datum: '', taak: '', uren: 8, los: '', reflectie: '', leerpunten: '' })
-      toonDagModal.value = false
-    }
-
-    function openDagModal() {
-      Object.assign(dagForm, { datum: '', taak: '', uren: 8, los: '', reflectie: '', leerpunten: '' })
-      toonDagModal.value = true
+    /** Zet "2026-02-03" om naar "03/02/2026" */
+    function formatApiDatum(iso) {
+      if (!iso) return ''
+      const [jaar, mm, dd] = iso.split('-')
+      return `${dd}/${mm}/${jaar}`
     }
 
     function uitloggen() {
-      if (confirm('Bent u zeker dat u wilt uitloggen?')) alert('U bent uitgelogd.')
+      if (confirm('Bent u zeker dat u wilt uitloggen?')) {
+        localStorage.removeItem('token')
+        alert('U bent uitgelogd.')
+      }
     }
 
     return {
-      toonDagModal, student, weken, dagForm,
-      initialen, totaalUren, statusKleur, weekIndienen,
-      openDagModal, slaDagOp, uitloggen,
+      toonDagModal, isLaden, fout, modalFout,
+      student, weken, dagForm,
+      initialen, totaalUren, statusKleur,
+      weekIndienen, openDagModal, slaDagOp, uitloggen,
     }
   },
 }
@@ -438,6 +505,35 @@ html, body, #app {
 .content-area {
   padding: 1.5rem 2rem;
   overflow-y: auto;
+}
+
+/* ── Feedback banners ── */
+.error-banner {
+  background: #fdecea;
+  color: #b71c1c;
+  border: 1px solid #f5c6cb;
+  border-radius: 8px;
+  padding: 0.85rem 1.25rem;
+  margin-bottom: 1rem;
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+.loading-state {
+  text-align: center;
+  color: #888;
+  padding: 3rem 0;
+  font-size: 0.95rem;
+}
+
+.modal-fout {
+  background: #fdecea;
+  color: #b71c1c;
+  border-radius: 6px;
+  padding: 0.6rem 0.9rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-top: 0.75rem;
 }
 
 /* ── Page header ── */
