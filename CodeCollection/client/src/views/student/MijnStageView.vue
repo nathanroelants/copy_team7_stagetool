@@ -2,7 +2,15 @@
   <div class="mijn-stage">
 
     <!-- FORMULÁRIO: sem stage OU foi afgekeurd e quer criar novo -->
-    <div v-if="!stage || (stage.status === 'stagevoorstel geweigerd' && criarNovo)">
+    <div v-if="!stage || stage.status === 'stagevoorstel aanpassingen vereist' || (stage.status === 'stagevoorstel geweigerd' && criarNovo)">
+      <div v-if="stage && stage.status === 'stagevoorstel aanpassingen vereist'" class="alert">
+  ✏️ Je stagevoorstel heeft aanpassingen nodig.
+</div>
+
+<div v-if="stage && stage.status === 'stagevoorstel aanpassingen vereist' && info.feedback" class="feedback">
+  <label>Feedback van stagecommissie:</label>
+  <p>{{ info.feedback }}</p>
+</div>
       <h2>Stagevoorstel indienen</h2>
 
       <form @submit.prevent="handleSubmit" class="card">
@@ -184,7 +192,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 
 const stage = ref(null)
 const criarNovo = ref(false)
@@ -208,8 +216,26 @@ const initialForm = {
 
 const form = ref({ ...initialForm })
 
-// Computed: stagevoorstellen aninhada na stage
 const info = computed(() => stage.value?.stagevoorstellen || {})
+
+watch(stage, (newStage) => {
+  if (newStage?.status === 'stagevoorstel aanpassingen vereist') {
+    form.value = {
+      bedrijfsnaam: info.value.bedrijfsnaam || '',
+      naam_stagementor: '',
+      email_stagementor: '',
+      stage_begin: newStage.start_datum || '',
+      stage_einde: newStage.eind_datum || '',
+      beschrijving: info.value.beschrijving || '',
+      technische_skills: info.value.technische_skills || '',
+      tools: info.value.tools || '',
+      straat: info.value.straat || '',
+      huisnummer: info.value.huisnummer || '',
+      gemeente: info.value.gemeente || '',
+      land: info.value.land || ''
+    }
+  }
+})
 
 function formatDate(dateStr) {
   if (!dateStr) return ''
@@ -245,9 +271,15 @@ async function handleSubmit() {
   errorMessage.value = ''
 
   const token = localStorage.getItem('token')
+  const isUpdate = stage.value?.status === 'stagevoorstel aanpassingen vereist'
+
   try {
-    const response = await fetch('/api/stagevoorstellen', {
-      method: 'POST',
+    const url = isUpdate
+      ? `/api/stagevoorstellen/${stage.value.id}`
+      : '/api/stagevoorstellen'
+
+    const response = await fetch(url, {
+      method: isUpdate ? 'PUT' : 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`
@@ -271,7 +303,6 @@ async function handleSubmit() {
 
 onMounted(loadStage)
 </script>
-
 <style scoped>
 .mijn-stage {
   padding: 2rem;
