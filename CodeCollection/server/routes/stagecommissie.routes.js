@@ -249,11 +249,12 @@ router.put(
       })
     }
 
-    const { data: stage, error: stageError } = await supabase
-      .from('stages')
-      .select('id, stagevoorstel_id')
-      .eq('id', stageId)
-      .maybeSingle()
+  const { data: stage, error: stageError } = await supabase
+  .from('stages')
+  .select('id, stagevoorstel_id, stagementor_id')
+  .eq('id', stageId)
+  .maybeSingle()
+
 
     if (stageError || !stage) {
       return res.status(404).json({
@@ -299,6 +300,29 @@ router.put(
     res.json({
       success: true
     })
+
+
+
+    // Activeer stagementor bij goedkeuring stagevoorstel
+if (
+  status === 'stagevoorstel geaccepteerd' &&
+  stage.stagementor_id
+) {
+  const { error: mentorError } = await supabase
+    .from('gebruikers')
+    .update({
+      actief: true
+    })
+    .eq('id', stage.stagementor_id)
+
+  if (mentorError) {
+    console.error(mentorError)
+
+    return res.status(500).json({
+      error: 'Stagevoorstel goedgekeurd, maar mentor kon niet geactiveerd worden'
+    })
+  }
+}
   }
 );
 
