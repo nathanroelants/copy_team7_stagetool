@@ -37,7 +37,7 @@ router.get('/mijn', verifyToken, async (req, res) => {
     `)
     .eq('student_id', req.user.id)
     .order('aangemaakt_op', { ascending: false });
-    
+
   if (error) {
     return res.status(500).json({ error: error.message });
   }
@@ -184,6 +184,53 @@ router.put('/:id', verifyToken, async (req, res) => {
   }
 
   res.json(updatedStage);
+});
+
+// DELETE /api/stagevoorstellen/:id - apaga voorstel recusado
+router.delete('/:id', verifyToken, async (req, res) => {
+  const supabase = req.app.get('supabase');
+  const stageId = req.params.id;
+
+  // Verifica que o stage pertence ao utilizador e está geweigerd
+  const { data: stage, error: findError } = await supabase
+    .from('stages')
+    .select('id, student_id, stagevoorstel_id, status')
+    .eq('id', stageId)
+    .single();
+
+  if (findError || !stage) {
+    return res.status(404).json({ error: 'Stage niet gevonden' });
+  }
+
+  if (stage.student_id !== req.user.id) {
+    return res.status(403).json({ error: 'Geen toegang' });
+  }
+
+  if (stage.status !== 'stagevoorstel geweigerd') {
+    return res.status(400).json({ error: 'Alleen geweigerde voorstellen kunnen verwijderd worden' });
+  }
+
+  // 1. Apagar a stage primeiro (filho)
+  const { error: stageDelError } = await supabase
+    .from('stages')
+    .delete()
+    .eq('id', stageId);
+
+  if (stageDelError) {
+    return res.status(500).json({ error: stageDelError.message });
+  }
+
+  // 2. Apagar o stagevoorstel (pai)
+  const { error: voorstelDelError } = await supabase
+    .from('stagevoorstellen')
+    .delete()
+    .eq('id', stage.stagevoorstel_id);
+
+  if (voorstelDelError) {
+    return res.status(500).json({ error: voorstelDelError.message });
+  }
+
+  res.json({ success: true });
 });
 
 export default router;

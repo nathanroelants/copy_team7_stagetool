@@ -196,8 +196,8 @@
   <p>{{ info.feedback }}</p>
 </div>
 
-        <div v-if="stage.status === 'stagevoorstel geweigerd'" class="actions">
-  <button @click="criarNovo = true" class="btn-submit">
+ <div v-if="stage.status === 'stagevoorstel geweigerd'" class="actions">
+  <button @click="handleDeleteAndCreateNew" class="btn-submit">
     + Nieuw voorstel indienen
   </button>
 </div>
@@ -316,6 +316,29 @@ async function handleSubmit() {
     errorMessage.value = err.message || 'Indienen mislukt'
   } finally {
     loading.value = false
+  }
+}
+
+async function handleDeleteAndCreateNew() {
+  const token = localStorage.getItem('token')
+  try {
+    const response = await fetch(`/api/stagevoorstellen/${stage.value.id}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` }
+    })
+
+    if (!response.ok) {
+      const data = await response.json()
+      throw new Error(data.error)
+    }
+
+    // Sucesso → limpar tudo e mostrar formulário
+    stage.value = null
+    criarNovo.value = false
+    form.value = { ...initialForm }
+
+  } catch (err) {
+    errorMessage.value = err.message || 'Verwijderen mislukt'
   }
 }
 
