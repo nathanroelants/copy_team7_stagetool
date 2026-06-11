@@ -186,18 +186,6 @@
         class="docent-input"
         placeholder="Achternaam docent"
       />
-
-      <button
-        class="actie-btn btn-blauw"
-        :disabled="
-          docentLoading ||
-          !docentVoornaam.trim() ||
-          !docentAchternaam.trim()
-        "
-        @click="wijsDocentToe"
-      >
-        Toewijzen
-      </button>
     </div>
   </div>
 </div>
@@ -319,6 +307,24 @@ async function wijzigStageVoorstelStatus(status) {
   try {
     actieLoading.value = true
 
+    // Bij goedkeuren eerst docent controleren/toewijzen
+    if (status === 'stagevoorstel geaccepteerd') {
+      if (
+        !docentVoornaam.value.trim() ||
+        !docentAchternaam.value.trim()
+      ) {
+        throw new Error(
+          'Geef eerst een voornaam en achternaam van een docent op'
+        )
+      }
+
+      const docentToegekend = await wijsDocentToe()
+
+      if (!docentToegekend) {
+        return
+      }
+    }
+
     const token = localStorage.getItem('token')
 
     const res = await fetch(
@@ -350,6 +356,12 @@ async function wijzigStageVoorstelStatus(status) {
 
     if (status !== 'stagevoorstel aanpassingen vereist') {
       feedbackTekst.value = ''
+    }
+
+    // velden leegmaken na succesvolle goedkeuring
+    if (status === 'stagevoorstel geaccepteerd') {
+      docentVoornaam.value = ''
+      docentAchternaam.value = ''
     }
 
     alert('Stagevoorstel succesvol bijgewerkt')
@@ -401,8 +413,8 @@ async function wijsDocentToe() {
           Authorization: `Bearer ${token}`
         },
         body: JSON.stringify({
-          voornaam: docentVoornaam.value,
-          achternaam: docentAchternaam.value
+          voornaam: docentVoornaam.value.trim(),
+          achternaam: docentAchternaam.value.trim()
         })
       }
     )
@@ -413,12 +425,10 @@ async function wijsDocentToe() {
       throw new Error(data.error || 'Kon docent niet toewijzen')
     }
 
-    alert('Docent succesvol toegewezen')
-
-    docentVoornaam.value = ''
-    docentAchternaam.value = ''
+    return true
   } catch (err) {
     alert(err.message)
+    return false
   } finally {
     docentLoading.value = false
   }
