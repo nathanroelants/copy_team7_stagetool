@@ -32,11 +32,12 @@ router.get('/mijn', verifyToken, async (req, res) => {
     .select(`
       id, status, start_datum, eind_datum,
       docent_id, stagementor_id,
-      stagevoorstellen (*)
+      stagevoorstellen (*),
+      stagementor:gebruikers!stages_bedrijfsbegeleider_id_fkey (voornaam, achternaam, email)
     `)
     .eq('student_id', req.user.id)
     .order('aangemaakt_op', { ascending: false });
-
+    
   if (error) {
     return res.status(500).json({ error: error.message });
   }

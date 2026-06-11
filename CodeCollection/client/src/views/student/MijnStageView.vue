@@ -15,25 +15,25 @@
 
       <form @submit.prevent="handleSubmit" class="card">
 
-        <h3>Gegevens bedrijf</h3>
-        <div class="form-grid">
-          <div class="form-group">
-            <input v-model="form.bedrijfsnaam" type="text" placeholder="Cronos Group NV" required />
-            <label>Bedrijfsnaam</label>
-          </div>
-          <div class="form-group">
-            <input v-model="form.voornaam_stagementor" type="text" placeholder="Thomas Peeters" required />
-            <label>Naam stagementor</label>
-          </div>
-          <div class="form-group">
-            <input v-model="form.achternaam_stagementor" type="text" placeholder="Thomas Peeters" required />
-            <label>Naam stagementor</label>
-          </div>
-          <div class="form-group">
-            <input v-model="form.email_stagementor" type="email" placeholder="t.peeters@cronos.be" required />
-            <label>E-mail stagementor</label>
-          </div>
-        </div>
+      <h3>Gegevens bedrijf</h3>
+<div class="form-grid">
+  <div class="form-group">
+    <input v-model="form.bedrijfsnaam" type="text" placeholder="Cronos Group NV" required />
+    <label>Bedrijfsnaam</label>
+  </div>
+  <div class="form-group">
+    <input v-model="form.voornaam_stagementor" type="text" placeholder="Thomas" required />
+    <label>Voornaam stagementor</label>
+  </div>
+  <div class="form-group">
+    <input v-model="form.achternaam_stagementor" type="text" placeholder="Peeters" required />
+    <label>Achternaam stagementor</label>
+  </div>
+  <div class="form-group">
+    <input v-model="form.email_stagementor" type="email" placeholder="t.peeters@cronos.be" required />
+    <label>E-mail stagementor</label>
+  </div>
+</div>
 
         <h3>Stageperiode</h3>
         <div class="form-grid">
@@ -122,12 +122,24 @@
 </div>
 
         <h3>Gegevens bedrijf</h3>
-        <div class="info-grid">
-          <div class="info-item">
-            <div class="field-display">{{ info.bedrijfsnaam || '-' }}</div>
-            <label>Bedrijfsnaam</label>
-          </div>
-        </div>
+<div class="info-grid">
+  <div class="info-item">
+    <div class="field-display">{{ info.bedrijfsnaam || '-' }}</div>
+    <label>Bedrijfsnaam</label>
+  </div>
+  <div class="info-item">
+    <div class="field-display">{{ stage.stagementor?.voornaam || '-' }}</div>
+    <label>Voornaam stagementor</label>
+  </div>
+  <div class="info-item">
+    <div class="field-display">{{ stage.stagementor?.achternaam || '-' }}</div>
+    <label>Achternaam stagementor</label>
+  </div>
+  <div class="info-item">
+    <div class="field-display">{{ stage.stagementor?.email || '-' }}</div>
+    <label>E-mail stagementor</label>
+  </div>
+</div>
 
         <h3>Stageperiode</h3>
         <div class="info-grid">
