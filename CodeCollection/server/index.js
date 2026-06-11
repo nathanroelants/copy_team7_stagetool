@@ -7,6 +7,8 @@ import dotenv from 'dotenv';
 import { createClient } from '@supabase/supabase-js';
 
 import authRoutes from './routes/auth.js';
+import docentRoutes from './routes/docent.routes.js';
+import stagecommissieRoutes from './routes/stagecommissie.routes.js';
 
 import docentRoutes from './routes/docent.routes.js';
 
@@ -33,6 +35,8 @@ app.use(cors());
 app.use(express.json());
  
 app.use('/api/auth', authRoutes);
+app.use('/api/docent', docentRoutes);
+app.use('/api/stagecommissie', stagecommissieRoutes)
 
 app.use('/api/docent', docentRoutes);
 

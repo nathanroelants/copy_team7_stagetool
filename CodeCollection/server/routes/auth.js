@@ -2,8 +2,11 @@ import express from 'express';
 import jwt from 'jsonwebtoken';
 
 const router = express.Router();
-
+console.log('Auth routes geladen');
 // POST /api/auth/login
+router.get('/test', (req, res) => {
+  res.json({ ok: true });
+});
 router.post('/login', async (req, res) => {
   const { email, password } = req.body;
 
