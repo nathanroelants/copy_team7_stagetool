@@ -101,7 +101,6 @@ export function useStudentEvaluatie() {
       const data = await response.json()
       if (!response.ok) throw new Error(data.error || 'Fout bij opslaan')
       opgeslagen.value[competentieId] = true
-      setTimeout(() => { opgeslagen.value[competentieId] = false }, 3000)
     } catch (err) {
       alert(err.message || 'Kon niet opslaan.')
     } finally {
@@ -113,20 +112,17 @@ export function useStudentEvaluatie() {
     loading.value = true
     fout.value = ''
     try {
-      competenties.value = [
-        { id: '1', naam: 'Beheersing van het planningsproces' },
-        { id: '2', naam: 'Ontwerpen IT-oplossingen' },
-        { id: '3', naam: 'Implementatie digitale producten' },
-        { id: '4', naam: 'Integratie technologie en infrastructuur' },
-        { id: '5', naam: 'Onderzoekende houding' },
-        { id: '6', naam: 'Helder en transparant communiceren' },
-        { id: '7', naam: 'Probleemoplossend vermogen' },
-        { id: '8', naam: 'Persoonlijke ontwikkeling' },
-        { id: '9', naam: 'Professionele attitude' },
-        { id: '10', naam: 'Ondernemend handelen' },
-        { id: '11', naam: 'Ethisch en deontologisch handelen' },
-      ]
-      evaluaties.value = []
+      const token = localStorage.getItem('token')
+      const [compRes, evalRes] = await Promise.all([
+        fetch('/api/student/competenties', { headers: { Authorization: `Bearer ${token}` } }),
+        fetch('/api/student/evaluaties', { headers: { Authorization: `Bearer ${token}` } }),
+      ])
+      const compData = await compRes.json()
+      const evalData = await evalRes.json()
+      if (!compRes.ok) throw new Error(compData.error || 'Fout bij laden competenties')
+      if (!evalRes.ok) throw new Error(evalData.error || 'Fout bij laden evaluaties')
+      competenties.value = compData
+      evaluaties.value = evalData
     } catch (err) {
       fout.value = err.message || 'Kon data niet laden.'
     } finally {

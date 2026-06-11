@@ -70,7 +70,7 @@
             <div v-if="openCompetentie === competentie.id" class="competentie-body">
 
               <div class="score-sectie">
-                <p class="sectie-label">Jouw zelfevaluatie score</p>
+                <p class="sectie-label">Jouw score</p>
                 <div class="score-opties">
                   <label
                     v-for="optie in scoreOpties"
@@ -82,7 +82,8 @@
                       :name="'score-' + competentie.id"
                       :value="optie.waarde"
                       :checked="getEvaluatie(competentie.id)?.score === optie.waarde"
-                      disabled
+                      @change="setScore(competentie.id, optie.waarde)"
+                      :disabled="opgeslagen[competentie.id]"
                     />
                     <div class="optie-inhoud">
                       <span class="optie-punt">{{ optie.waarde }}pt — {{ optie.label }}</span>
@@ -99,6 +100,7 @@
                   placeholder="Beschrijf hoe jij deze competentie hebt toegepast tijdens je stage..."
                   :value="getEvaluatie(competentie.id)?.feedback || ''"
                   @input="setFeedback(competentie.id, $event.target.value)"
+                  :disabled="opgeslagen[competentie.id]"
                 ></textarea>
               </div>
 
@@ -458,9 +460,16 @@ const {
   padding: 0.75rem 1rem;
   border-radius: 8px;
   border: 2px solid #e8edf3;
+  cursor: pointer;
+  background: white;
+  transition: all 0.15s;
+}
+
+.score-optie:has(input:disabled) {
+  background: #f0f0f0;
   cursor: not-allowed;
-  background: #f8f9fa;
   opacity: 0.75;
+  border-color: #ddd;
 }
 
 .score-optie input[type="radio"] {
@@ -469,7 +478,12 @@ const {
   flex-shrink: 0;
   width: 16px;
   height: 16px;
-  cursor: not-allowed;
+  cursor: pointer;
+}
+
+.score-optie:hover {
+  border-color: #4a90b8;
+  background: #f5fafd;
 }
 
 .score-optie.geselecteerd {
@@ -518,6 +532,13 @@ const {
   outline: none;
   border-color: #4a90b8;
   box-shadow: 0 0 0 3px rgba(41,168,224,0.1);
+}
+
+.tekstvak:disabled {
+  background: #f0f0f0;
+  color: #999;
+  cursor: not-allowed;
+  border-color: #ddd;
 }
 
 .mentor-sectie {
