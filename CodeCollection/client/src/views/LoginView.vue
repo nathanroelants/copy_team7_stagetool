@@ -62,7 +62,7 @@ function redirectByRol(rol) {
   const routes = {
     student: '/student',
     docent: '/docent',
-    mentor: '/mentor',
+    stagementor: '/stagementor',
     stagecommissie: '/stagecommissie',
     administratie: '/administratie'
   }
