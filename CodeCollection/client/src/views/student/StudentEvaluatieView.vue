@@ -35,17 +35,21 @@
             Tussentijds
           </button>
           <button
-            :class="['tab-btn', { active: actieveTab === 'eindevaluatie' }]"
-            @click="actieveTab = 'eindevaluatie'"
+            :class="['tab-btn', { active: actieveTab === 'eindevaluatie' }, { geblokkeerd: !eindevaluatieOpen }]"
+            @click="eindevaluatieOpen && (actieveTab = 'eindevaluatie')"
           >
             Eindevaluatie
           </button>
         </div>
 
+        <div v-if="actieveTab === 'eindevaluatie' && !eindevaluatieOpen" class="geblokkeerd-melding">
+          Eindevaluatie is nog niet beschikbaar. Wacht tot de docent dit activeert.
+        </div>
+
         <div v-if="loading" class="status-message">Competenties laden...</div>
         <div v-else-if="fout" class="status-message error">{{ fout }}</div>
 
-        <div v-else class="rubriek-tabel">
+        <div v-else :class="['rubriek-tabel', { 'eindevaluatie-bg': actieveTab === 'eindevaluatie' }]">
 
           <div class="rubriek-header">
             <div class="col-criteria">Criteria</div>
@@ -109,6 +113,7 @@
                   Bewerken
                 </button>
                 <span v-if="opgeslagen[competentie.id]" class="opgeslagen-melding">✓ Opgeslagen</span>
+                <span v-if="foutMelding[competentie.id]" class="fout-melding">{{ foutMelding[competentie.id] }}</span>
               </div>
             </div>
 
@@ -126,6 +131,7 @@ import { useStudentEvaluatie } from './useStudentEvaluatie.js'
 const {
   gebruikerNaam,
   actieveTab,
+  eindevaluatieOpen,
   openCompetentie,
   competenties,
   evaluaties,
@@ -133,6 +139,7 @@ const {
   fout,
   bezig,
   opgeslagen,
+  foutMelding,
   scoreOpties,
   toggleCompetentie,
   getEvaluatie,
@@ -155,8 +162,8 @@ const {
 }
 
 .sidebar {
-  width: 200px;
-  background: linear-gradient(180deg, #3a6070 0%, #4a7a90 100%);
+  width: 280px;
+  background: linear-gradient(180deg, #5a9ab8 0%, #7ab8d0 100%);
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
@@ -169,7 +176,7 @@ const {
 }
 
 .brand-text {
-  font-size: 1.5rem;
+  font-size: 1.8rem;
   font-weight: 900;
   color: #fff;
   letter-spacing: 1px;
@@ -189,8 +196,8 @@ const {
   background: transparent;
   border: none;
   border-radius: 8px;
-  padding: 0.7rem 1rem;
-  font-size: 0.88rem;
+  padding: 0.85rem 1.25rem;
+  font-size: 1rem;
   font-weight: 600;
   color: rgba(255,255,255,0.8);
   cursor: pointer;
@@ -249,10 +256,10 @@ const {
 
 .topbar-user {
   background: #eaf1f6;
-  border-radius: 20px;
-  padding: 0.4rem 1.1rem;
-  font-size: 0.9rem;
-  font-weight: 700;
+  border-radius: 8px;
+  padding: 0.5rem 1.25rem;
+  font-size: 1.3rem;
+  font-weight: 800;
   color: #1a7aaa;
 }
 
@@ -261,8 +268,15 @@ const {
   object-fit: contain;
 }
 
+.topbar-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #4a90b8;
+  opacity: 0.75;
+}
+
 .content-area {
-  padding: 2rem 2.5rem;
+  padding: 2rem 1rem;
   overflow-y: auto;
   flex: 1;
   display: flex;
@@ -292,8 +306,8 @@ const {
 .tab-btn {
   background: none;
   border: none;
-  padding: 0.55rem 1.5rem;
-  font-size: 0.92rem;
+  padding: 0.75rem 2rem;
+  font-size: 1.05rem;
   font-weight: 600;
   color: #888;
   cursor: pointer;
@@ -309,6 +323,27 @@ const {
   background: #4a90b8;
   color: white;
   box-shadow: 0 2px 6px rgba(41,168,224,0.3);
+}
+
+.tab-btn.geblokkeerd {
+  color: #aaa;
+  cursor: not-allowed;
+}
+
+.geblokkeerd-melding {
+  width: 100%;
+  background: #e8f4fb;
+  border: 1px solid #b0d4e8;
+  border-radius: 8px;
+  padding: 1.25rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #4a7a9e;
+  margin-bottom: 1rem;
+}
+
+.eindevaluatie-bg {
+  background: #e8f4fb;
 }
 
 .status-message {
@@ -595,6 +630,12 @@ const {
   background: #eaf1f6;
 }
 
+.fout-melding {
+  font-size: 0.85rem;
+  color: #e53935;
+  font-weight: 600;
+}
+
 /* ── Rubriek tabel ── */
 .rubriek-tabel {
   width: 100%;
@@ -607,7 +648,7 @@ const {
 .rubriek-header,
 .rubriek-rij {
   display: grid;
-  grid-template-columns: 150px repeat(5, 1fr) 220px;
+  grid-template-columns: 150px repeat(3, 1fr) 300px;
   border-bottom: 1px solid #c5d5e0;
 }
 
@@ -660,7 +701,7 @@ const {
 }
 
 .lo-naam {
-  font-size: 0.85rem;
+  font-size: 0.95rem;
   font-weight: 600;
   color: #1a1a2e;
 }
@@ -685,9 +726,10 @@ const {
 }
 
 .col-score .optie-beschrijving {
-  font-size: 0.78rem;
-  color: #555;
-  line-height: 1.4;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #333;
+  line-height: 1.5;
   flex: 1;
 }
 

@@ -7,6 +7,7 @@ export function useStudentEvaluatie() {
   const gebruikerNaam = `${user.voornaam || ''} ${user.achternaam || ''}`.trim() || user.email || 'Student'
 
   const actieveTab = ref('tussentijds')
+  const eindevaluatieOpen = ref(false) // wordt later door docent aangezet
   const openCompetentie = ref(null)
   const competenties = ref([])
   const evaluaties = ref([])
@@ -14,12 +15,11 @@ export function useStudentEvaluatie() {
   const fout = ref('')
   const bezig = ref({})
   const opgeslagen = ref({})
+  const foutMelding = ref({})
 
   const scoreOpties = [
     { waarde: 5, label: 'Uitstekend', beschrijving: 'Volledig zelfstandig, geen bijsturing nodig.' },
-    { waarde: 4, label: 'Goed', beschrijving: 'Grotendeels zelfstandig, kleine bijsturing nodig.' },
     { waarde: 3, label: 'Voldoende', beschrijving: 'Met regelmatige begeleiding.' },
-    { waarde: 2, label: 'Onvoldoende', beschrijving: 'Enkel op vraag van begeleider.' },
     { waarde: 0, label: 'Niet aanwezig', beschrijving: 'Weinig of geen toepassing aanwezig.' },
   ]
 
@@ -78,7 +78,11 @@ export function useStudentEvaluatie() {
 
   async function slaOp(competentieId) {
     const evaluatie = getEvaluatie(competentieId)
-    if (!evaluatie) return
+    if (!evaluatie || !evaluatie.feedback?.trim()) {
+      foutMelding.value[competentieId] = 'Invullen feedback is verplicht!'
+      return
+    }
+    foutMelding.value[competentieId] = ''
 
     bezig.value[competentieId] = true
     opgeslagen.value[competentieId] = false
@@ -147,6 +151,7 @@ export function useStudentEvaluatie() {
   return {
     gebruikerNaam,
     actieveTab,
+    eindevaluatieOpen,
     openCompetentie,
     competenties,
     evaluaties,
@@ -154,6 +159,7 @@ export function useStudentEvaluatie() {
     fout,
     bezig,
     opgeslagen,
+    foutMelding,
     scoreOpties,
     toggleCompetentie,
     getEvaluatie,
