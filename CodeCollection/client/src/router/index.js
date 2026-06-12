@@ -8,6 +8,7 @@ const routes = [
   { path: '/docent', component: () => import('../views/docent/DocentStudenten.vue') },
   { path: '/mentor', component: () => import('../views/mentor/DashboardView.vue') },
   { path: '/stagecommissie', component: () => import('../views/stagecommissie/StagecommissieStudenten.vue') },
+  { path: '/stagecommissie/studenten/:stageId/voorstel', component: () => import('../views/stagecommissie/StagecommissieVoorstellen.vue') },
   { path: '/administratie', component: () => import('../views/administratie/AccountbeheerView.vue') },
   { path: '/:pathMatch(.*)*', redirect: '/' }
 ]
