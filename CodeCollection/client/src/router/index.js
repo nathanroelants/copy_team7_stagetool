@@ -11,6 +11,7 @@ const routes = [
   { path: '/stagecommissie', component: () => import('../views/stagecommissie/StagecommissieStudenten.vue') },
   { path: '/stagecommissie/studenten/:stageId/voorstel', component: () => import('../views/stagecommissie/StagecommissieVoorstellen.vue') },
   { path: '/administratie', component: () => import('../views/administratie/AccountbeheerView.vue') },
+  { path: '/administratie/competentiebeheer', component: () => import('../views/administratie/CompetentieBeheer.vue') },
   { path: '/:pathMatch(.*)*', redirect: '/' }
 ]
 
