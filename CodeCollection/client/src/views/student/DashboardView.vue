@@ -11,12 +11,12 @@
     Mijn stage
   </button>
 
-  <button
-    v-if=true
-    @click="router.push('/studentlogboeken')"
-  >
-    Logboeken
-  </button>
+<button
+  v-if="stageStatus === 'stagevoorstel geaccepteerd' || stageStatus === 'lopend' || stageStatus === 'afgerond'"
+  @click="router.push('/studentlogboeken')"
+>
+  Logboeken
+</button>
 </nav>
       
       <button class="logout-btn" @click="handleLogout">Uitloggen</button>
@@ -34,9 +34,29 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import MijnStageView from './MijnStageView.vue'
+
+
+const stageStatus = ref(null)
+
+async function loadStageStatus() {
+  const token = localStorage.getItem('token')
+  try {
+    const response = await fetch('/api/stagevoorstellen/mijn', {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    const data = await response.json()
+    if (Array.isArray(data) && data.length > 0) {
+      stageStatus.value = data[0].status
+    }
+  } catch (err) {
+    console.error(err)
+  }
+}
+
+onMounted(loadStageStatus)
 
 const router = useRouter()
 const user = JSON.parse(localStorage.getItem('user'))
