@@ -95,6 +95,26 @@ router.get('/mijn-stage', requireAuth, requireStudent, async (req, res) => {
   });
 });
 
+// ─── GET /api/logboek/competenties ────────────────────────────────────────────
+// Haal alle (actieve) competenties (LO's) op, voor gebruik in het "Nieuwe dag" formulier
+
+router.get('/competenties', requireAuth, async (req, res) => {
+  const supabase = req.app.get('supabase');
+
+  const { data, error } = await supabase
+    .from('competenties')
+    .select('id, naam, beschrijving, volgorde, opleiding_id, actief')
+    .eq('actief', true)
+    .order('volgorde', { ascending: true });
+
+  if (error) {
+    console.error('Fout bij ophalen competenties:', error);
+    return res.status(500).json({ error: 'Kon competenties niet ophalen' });
+  }
+
+  res.json(data || []);
+});
+
 // ─── GET /api/logboek/:stageId/weken ──────────────────────────────────────────
 // Haal alle logboekweken (gegroepeerd) op voor een stage
 
@@ -108,77 +128,83 @@ router.get('/:stageId/weken', requireAuth, async (req, res) => {
     if (!stage) return res.status(403).json({ error: 'Geen toegang tot deze stage' });
   }
 
-const { data: logboeken, error } = await supabase
-  .from('logboeken')
-  .select('*')
-  .eq('stage_id', stageId)
-  .order('week_nummer', { ascending: true })
-  .order('datum_van', { ascending: true });
+  const { data: logboeken, error } = await supabase
+    .from('logboeken')
+    .select(`
+      *,
+      competenties_logboeken (
+        competentie_id,
+        competenties:competentie_id ( id, naam )
+      )
+    `)
+    .eq('stage_id', stageId)
+    .order('week_nummer', { ascending: true })
+    .order('datum_van', { ascending: true });
 
-if (error) {
-  console.error('Fout bij ophalen logboeken:', error);
-  return res.status(500).json({ error: 'Kon logboeken niet ophalen' });
-}
-
-// Stage opvragen voor start_datum
-const { data: stageRow, error: stageRowError } = await supabase
-  .from('stages')
-  .select('start_datum')
-  .eq('id', stageId)
-  .single();
-
-if (stageRowError || !stageRow) {
-  return res.status(500).json({ error: 'Kon stage niet ophalen' });
-}
-
-function maandagVan(d) {
-  const dt = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-  const dayNum = dt.getUTCDay() || 7;
-  dt.setUTCDate(dt.getUTCDate() - (dayNum - 1));
-  return dt;
-}
-
-const startMaandag = maandagVan(new Date(stageRow.start_datum));
-
-// Groepeer entries per weeknummer
-const wekenMap = {};
-for (const entry of logboeken || []) {
-  const wn = entry.week_nummer;
-  if (!wekenMap[wn]) {
-    wekenMap[wn] = {
-      nummer: wn,
-      status: entry.status ?? 'aangemaakt',
-      afgetekend: entry.afgetekend ?? false,
-      entries: [],
-    };
+  if (error) {
+    console.error('Fout bij ophalen logboeken:', error);
+    return res.status(500).json({ error: 'Kon logboeken niet ophalen' });
   }
-  wekenMap[wn].entries.push(entry);
-  wekenMap[wn].status = entry.status ?? wekenMap[wn].status;
-  wekenMap[wn].afgetekend = entry.afgetekend ?? wekenMap[wn].afgetekend;
-}
 
-const weken = Object.values(wekenMap).map(week => {
-  const maandag = new Date(startMaandag);
-  maandag.setUTCDate(maandag.getUTCDate() + (week.nummer - 1) * 7);
-  const zondag = new Date(maandag);
-  zondag.setUTCDate(zondag.getUTCDate() + 6);
+  // Stage opvragen voor start_datum
+  const { data: stageRow, error: stageRowError } = await supabase
+    .from('stages')
+    .select('start_datum')
+    .eq('id', stageId)
+    .single();
 
-  return {
-    nummer: week.nummer,
-    van: formatDatum(maandag),
-    tot: formatDatumVolledig(zondag),
-    maxUren: 40,
-    status: week.status,
-    open: false,
-    entries: week.entries.map(mapEntry),
-  };
-});
+  if (stageRowError || !stageRow) {
+    return res.status(500).json({ error: 'Kon stage niet ophalen' });
+  }
 
-res.json(weken);
+  function maandagVan(d) {
+    const dt = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+    const dayNum = dt.getUTCDay() || 7;
+    dt.setUTCDate(dt.getUTCDate() - (dayNum - 1));
+    return dt;
+  }
+
+  const startMaandag = maandagVan(new Date(stageRow.start_datum));
+
+  // Groepeer entries per weeknummer
+  const wekenMap = {};
+  for (const entry of logboeken || []) {
+    const wn = entry.week_nummer;
+    if (!wekenMap[wn]) {
+      wekenMap[wn] = {
+        nummer: wn,
+        status: entry.status ?? 'aangemaakt',
+        afgetekend: entry.afgetekend ?? false,
+        entries: [],
+      };
+    }
+    wekenMap[wn].entries.push(entry);
+    wekenMap[wn].status = entry.status ?? wekenMap[wn].status;
+    wekenMap[wn].afgetekend = entry.afgetekend ?? wekenMap[wn].afgetekend;
+  }
+
+  const weken = Object.values(wekenMap).map(week => {
+    const maandag = new Date(startMaandag);
+    maandag.setUTCDate(maandag.getUTCDate() + (week.nummer - 1) * 7);
+    const zondag = new Date(maandag);
+    zondag.setUTCDate(zondag.getUTCDate() + 6);
+
+    return {
+      nummer: week.nummer,
+      van: formatDatum(maandag),
+      tot: formatDatumVolledig(zondag),
+      maxUren: 40,
+      status: week.status,
+      open: false,
+      entries: week.entries.map(mapEntry),
+    };
+  });
+
+  res.json(weken);
 });
 
 // ─── POST /api/logboek/:stageId/dag ───────────────────────────────────────────
-// Voeg een nieuwe dag toe aan het logboek
+// Voeg een nieuwe dag toe aan het logboek, met gekoppelde competenties (LO's)
 
 router.post('/:stageId/dag', requireAuth, requireStudent, async (req, res) => {
   const supabase = req.app.get('supabase');
@@ -187,7 +213,7 @@ router.post('/:stageId/dag', requireAuth, requireStudent, async (req, res) => {
   const stage = await getStageForStudent(supabase, stageId, req.user.id);
   if (!stage) return res.status(403).json({ error: 'Geen toegang tot deze stage' });
 
-  const { datum, taak, uren, los, reflectie, leerpunten } = req.body;
+  const { datum, taak, uren, competentieIds, reflectie, leerpunten } = req.body;
 
   if (!datum || !taak) {
     return res.status(400).json({ error: 'Datum en taak zijn verplicht' });
@@ -196,6 +222,17 @@ router.post('/:stageId/dag', requireAuth, requireStudent, async (req, res) => {
   const gekozenDatum = new Date(datum);
   if (isNaN(gekozenDatum.getTime())) {
     return res.status(400).json({ error: 'Ongeldige datum' });
+  }
+
+  // Valideer en normaliseer de meegegeven competentie-ids
+  const ids = Array.isArray(competentieIds)
+    ? competentieIds
+        .map(id => parseInt(id, 10))
+        .filter(id => Number.isInteger(id))
+    : [];
+
+  if (ids.length === 0) {
+    return res.status(400).json({ error: 'Selecteer minstens één leerdoel (LO).' });
   }
 
   const weekNummer = berekenWeeknummer(gekozenDatum, new Date(stage.start_datum));
@@ -209,7 +246,6 @@ router.post('/:stageId/dag', requireAuth, requireStudent, async (req, res) => {
       taken: taak,
       reflectie: reflectie || null,
       leerpunten: leerpunten || null,
-      problemen: los || null,   // LO's opgeslagen in het "problemen" veld — pas aan indien nodig
       uren_gemaakt: uren || 0,
       status: 'aangemaakt',
       afgetekend: false,
@@ -222,7 +258,40 @@ router.post('/:stageId/dag', requireAuth, requireStudent, async (req, res) => {
     return res.status(500).json({ error: 'Kon dag niet opslaan' });
   }
 
-  res.status(201).json(mapEntry(inserted));
+  // Koppelingen naar competenties_logboeken opslaan
+  const koppelingen = ids.map(competentieId => ({
+    logboek_id: inserted.id,
+    competentie_id: competentieId,
+  }));
+
+  const { error: koppelError } = await supabase
+    .from('competenties_logboeken')
+    .insert(koppelingen);
+
+  if (koppelError) {
+    console.error('Fout bij koppelen competenties:', koppelError);
+    // Logboekregel terugdraaien zodat er geen entry zonder LO's blijft hangen
+    await supabase.from('logboeken').delete().eq('id', inserted.id);
+    return res.status(500).json({ error: 'Kon leerdoelen niet koppelen' });
+  }
+
+  // Competentienamen ophalen voor de respons
+  const { data: competenties, error: compError } = await supabase
+    .from('competenties')
+    .select('id, naam')
+    .in('id', ids);
+
+  if (compError) {
+    console.error('Fout bij ophalen competenties:', compError);
+  }
+
+  res.status(201).json(mapEntry({
+    ...inserted,
+    competenties_logboeken: (competenties || []).map(c => ({
+      competentie_id: c.id,
+      competenties: c,
+    })),
+  }));
 });
 
 // ─── PATCH /api/logboek/:stageId/week/:weekNummer/indienen ────────────────────
@@ -295,6 +364,17 @@ router.delete('/entry/:entryId', requireAuth, requireStudent, async (req, res) =
   const stage = await getStageForStudent(supabase, entry.stage_id, req.user.id);
   if (!stage) return res.status(403).json({ error: 'Geen toegang tot deze entry' });
 
+  // Koppelingen met competenties eerst verwijderen
+  const { error: koppelError } = await supabase
+    .from('competenties_logboeken')
+    .delete()
+    .eq('logboek_id', entryId);
+
+  if (koppelError) {
+    console.error('Fout bij verwijderen competentie-koppelingen:', koppelError);
+    return res.status(500).json({ error: 'Kon gekoppelde leerdoelen niet verwijderen' });
+  }
+
   const { error } = await supabase
     .from('logboeken')
     .delete()
@@ -341,13 +421,19 @@ function berekenWeeknummer(datum, startDatum) {
 
 /**
  * Zet een Supabase logboek-rij om naar het formaat dat de Vue-component verwacht.
- * LO's worden opgeslagen in het veld "problemen"; pas dit aan als je een apart veld gebruikt.
+ * LO's (competenties) komen nu via de relatie competenties_logboeken -> competenties.
  */
 function mapEntry(row) {
-  const losString = row.problemen ?? '';
-  const losArray = losString
-    ? losString.split(',').map(s => s.trim()).filter(Boolean)
-    : [];
+  const koppelingen = row.competenties_logboeken ?? [];
+  const losArray = koppelingen
+    .map(k => k.competenties?.naam)
+    .filter(Boolean);
+
+  const losIds = koppelingen
+    .map(k => k.competentie_id)
+    .filter(id => id != null);
+
+  const losString = losArray.join(', ');
 
   const datum = row.datum_van ? row.datum_van.slice(5).split('-').reverse().join('/') : '';
 
@@ -358,6 +444,7 @@ function mapEntry(row) {
     uren: row.uren_gemaakt ?? 0,
     los: losString,
     losArray,
+    losIds,
     reflectie: row.reflectie ?? '',
     leerpunten: row.leerpunten ?? '',
     open: false,

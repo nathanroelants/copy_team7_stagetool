@@ -45,7 +45,7 @@
             <div class="student-identity">
               <div class="avatar-circle">{{ initialen(student.naam) }}</div>
               <div>
-                <h1 class="student-fullname">Mijn logboek</h1>
+                <h1 class="student-fullname">Mijn logboeken</h1>
                 <p class="student-sub">
                   {{ student.startDatum }} – {{ student.eindDatum }} &nbsp;·&nbsp; {{ student.bedrijf }}
                 </p>
@@ -111,11 +111,10 @@
                           <div class="entry-detail">
                             <div class="detail-kolom">
                               <div class="detail-naam">{{ entry.taak }}</div>
-                              <div class="field-label">Beschrijving taken</div>
+                              <div class="field-label">Behaalde leerdoelen (LO's)</div>
                               <div class="tag-list">
                                 <span v-for="lo in entry.losArray" :key="lo" class="tag tag-blue">{{ lo }}</span>
                               </div>
-                              <div class="field-label" style="margin-top: 8px;">Behaalde competenties</div>
                             </div>
                             <div class="detail-kolom">
                               <div class="detail-waarde">{{ entry.reflectie || '—' }}</div>
@@ -160,11 +159,28 @@
         <input type="text" v-model="dagForm.taak" placeholder="bv. API-integratie klantportaal" />
         <label>Aantal uren</label>
         <input type="number" v-model.number="dagForm.uren" min="0" max="10" />
-        <label>LO's (komma-gescheiden)</label>
-        <input type="text" v-model="dagForm.los" placeholder="bv. LO2: IT-oplossingen, LO4: Technologie" />
+
+        <label>Leerdoelen (LO's)</label>
+        <div v-if="competentiesLaden" class="competenties-laden">Leerdoelen laden…</div>
+        <div v-else-if="competentiesFout" class="modal-fout">{{ competentiesFout }}</div>
+        <div v-else class="competentie-list">
+          <label
+            v-for="c in alleCompetenties"
+            :key="c.id"
+            class="competentie-checkbox"
+          >
+            <input
+              type="checkbox"
+              :value="c.id"
+              v-model="dagForm.competentieIds"
+            />
+            <span>{{ c.naam }}</span>
+          </label>
+        </div>
+
         <label>Beschrijving / reflectie</label>
         <textarea v-model="dagForm.reflectie" placeholder="Wat heb je gedaan en geleerd?"></textarea>
-        <label>Leerpunten</label>
+        <label>Leerpunten / problemen</label>
         <textarea v-model="dagForm.leerpunten" placeholder="Verbeterpunten of opmerkingen..."></textarea>
         <div v-if="modalFout" class="modal-fout">{{ modalFout }}</div>
         <div class="modal-acties">
@@ -246,8 +262,13 @@ export default {
 
     const weken = reactive([])
 
+    // Beschikbare competenties (LO's) voor de checklist in het formulier
+    const alleCompetenties = reactive([])
+    const competentiesLaden = ref(true)
+    const competentiesFout = ref(null)
+
     const dagForm = reactive({
-      datum: '', taak: '', uren: 8, los: '', reflectie: '', leerpunten: '', isBezig: false,
+      datum: '', taak: '', uren: 8, competentieIds: [], reflectie: '', leerpunten: '', isBezig: false,
     })
 
     // ── Laden ────────────────────────────────────────────────────────────────
@@ -257,7 +278,7 @@ export default {
       router.push('/login')
     }
 
-        function moveToStagevoorstel() {
+    function moveToStagevoorstel() {
       router.push('/student')
     }
 
@@ -279,6 +300,16 @@ export default {
       } finally {
         isLaden.value = false
       }
+
+      // 3. Haal beschikbare competenties (LO's) op (los van bovenstaande, mag falen zonder pagina te blokkeren)
+      try {
+        const data = await apiGet('/api/studentlogboeken/competenties')
+        alleCompetenties.splice(0, alleCompetenties.length, ...data)
+      } catch (e) {
+        competentiesFout.value = e.message
+      } finally {
+        competentiesLaden.value = false
+      }
     })
 
     async function laadWeken() {
@@ -289,7 +320,7 @@ export default {
     // ── Dag opslaan ──────────────────────────────────────────────────────────
 
     function openDagModal() {
-      Object.assign(dagForm, { datum: '', taak: '', uren: 8, los: '', reflectie: '', leerpunten: '', isBezig: false })
+      Object.assign(dagForm, { datum: '', taak: '', uren: 8, competentieIds: [], reflectie: '', leerpunten: '', isBezig: false })
       modalFout.value = null
       toonDagModal.value = true
     }
@@ -297,18 +328,19 @@ export default {
     async function slaDagOp() {
       if (!dagForm.datum) { modalFout.value = 'Selecteer een datum.'; return }
       if (!dagForm.taak)  { modalFout.value = 'Vul een taak in.'; return }
+      if (!dagForm.competentieIds.length) { modalFout.value = 'Selecteer minstens één leerdoel (LO).'; return }
 
       dagForm.isBezig = true
       modalFout.value = null
 
       try {
         await apiPost(`/api/studentlogboeken/${stageId.value}/dag`, {
-          datum:     dagForm.datum,
-          taak:      dagForm.taak,
-          uren:      dagForm.uren,
-          los:       dagForm.los,
-          reflectie: dagForm.reflectie,
-          leerpunten: dagForm.leerpunten,
+          datum:          dagForm.datum,
+          taak:           dagForm.taak,
+          uren:           dagForm.uren,
+          competentieIds: dagForm.competentieIds,
+          reflectie:      dagForm.reflectie,
+          leerpunten:     dagForm.leerpunten,
         })
         toonDagModal.value = false
         await laadWeken()
@@ -365,6 +397,7 @@ export default {
     return {
       toonDagModal, isLaden, fout, modalFout,
       student, weken, dagForm,
+      alleCompetenties, competentiesLaden, competentiesFout,
       initialen, totaalUren, statusKleur,
       weekIndienen, openDagModal, slaDagOp, handleLogout, moveToStagevoorstel
     }
@@ -823,6 +856,41 @@ html, body, #app {
 .actie-btn.klein {
   padding: 0.4rem 0.9rem;
   font-size: 0.82rem;
+}
+
+/* ── Competentie checklist ── */
+.competentie-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  max-height: 160px;
+  overflow-y: auto;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  padding: 0.6rem 0.75rem;
+}
+
+.competentie-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.88rem;
+  font-weight: 500;
+  text-transform: none;
+  color: #333;
+  margin: 0;
+  cursor: pointer;
+}
+
+.competentie-checkbox input[type="checkbox"] {
+  width: auto;
+  margin: 0;
+}
+
+.competenties-laden {
+  font-size: 0.85rem;
+  color: #888;
+  padding: 0.4rem 0;
 }
 
 /* ── Modal ── */
