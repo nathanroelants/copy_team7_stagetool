@@ -11,14 +11,12 @@ const routes = [
   { path: '/stagecommissie', component: () => import('../views/stagecommissie/StagecommissieStudenten.vue') },
   { path: '/administratie', component: () => import('../views/administratie/DashboardView.vue') },
   { path: '/stagecommissie/studenten/:stageId/voorstel', component: () => import('../views/stagecommissie/StagecommissieVoorstellen.vue') },
-  { path: '/:pathMatch(.*)*', redirect: '/' },
-
+  
   // ── Ondertekening ─────────────────────────────────────────────────────────
   { path: '/student/stages/:stageId/ondertekenen',   component: () => import('../views/OndertekeningView.vue'), props: { rol: 'student' } },
   { path: '/docent/studenten/:stageId/ondertekenen', component: () => import('../views/OndertekeningView.vue'), props: { rol: 'docent' } },
   { path: '/mentor/stages/:stageId/ondertekenen',    component: () => import('../views/OndertekeningView.vue'), props: { rol: 'stagementor' } },
- 
-  { path: '/:pathMatch(.*)*', redirect: '/' }
+  { path: '/:pathMatch(.*)*', redirect: '/' },
 ]
 
 const router = createRouter({
