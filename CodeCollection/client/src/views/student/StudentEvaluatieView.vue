@@ -80,6 +80,7 @@
                 :value="optie.waarde"
                 :checked="Number(getEvaluatie(competentie.id)?.score) === optie.waarde"
                 :disabled="opgeslagen[competentie.id]"
+              @change="setScore(competentie.id, optie.waarde)"
               />
             </div>
 
@@ -93,11 +94,19 @@
               ></textarea>
               <div class="opslaan-rij">
                 <button
+                  v-if="!opgeslagen[competentie.id]"
                   class="opslaan-btn"
                   @click="slaOp(competentie.id)"
-                  :disabled="bezig[competentie.id] || opgeslagen[competentie.id]"
+                  :disabled="bezig[competentie.id]"
                 >
                   {{ bezig[competentie.id] ? 'Opslaan...' : 'Opslaan' }}
+                </button>
+                <button
+                  v-if="opgeslagen[competentie.id]"
+                  class="bewerken-btn"
+                  @click="opgeslagen[competentie.id] = false"
+                >
+                  Bewerken
                 </button>
                 <span v-if="opgeslagen[competentie.id]" class="opgeslagen-melding">✓ Opgeslagen</span>
               </div>
@@ -570,6 +579,22 @@ const {
   font-weight: 700;
 }
 
+.bewerken-btn {
+  background: white;
+  color: #4a90b8;
+  border: 2px solid #4a90b8;
+  border-radius: 8px;
+  padding: 0.6rem 1.25rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.bewerken-btn:hover {
+  background: #eaf1f6;
+}
+
 /* ── Rubriek tabel ── */
 .rubriek-tabel {
   width: 100%;
@@ -582,7 +607,7 @@ const {
 .rubriek-header,
 .rubriek-rij {
   display: grid;
-  grid-template-columns: 180px repeat(5, 1fr) 180px;
+  grid-template-columns: 150px repeat(5, 1fr) 220px;
   border-bottom: 1px solid #c5d5e0;
 }
 
