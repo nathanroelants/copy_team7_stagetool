@@ -5,9 +5,9 @@ import { createClient } from '@supabase/supabase-js';
 import authRoutes from './routes/auth.js';
 import docentRoutes from './routes/docent.routes.js';
 import stagecommissieRoutes from './routes/stagecommissie.routes.js';
-
 import studentEvaluatieRoutes from './routes/student.evaluatie.routes.js';
 import stagevoorstellenRoutes from './routes/Studentstagevoorstellen-routes.js';
+import studentlogboekenRoutes from './routes/logboek.routes.js';
 import adminRoutes from './routes/admin/admin-routes.js';
 import competentiesRoutes from './routes/admin/competenties.js';
 
@@ -35,6 +35,7 @@ app.use('/api/docent', docentRoutes);
 app.use('/api/stagecommissie', stagecommissieRoutes);
 app.use('/api/student', studentEvaluatieRoutes);
 app.use('/api/stagevoorstellen', stagevoorstellenRoutes);
+app.use('/api/studentlogboeken', studentlogboekenRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/admin', competentiesRoutes);
 
