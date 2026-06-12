@@ -1,5 +1,6 @@
 import express from 'express';
 import jwt from 'jsonwebtoken';
+import bcrypt from 'bcrypt';
 
 const router = express.Router();
 
@@ -22,11 +23,24 @@ function verifyAdmin(req, res, next) {
   }
 }
 
-function generatePassword() {
-  return Math.random().toString(36).slice(-10);
+// Wachtwoord validatie: min 8 chars, 1 hoofdletter, 1 kleine letter, 1 cijfer
+function validatePassword(wachtwoord) {
+  if (!wachtwoord || wachtwoord.length < 8) {
+    return 'Wachtwoord moet minstens 8 karakters lang zijn';
+  }
+  if (!/[A-Z]/.test(wachtwoord)) {
+    return 'Wachtwoord moet minstens één hoofdletter bevatten';
+  }
+  if (!/[a-z]/.test(wachtwoord)) {
+    return 'Wachtwoord moet minstens één kleine letter bevatten';
+  }
+  if (!/[0-9]/.test(wachtwoord)) {
+    return 'Wachtwoord moet minstens één cijfer bevatten';
+  }
+  return null;
 }
 
-// GET /api/admin/gebruikers - alle gebruikers met opleidingen
+// GET /api/admin/gebruikers
 router.get('/gebruikers', verifyAdmin, async (req, res) => {
   const supabase = req.app.get('supabase');
 
@@ -45,7 +59,6 @@ router.get('/gebruikers', verifyAdmin, async (req, res) => {
     return res.status(500).json({ error: error.message });
   }
 
-  // Flatten: para cada gebruiker, transformar em array simples [{id, naam}, ...]
   const result = data.map(g => ({
     ...g,
     opleidingen: (g.gebruiker_opleidingen || [])
@@ -53,13 +66,12 @@ router.get('/gebruikers', verifyAdmin, async (req, res) => {
       .filter(Boolean)
   }));
 
-  // Remover o campo intermediário
   result.forEach(g => delete g.gebruiker_opleidingen);
 
   res.json(result);
 });
 
-// GET /api/admin/opleidingen-lijst - lijst met alle beschikbare opleidingen (voor dropdown)
+// GET /api/admin/opleidingen-lijst
 router.get('/opleidingen-lijst', verifyAdmin, async (req, res) => {
   const supabase = req.app.get('supabase');
 
@@ -75,20 +87,32 @@ router.get('/opleidingen-lijst', verifyAdmin, async (req, res) => {
   res.json(data);
 });
 
-// POST /api/admin/gebruikers - nieuwe gebruiker aanmaken
+// POST /api/admin/gebruikers
 router.post('/gebruikers', verifyAdmin, async (req, res) => {
   const supabase = req.app.get('supabase');
-  const { voornaam, achternaam, email, rol, opleiding_ids } = req.body;
+  const { voornaam, achternaam, email, rol, opleiding_ids, wachtwoord } = req.body;
 
-  if (!voornaam || !achternaam || !email || !rol) {
+  if (!voornaam || !achternaam || !email || !rol || !wachtwoord) {
     return res.status(400).json({ error: 'Verplichte velden ontbreken' });
+  }
+
+  const passwordError = validatePassword(wachtwoord);
+  if (passwordError) {
+    return res.status(400).json({ error: passwordError });
+  }
+
+  let wachtwoord_hash;
+  try {
+    wachtwoord_hash = await bcrypt.hash(wachtwoord, 10);
+  } catch (err) {
+    return res.status(500).json({ error: 'Fout bij hashen van wachtwoord' });
   }
 
   const { data: gebruiker, error } = await supabase
     .from('gebruikers')
     .insert([{
       voornaam, achternaam, email, rol,
-      wachtwoord_hash: generatePassword(),
+      wachtwoord_hash,
       actief: true
     }])
     .select()
@@ -98,7 +122,6 @@ router.post('/gebruikers', verifyAdmin, async (req, res) => {
     return res.status(500).json({ error: error.message });
   }
 
-  // Opleidingen koppelen indien meegegeven
   if (Array.isArray(opleiding_ids) && opleiding_ids.length > 0) {
     const rows = opleiding_ids.map(oid => ({
       gebruiker_id: gebruiker.id,
@@ -116,15 +139,30 @@ router.post('/gebruikers', verifyAdmin, async (req, res) => {
   res.json(gebruiker);
 });
 
-// PUT /api/admin/gebruikers/:id - gebruiker bijwerken
+// PUT /api/admin/gebruikers/:id
 router.put('/gebruikers/:id', verifyAdmin, async (req, res) => {
   const supabase = req.app.get('supabase');
   const id = req.params.id;
-  const { voornaam, achternaam, email, rol, opleiding_ids, actief } = req.body;
+  const { voornaam, achternaam, email, rol, opleiding_ids, actief, wachtwoord } = req.body;
+
+  const updateData = { voornaam, achternaam, email, rol, actief };
+
+  // Senha é opcional ao editar — só atualiza se for fornecida
+  if (wachtwoord && wachtwoord.trim() !== '') {
+    const passwordError = validatePassword(wachtwoord);
+    if (passwordError) {
+      return res.status(400).json({ error: passwordError });
+    }
+    try {
+      updateData.wachtwoord_hash = await bcrypt.hash(wachtwoord, 10);
+    } catch (err) {
+      return res.status(500).json({ error: 'Fout bij hashen van wachtwoord' });
+    }
+  }
 
   const { data: gebruiker, error } = await supabase
     .from('gebruikers')
-    .update({ voornaam, achternaam, email, rol, actief })
+    .update(updateData)
     .eq('id', id)
     .select()
     .single();
@@ -133,15 +171,12 @@ router.put('/gebruikers/:id', verifyAdmin, async (req, res) => {
     return res.status(500).json({ error: error.message });
   }
 
-  // Update opleidingen: apaga as antigas e insere as novas
   if (Array.isArray(opleiding_ids)) {
-    // Apagar links antigos
     await supabase
       .from('gebruiker_opleidingen')
       .delete()
       .eq('gebruiker_id', id);
 
-    // Inserir os novos (se houver)
     if (opleiding_ids.length > 0) {
       const rows = opleiding_ids.map(oid => ({
         gebruiker_id: id,
@@ -160,12 +195,11 @@ router.put('/gebruikers/:id', verifyAdmin, async (req, res) => {
   res.json(gebruiker);
 });
 
-// DELETE /api/admin/gebruikers/:id - gebruiker verwijderen
+// DELETE /api/admin/gebruikers/:id
 router.delete('/gebruikers/:id', verifyAdmin, async (req, res) => {
   const supabase = req.app.get('supabase');
   const id = req.params.id;
 
-  // gebruiker_opleidingen é apagado automaticamente via ON DELETE CASCADE
   const { error } = await supabase
     .from('gebruikers')
     .delete()

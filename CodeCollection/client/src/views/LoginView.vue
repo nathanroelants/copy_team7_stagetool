@@ -15,22 +15,35 @@
             id="email"
             v-model="email"
             type="email"
-            placeholder="naam@ehb.be"
+            placeholder="naam@example.com"
             required
             :disabled="loading"
+            autocomplete="email"
           />
         </div>
 
         <div class="form-group">
           <label for="password">Wachtwoord</label>
-          <input
-            id="password"
-            v-model="password"
-            type="password"
-            placeholder="••••••••"
-            required
-            :disabled="loading"
-          />
+          <div class="password-wrapper">
+            <input
+              id="password"
+              v-model="password"
+              :type="showPassword ? 'text' : 'password'"
+              placeholder="••••••••"
+              required
+              :disabled="loading"
+              autocomplete="current-password"
+            />
+            <button
+              type="button"
+              class="toggle-password"
+              @click="showPassword = !showPassword"
+              :disabled="loading"
+              :aria-label="showPassword ? 'Verberg wachtwoord' : 'Toon wachtwoord'"
+            >
+              {{ showPassword ? '🙈' : '👁️' }}
+            </button>
+          </div>
         </div>
 
         <div v-if="errorMessage" class="error-message">
@@ -55,6 +68,7 @@ const router = useRouter()
 
 const email = ref('')
 const password = ref('')
+const showPassword = ref(false)
 const loading = ref(false)
 const errorMessage = ref('')
 
@@ -62,8 +76,8 @@ function redirectByRol(rol) {
   const routes = {
     student: '/student',
     docent: '/docent',
-    mentor: '/mentor',
-    stagecommissie: '/stagecommissie',
+    stagementor: '/mentor',
+    stagecomissie: '/stagecommissie',
     administratie: '/administratie'
   }
   router.push(routes[rol] || '/')
@@ -77,13 +91,20 @@ async function handleLogin() {
     const response = await fetch('/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: email.value, password: password.value })
+      body: JSON.stringify({
+        email: email.value.trim(),
+        password: password.value
+      })
     })
 
     const data = await response.json()
 
     if (!response.ok) {
-      throw new Error(data.error)
+      throw new Error(data.error || 'Inloggen mislukt')
+    }
+
+    if (!data.token || !data.user) {
+      throw new Error('Onverwacht antwoord van de server')
     }
 
     localStorage.setItem('token', data.token)
@@ -158,6 +179,8 @@ async function handleLogin() {
   font-size: 1rem;
   transition: border-color 0.2s;
   outline: none;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .form-group input:focus {
@@ -167,6 +190,38 @@ async function handleLogin() {
 .form-group input:disabled {
   background: #f5f5f5;
   cursor: not-allowed;
+}
+
+/* Password com toggle */
+.password-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.password-wrapper input {
+  padding-right: 3rem;
+}
+
+.toggle-password {
+  position: absolute;
+  right: 0.5rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.1rem;
+  padding: 0.4rem 0.6rem;
+  border-radius: 6px;
+  transition: background 0.15s;
+}
+
+.toggle-password:hover:not(:disabled) {
+  background: #f0f0f0;
+}
+
+.toggle-password:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
 }
 
 .error-message {
