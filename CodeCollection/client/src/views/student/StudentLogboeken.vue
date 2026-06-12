@@ -7,13 +7,13 @@
         <span class="brand-text">STAGE.BE</span>
       </div>
       <nav class="sidebar-nav">
-        <button class="nav-item">Stagevoorstel</button>
+        <button class="nav-item"   @click="moveToStagevoorstel"> >Stagevoorstel   </button>
         <button class="nav-item active">Logboek</button>
         <button class="nav-item">Evaluatie</button>
         <button class="nav-item">Documenten</button>
       </nav>
       <div class="sidebar-footer">
-        <button class="logout-btn" @click="uitloggen">Uitloggen</button>
+        <button class="logout-btn" @click="handleLogout">Uitloggen</button>
       </div>
     </aside>
 
@@ -23,7 +23,7 @@
       <!-- Top bar -->
       <header class="topbar">
         <div class="topbar-user">{{ student.naam }}</div>
-        <div class="topbar-logo">erasmus</div>
+        <img src="../../assets/erasmus-logo.png" alt="Erasmus Hogeschool Brussel" class="topbar-logo" />
       </header>
 
       <!-- Content -->
@@ -181,9 +181,10 @@
 
 <script>
 import { ref, reactive, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+
 
 const API_BASE = import.meta.env.VITE_API_URL ?? ''
-
 function authHeaders() {
   const token = localStorage.getItem('token') ?? ''
   return {
@@ -234,6 +235,7 @@ export default {
     const fout = ref(null)
     const modalFout = ref(null)
     const stageId = ref(null)
+    const router = useRouter()
 
     const student = reactive({
       naam: '',
@@ -249,6 +251,16 @@ export default {
     })
 
     // ── Laden ────────────────────────────────────────────────────────────────
+    function handleLogout() {
+      localStorage.removeItem('token')
+      localStorage.removeItem('user')
+      router.push('/login')
+    }
+
+        function moveToStagevoorstel() {
+      router.push('/student')
+    }
+
 
     onMounted(async () => {
       try {
@@ -350,18 +362,11 @@ export default {
       return `${dd}/${mm}/${jaar}`
     }
 
-    function uitloggen() {
-      if (confirm('Bent u zeker dat u wilt uitloggen?')) {
-        localStorage.removeItem('token')
-        alert('U bent uitgelogd.')
-      }
-    }
-
     return {
       toonDagModal, isLaden, fout, modalFout,
       student, weken, dagForm,
       initialen, totaalUren, statusKleur,
-      weekIndienen, openDagModal, slaDagOp, uitloggen,
+      weekIndienen, openDagModal, slaDagOp, handleLogout, moveToStagevoorstel
     }
   },
 }
@@ -491,14 +496,8 @@ html, body, #app {
 }
 
 .topbar-logo {
-  background: #c00;
-  color: white;
-  font-size: 0.85rem;
-  font-weight: 700;
-  padding: 0.4rem 0.85rem;
-  border-radius: 4px;
-  letter-spacing: 1px;
-  text-transform: uppercase;
+  height: 36px;
+  object-fit: contain;
 }
 
 /* ── Content area ── */
