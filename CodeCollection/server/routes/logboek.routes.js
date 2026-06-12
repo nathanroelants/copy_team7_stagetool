@@ -108,56 +108,73 @@ router.get('/:stageId/weken', requireAuth, async (req, res) => {
     if (!stage) return res.status(403).json({ error: 'Geen toegang tot deze stage' });
   }
 
-  const { data: logboeken, error } = await supabase
-    .from('logboeken')
-    .select('*')
-    .eq('stage_id', stageId)
-    .order('week_nummer', { ascending: true })
-    .order('datum_van', { ascending: true });
+const { data: logboeken, error } = await supabase
+  .from('logboeken')
+  .select('*')
+  .eq('stage_id', stageId)
+  .order('week_nummer', { ascending: true })
+  .order('datum_van', { ascending: true });
 
-  if (error) {
-    console.error('Fout bij ophalen logboeken:', error);
-    return res.status(500).json({ error: 'Kon logboeken niet ophalen' });
-  }
+if (error) {
+  console.error('Fout bij ophalen logboeken:', error);
+  return res.status(500).json({ error: 'Kon logboeken niet ophalen' });
+}
 
-  // Groepeer entries per weeknummer
-  const wekenMap = {};
-  for (const entry of logboeken || []) {
-    const wn = entry.week_nummer;
-    if (!wekenMap[wn]) {
-      wekenMap[wn] = {
-        nummer: wn,
-        status: entry.status ?? 'aangemaakt',
-        afgetekend: entry.afgetekend ?? false,
-        entries: [],
-      };
-    }
-    wekenMap[wn].entries.push(entry);
-    // Status van de week = meest recente status binnen die week
-    wekenMap[wn].status = entry.status ?? wekenMap[wn].status;
-    wekenMap[wn].afgetekend = entry.afgetekend ?? wekenMap[wn].afgetekend;
-  }
+// Stage opvragen voor start_datum
+const { data: stageRow, error: stageRowError } = await supabase
+  .from('stages')
+  .select('start_datum')
+  .eq('id', stageId)
+  .single();
 
-  const weken = Object.values(wekenMap).map(week => {
-    const datums = week.entries.map(e => new Date(e.datum_van)).filter(d => !isNaN(d));
-    const maandag = datums.length
-      ? new Date(Math.min(...datums.map(d => d.getTime())))
-      : null;
-    const zondag = maandag ? new Date(maandag) : null;
-    if (zondag) zondag.setDate(zondag.getDate() + 6);
+if (stageRowError || !stageRow) {
+  return res.status(500).json({ error: 'Kon stage niet ophalen' });
+}
 
-    return {
-      nummer: week.nummer,
-      van: maandag ? formatDatum(maandag) : '',
-      tot: zondag ? formatDatumVolledig(zondag) : '',
-      maxUren: 40,
-      status: week.afgetekend ? 'goedgekeurd' : (week.status === 'ingediend' ? 'ingediend' : 'ingediend'),
-      open: false,
-      entries: week.entries.map(mapEntry),
+function maandagVan(d) {
+  const dt = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const dayNum = dt.getUTCDay() || 7;
+  dt.setUTCDate(dt.getUTCDate() - (dayNum - 1));
+  return dt;
+}
+
+const startMaandag = maandagVan(new Date(stageRow.start_datum));
+
+// Groepeer entries per weeknummer
+const wekenMap = {};
+for (const entry of logboeken || []) {
+  const wn = entry.week_nummer;
+  if (!wekenMap[wn]) {
+    wekenMap[wn] = {
+      nummer: wn,
+      status: entry.status ?? 'aangemaakt',
+      afgetekend: entry.afgetekend ?? false,
+      entries: [],
     };
-  });
+  }
+  wekenMap[wn].entries.push(entry);
+  wekenMap[wn].status = entry.status ?? wekenMap[wn].status;
+  wekenMap[wn].afgetekend = entry.afgetekend ?? wekenMap[wn].afgetekend;
+}
 
-  res.json(weken);
+const weken = Object.values(wekenMap).map(week => {
+  const maandag = new Date(startMaandag);
+  maandag.setUTCDate(maandag.getUTCDate() + (week.nummer - 1) * 7);
+  const zondag = new Date(maandag);
+  zondag.setUTCDate(zondag.getUTCDate() + 6);
+
+  return {
+    nummer: week.nummer,
+    van: formatDatum(maandag),
+    tot: formatDatumVolledig(zondag),
+    maxUren: 40,
+    status: week.status,
+    open: false,
+    entries: week.entries.map(mapEntry),
+  };
+});
+
+res.json(weken);
 });
 
 // ─── POST /api/logboek/:stageId/dag ───────────────────────────────────────────
@@ -308,9 +325,18 @@ function formatDatumVolledig(d) {
  * Week 1 = de week waarin de stage begint.
  */
 function berekenWeeknummer(datum, startDatum) {
-  const msPerWeek = 7 * 24 * 60 * 60 * 1000;
-  const diff = datum.getTime() - startDatum.getTime();
-  return Math.max(1, Math.floor(diff / msPerWeek) + 1);
+  const maandagVan = (d) => {
+    const dt = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+    const dayNum = dt.getUTCDay() || 7; // maandag=1 ... zondag=7
+    dt.setUTCDate(dt.getUTCDate() - (dayNum - 1));
+    return dt;
+  };
+
+  const startMaandag = maandagVan(startDatum);
+  const datumMaandag = maandagVan(datum);
+
+  const diffWeken = Math.round((datumMaandag - startMaandag) / (7 * 24 * 60 * 60 * 1000));
+  return Math.max(1, diffWeken + 1);
 }
 
 /**

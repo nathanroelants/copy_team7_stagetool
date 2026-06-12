@@ -7,7 +7,7 @@
         <span class="brand-text">STAGE.BE</span>
       </div>
       <nav class="sidebar-nav">
-        <button class="nav-item"   @click="moveToStagevoorstel"> >Stagevoorstel   </button>
+        <button class="nav-item"   @click="moveToStagevoorstel">Stagevoorstel</button>
         <button class="nav-item active">Logboek</button>
         <button class="nav-item">Evaluatie</button>
         <button class="nav-item">Documenten</button>
