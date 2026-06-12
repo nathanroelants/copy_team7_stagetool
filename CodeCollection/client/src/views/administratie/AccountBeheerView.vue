@@ -89,6 +89,21 @@
             <input v-model="form.email" type="email" required />
           </div>
           <div class="form-group">
+  <label>
+    Wachtwoord
+    <small v-if="editingId" class="hint">(laat leeg om niet te wijzigen)</small>
+  </label>
+  <input
+    v-model="form.wachtwoord"
+    type="password"
+    :required="!editingId"
+    :placeholder="editingId ? '••••••••' : 'Min. 8 tekens, hoofdletter, kleine letter, cijfer'"
+  />
+  <small class="hint hint-block">
+    Min. 8 tekens, 1 hoofdletter, 1 kleine letter, 1 cijfer
+  </small>
+</div>
+          <div class="form-group">
             <label>Rol</label>
             <select v-model="form.rol" required @change="onRolChange">
               <option value="student">Student</option>
@@ -188,14 +203,13 @@ const dropdownOpen = ref(false)
 const searchTerm = ref('')
 
 const initialForm = {
-  voornaam: '', achternaam: '', email: '', rol: 'student', opleiding_ids: []
+  voornaam: '', achternaam: '', email: '', rol: 'student', opleiding_ids: [], wachtwoord: ''
 }
 const form = ref({ ...initialForm })
 
 const user = JSON.parse(localStorage.getItem('user') || '{}')
 const gebruikerNaam = `${user.voornaam || ''} ${user.achternaam || user.naam || ''}`.trim() || 'Admin'
 
-// Estudante = só 1 opleiding. Outros podem ter várias.
 const isMultiSelect = computed(() => form.value.rol !== 'student')
 
 const gefilterd = computed(() => {
@@ -215,7 +229,8 @@ function rolLabel(rol) {
     docent: 'Docent',
     stagementor: 'Stagementor',
     stagecomissie: 'Stagecomissie',
-    administratie: 'Administratie'
+    administratie: 'Administratie',
+    wachtwoord: ''
   }
   return labels[rol] || rol
 }
@@ -746,5 +761,11 @@ onMounted(() => {
   border-radius: 5px;
   font-size: 0.9rem;
   margin-bottom: 0.5rem;
+}
+.hint-block {
+  display: block;
+  margin-top: 0.3rem;
+  font-size: 0.75rem;
+  color: #888;
 }
 </style>
