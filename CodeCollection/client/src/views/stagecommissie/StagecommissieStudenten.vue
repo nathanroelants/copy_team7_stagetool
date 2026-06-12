@@ -29,24 +29,20 @@
       <!-- Student list -->
       <section class="content-area">
         <div class="section-header">
-          <h2>Mijn studenten</h2>
-          <p class="subtitle" v-if="!loading && !fout">
-            {{ studenten.length }} studenten zijn momenteel toegewezen aan jou dit semester
-          </p>
+          <h2>Actieve studenten</h2>
         </div>
 
         <div v-if="loading" class="status-message">Studenten laden...</div>
         <div v-else-if="fout" class="status-message error"> {{ fout }}</div>
 
-        <div v-else-if="studenten.length === 0" class="status-message">
-          Geen studenten toegewezen dit semester.
-        </div>
 
         <div v-else class="student-list">
           <div
             v-for="student in studenten"
             :key="student.id"
             class="student-card"
+            @click="$router.push(`/stagecommissie/studenten/${student.id}/voorstel`)"
+            style="cursor: pointer;"
           >
             <div class="student-avatar">
               <div class="avatar-circle">
@@ -61,10 +57,10 @@
               </div>
               <div class="student-meta">
                 <span class="meta-item">
-                  📅 {{ formatDatum(student.start_datum) }} → {{ formatDatum(student.eind_datum) }}
+                  {{ formatDatum(student.start_datum) }} → {{ formatDatum(student.eind_datum) }}
                 </span>
                 <span class="meta-item" v-if="student.mentor_naam">
-                  🏢 Stagementor: {{ student.mentor_naam }}
+                  Stagementor: {{ student.mentor_naam }}
                 </span>
               </div>
 
@@ -101,10 +97,10 @@ const gebruikerNaam = `${user.voornaam || ''} ${user.naam || ''}`.trim() || user
 function badgeKlasse(status) {
   if (!status) return 'badge-grijs'
   const s = status.toLowerCase()
-  if (s.includes('goedgekeurd') || s.includes('afgerond') || s.includes('afgetekend')) return 'badge-groen'
-  if (s.includes('open') || s.includes('afwachting')) return 'badge-geel'
-  if (s.includes('niet') || s.includes('afgekeurd') || s.includes('ingediend') === false) return 'badge-rood'
-  if (s.includes('ingediend')) return 'badge-blauw'
+  if (s.includes('goedgekeurd') || s.includes('geaccepteerd') || s.includes('afgetekend')) return 'badge-groen'
+  if (s.includes('ingediend')) return 'badge-geel'
+  if (s.includes('geweigerd')|| s.includes('aanpassingen')) return 'badge-rood'
+  if (s.includes('lopend')) return 'badge-blauw'
   return 'badge-grijs'
 }
 
