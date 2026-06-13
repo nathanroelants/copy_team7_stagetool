@@ -7,8 +7,8 @@
       </div>
 
       <nav class="sidebar-nav">
-        <button class="nav-item">Stagevoorstel</button>
-        <button class="nav-item">Logboek</button>
+        <button class="nav-item" @click="router.push('/student')">Stagevoorstel</button>
+        <button class="nav-item" @click="router.push('/studentlogboeken')">Logboek</button>
         <button class="nav-item active">Evaluatie</button>
         <button class="nav-item">Documenten</button>
       </nav>
@@ -127,7 +127,8 @@
 
 <script setup>
 import { useStudentEvaluatie } from './useStudentEvaluatie.js'
-
+import { useRouter } from 'vue-router'
+const router = useRouter()
 const {
   gebruikerNaam,
   actieveTab,
