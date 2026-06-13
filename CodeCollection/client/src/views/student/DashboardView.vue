@@ -16,7 +16,14 @@
   @click="router.push('/studentlogboeken')"
 >
   Logboeken
-</button>
+</button> 
+     
+<button
+  v-if="stageStatus === 'stagevoorstel geaccepteerd' || stageStatus === 'lopend' || stageStatus === 'afgerond'"
+  @click=" router.push('/student/evaluatie')"
+>
+  Evaluatie
+</button>   
 </nav>
       
       <button class="logout-btn" @click="handleLogout">Uitloggen</button>

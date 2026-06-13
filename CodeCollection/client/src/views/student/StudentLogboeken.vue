@@ -9,7 +9,7 @@
       <nav class="sidebar-nav">
         <button class="nav-item"   @click="moveToStagevoorstel">Stagevoorstel</button>
         <button class="nav-item active">Logboek</button>
-        <button class="nav-item">Evaluatie</button>
+        <button class="nav-item" @click="moveToEvaluatie" >Evaluatie</button>
         <button class="nav-item">Documenten</button>
       </nav>
       <div class="sidebar-footer">
@@ -281,7 +281,10 @@ export default {
     function moveToStagevoorstel() {
       router.push('/student')
     }
-
+    function moveToEvaluatie() {
+      router.push('/student/evaluatie')
+    }
+      
 
     onMounted(async () => {
       try {
@@ -399,7 +402,7 @@ export default {
       student, weken, dagForm,
       alleCompetenties, competentiesLaden, competentiesFout,
       initialen, totaalUren, statusKleur,
-      weekIndienen, openDagModal, slaDagOp, handleLogout, moveToStagevoorstel
+      weekIndienen, openDagModal, slaDagOp, handleLogout, moveToStagevoorstel, moveToEvaluatie
     }
   },
 }
