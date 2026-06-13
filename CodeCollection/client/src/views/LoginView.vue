@@ -87,7 +87,7 @@ function redirectByRol(rol) {
     student: '/student',
     docent: '/docent',
     stagementor: '/mentor',
-    stagecomissie: '/stagecommissie',
+    stagecommissie: '/stagecommissie',
     administratie: '/administratie'
   }
   router.push(routes[rol] || '/')
