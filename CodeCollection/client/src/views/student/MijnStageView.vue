@@ -1,216 +1,264 @@
 <template>
-  <div class="mijn-stage">
+  <div class="dashboard">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="logo">STAGE.BE</div>
+      <nav>
+        <button
+          :class="{ active: activeView === 'mijn-stage' }"
+          @click="activeView = 'mijn-stage'"
+        >
+          Mijn stage
+        </button>
 
-    <!-- FORMULÁRIO: sem stage OU foi afgekeurd e quer criar novo -->
-    <div v-if="!stage || stage.status === 'stagevoorstel aanpassingen vereist' || (stage.status === 'stagevoorstel geweigerd' && criarNovo)">
-      <div v-if="stage && stage.status === 'stagevoorstel aanpassingen vereist'" class="alert">
-  ✏️ Je stagevoorstel heeft aanpassingen nodig.
-</div>
+        <button
+          v-if="stageStatus === 'stagevoorstel geaccepteerd' || stageStatus === 'lopend' || stageStatus === 'afgerond'"
+          @click="router.push('/studentlogboeken')"
+        >
+          Logboeken
+        </button>
 
-<div v-if="stage && stage.status === 'stagevoorstel aanpassingen vereist' && info.feedback" class="feedback">
-  <label>Feedback van stagecommissie:</label>
-  <p>{{ info.feedback }}</p>
-</div>
-      <h2>Stagevoorstel indienen</h2>
+        <button
+          v-if="stageStatus === 'stagevoorstel geaccepteerd' || stageStatus === 'lopend' || stageStatus === 'afgerond'"
+          @click="router.push('/student/evaluatie')"
+        >
+          Evaluatie
+        </button>
+      </nav>
 
-      <form @submit.prevent="handleSubmit" class="card">
+      <button class="logout-btn" @click="handleLogout">Uitloggen</button>
+    </aside>
 
-      <h3>Gegevens bedrijf</h3>
-<div class="form-grid">
-  <div class="form-group">
-    <input v-model="form.bedrijfsnaam" type="text" placeholder="Cronos Group NV" required />
-    <label>Bedrijfsnaam</label>
-  </div>
-  <div class="form-group">
-    <input v-model="form.voornaam_stagementor" type="text" placeholder="Thomas" required />
-    <label>Voornaam stagementor</label>
-  </div>
-  <div class="form-group">
-    <input v-model="form.achternaam_stagementor" type="text" placeholder="Peeters" required />
-    <label>Achternaam stagementor</label>
-  </div>
-  <div class="form-group">
-    <input v-model="form.email_stagementor" type="email" placeholder="t.peeters@cronos.be" required />
-    <label>E-mail stagementor</label>
-  </div>
-</div>
+    <!-- Main content -->
+    <main class="main-content">
+      <header class="topbar">
+        <span class="user-name">{{ user?.voornaam }} {{ user?.achternaam }}</span>
+      </header>
 
-        <h3>Stageperiode</h3>
-        <div class="form-grid">
-          <div class="form-group">
-            <input v-model="form.stage_begin" type="date" required />
-            <label>Startdatum</label>
+      <!-- ── Mijn Stage View ── -->
+      <div class="mijn-stage">
+
+        <!-- FORM: no stage, needs changes, or rejected and wants to create new -->
+        <div v-if="!stage || stage.status === 'stagevoorstel aanpassingen vereist' || (stage.status === 'stagevoorstel geweigerd' && criarNovo)">
+          <div v-if="stage && stage.status === 'stagevoorstel aanpassingen vereist'" class="alert">
+            ✏️ Je stagevoorstel heeft aanpassingen nodig.
           </div>
-          <div class="form-group">
-            <input v-model="form.stage_einde" type="date" required />
-            <label>Einddatum</label>
+
+          <div v-if="stage && stage.status === 'stagevoorstel aanpassingen vereist' && info.feedback" class="feedback">
+            <label>Feedback van stagecommissie:</label>
+            <p>{{ info.feedback }}</p>
+          </div>
+
+          <h2>Stagevoorstel indienen</h2>
+
+          <form @submit.prevent="handleSubmit" class="card">
+
+            <h3>Gegevens bedrijf</h3>
+            <div class="form-grid">
+              <div class="form-group">
+                <input v-model="form.bedrijfsnaam" type="text" placeholder="Cronos Group NV" required />
+                <label>Bedrijfsnaam</label>
+              </div>
+              <div class="form-group">
+                <input v-model="form.voornaam_stagementor" type="text" placeholder="Thomas" required />
+                <label>Voornaam stagementor</label>
+              </div>
+              <div class="form-group">
+                <input v-model="form.achternaam_stagementor" type="text" placeholder="Peeters" required />
+                <label>Achternaam stagementor</label>
+              </div>
+              <div class="form-group">
+                <input v-model="form.email_stagementor" type="email" placeholder="t.peeters@cronos.be" required />
+                <label>E-mail stagementor</label>
+              </div>
+            </div>
+
+            <h3>Stageperiode</h3>
+            <div class="form-grid">
+              <div class="form-group">
+                <input v-model="form.stage_begin" type="date" required />
+                <label>Startdatum</label>
+              </div>
+              <div class="form-group">
+                <input v-model="form.stage_einde" type="date" required />
+                <label>Einddatum</label>
+              </div>
+            </div>
+
+            <h3>Stageopdracht</h3>
+            <div class="form-group full">
+              <textarea
+                v-model="form.beschrijving"
+                rows="5"
+                placeholder="Ik zal meewerken aan de ontwikkeling van een intern webplatform voor projectbeheer..."
+                required
+              ></textarea>
+              <label>Omschrijving stageopdracht</label>
+            </div>
+
+            <h3>Competenties</h3>
+            <div class="form-grid">
+              <div class="form-group">
+                <input v-model="form.technische_skills" type="text" placeholder="React, JavaScript" />
+                <label>Technische skills</label>
+              </div>
+              <div class="form-group">
+                <input v-model="form.tools" type="text" placeholder="REST API, Git" />
+                <label>Tools</label>
+              </div>
+            </div>
+
+            <h3>Werkadres</h3>
+            <div class="form-grid">
+              <div class="form-group">
+                <input v-model="form.straat" type="text" placeholder="Luchthavenlei" required />
+                <label>Straat</label>
+              </div>
+              <div class="form-group">
+                <input v-model="form.huisnummer" type="text" placeholder="1" />
+                <label>Huisnummer</label>
+              </div>
+              <div class="form-group">
+                <input v-model="form.gemeente" type="text" placeholder="2100 Antwerpen" required />
+                <label>Gemeente</label>
+              </div>
+              <div class="form-group">
+                <input v-model="form.land" type="text" placeholder="België" />
+                <label>Land</label>
+              </div>
+            </div>
+
+            <div v-if="errorMessage" class="error">{{ errorMessage }}</div>
+
+            <div class="actions">
+              <button type="button" @click="handleAnnuleren" class="btn-cancel">Annuleren</button>
+              <button type="submit" :disabled="loading" class="btn-submit">
+                {{ loading ? 'Bezig met indienen...' : 'Indienen' }}
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- READ VIEW -->
+        <div v-else-if="stage">
+          <div class="card">
+
+            <div v-if="stage.status === 'stagevoorstel ingediend'" class="alert">
+              ⏳ Je aanvraag is verzonden en wordt momenteel beoordeeld door de stagecommissie.
+            </div>
+            <div v-if="stage.status === 'stagevoorstel geaccepteerd' || stage.status === 'lopend'" class="alert success">
+              ✅ Je stage is goedgekeurd!
+            </div>
+            <div v-if="stage.status === 'afgerond'" class="alert success">
+              🎓 Je stage is afgerond!
+            </div>
+            <div v-if="stage.status === 'stagevoorstel aanpassingen vereist'" class="alert">
+              ✏️ Je stagevoorstel heeft aanpassingen nodig.
+            </div>
+            <div v-if="stage.status === 'stagevoorstel geweigerd'" class="alert error">
+              ❌ Je stagevoorstel is afgekeurd. Je kan een nieuw voorstel indienen.
+            </div>
+
+            <h3>Gegevens bedrijf</h3>
+            <div class="info-grid">
+              <div class="info-item">
+                <div class="field-display">{{ info.bedrijfsnaam || '-' }}</div>
+                <label>Bedrijfsnaam</label>
+              </div>
+              <div class="info-item">
+                <div class="field-display">{{ stage.stagementor?.voornaam || '-' }}</div>
+                <label>Voornaam stagementor</label>
+              </div>
+              <div class="info-item">
+                <div class="field-display">{{ stage.stagementor?.achternaam || '-' }}</div>
+                <label>Achternaam stagementor</label>
+              </div>
+              <div class="info-item">
+                <div class="field-display">{{ stage.stagementor?.email || '-' }}</div>
+                <label>E-mail stagementor</label>
+              </div>
+            </div>
+
+            <h3>Stageperiode</h3>
+            <div class="info-grid">
+              <div class="info-item">
+                <div class="field-display">{{ formatDate(stage.start_datum) }}</div>
+                <label>Startdatum</label>
+              </div>
+              <div class="info-item">
+                <div class="field-display">{{ formatDate(stage.eind_datum) }}</div>
+                <label>Einddatum</label>
+              </div>
+            </div>
+
+            <h3>Stageopdracht</h3>
+            <div class="info-item full">
+              <div class="field-display textarea-display">{{ info.beschrijving || '-' }}</div>
+              <label>Omschrijving stageopdracht</label>
+            </div>
+
+            <h3>Competenties</h3>
+            <div class="info-grid">
+              <div class="info-item">
+                <div class="field-display">{{ info.technische_skills || '-' }}</div>
+                <label>Technische skills</label>
+              </div>
+              <div class="info-item">
+                <div class="field-display">{{ info.tools || '-' }}</div>
+                <label>Tools</label>
+              </div>
+            </div>
+
+            <h3>Werkadres</h3>
+            <div class="info-grid">
+              <div class="info-item">
+                <div class="field-display">{{ info.straat || '-' }}</div>
+                <label>Straat</label>
+              </div>
+              <div class="info-item">
+                <div class="field-display">{{ info.huisnummer || '-' }}</div>
+                <label>Huisnummer</label>
+              </div>
+              <div class="info-item">
+                <div class="field-display">{{ info.gemeente || '-' }}</div>
+                <label>Gemeente</label>
+              </div>
+              <div class="info-item">
+                <div class="field-display">{{ info.land || '-' }}</div>
+                <label>Land</label>
+              </div>
+            </div>
+
+            <div v-if="stage.status === 'stagevoorstel geweigerd' && info.feedback" class="feedback">
+              <label>Feedback van stagecommissie:</label>
+              <p>{{ info.feedback }}</p>
+            </div>
+
+            <div v-if="stage.status === 'stagevoorstel geweigerd'" class="actions">
+              <button @click="handleDeleteAndCreateNew" class="btn-submit">
+                + Nieuw voorstel indienen
+              </button>
+            </div>
           </div>
         </div>
 
-        <h3>Stageopdracht</h3>
-        <div class="form-group full">
-          <textarea
-            v-model="form.beschrijving"
-            rows="5"
-            placeholder="Ik zal meewerken aan de ontwikkeling van een intern webplatform voor projectbeheer..."
-            required
-          ></textarea>
-          <label>Omschrijving stageopdracht</label>
-        </div>
-
-        <h3>Competenties</h3>
-        <div class="form-grid">
-          <div class="form-group">
-            <input v-model="form.technische_skills" type="text" placeholder="React, JavaScript" />
-            <label>Technische skills</label>
-          </div>
-          <div class="form-group">
-            <input v-model="form.tools" type="text" placeholder="REST API, Git" />
-            <label>Tools</label>
-          </div>
-        </div>
-
-        <h3>Werkadres</h3>
-        <div class="form-grid">
-          <div class="form-group">
-            <input v-model="form.straat" type="text" placeholder="Luchthavenlei" required />
-            <label>Straat</label>
-          </div>
-          <div class="form-group">
-            <input v-model="form.huisnummer" type="text" placeholder="1" />
-            <label>Huisnummer</label>
-          </div>
-          <div class="form-group">
-            <input v-model="form.gemeente" type="text" placeholder="2100 Antwerpen" required />
-            <label>Gemeente</label>
-          </div>
-          <div class="form-group">
-            <input v-model="form.land" type="text" placeholder="België" />
-            <label>Land</label>
-          </div>
-        </div>
-
-        <div v-if="errorMessage" class="error">{{ errorMessage }}</div>
-
-        <div class="actions">
-          <button type="button" @click="handleAnnuleren" class="btn-cancel">Annuleren</button>
-          <button type="submit" :disabled="loading" class="btn-submit">
-            {{ loading ? 'Bezig met indienen...' : 'Indienen' }}
-          </button>
-        </div>
-      </form>
-    </div>
-
-    <!-- VISTA DE LEITURA -->
-    <div v-else-if="stage">
-      <div class="card">
-
-        <div v-if="stage.status === 'stagevoorstel ingediend'" class="alert">
-  ⏳ Je aanvraag is verzonden en wordt momenteel beoordeeld door de stagecommissie.
-</div>
-<div v-if="stage.status === 'stagevoorstel geaccepteerd' || stage.status === 'lopend'" class="alert success">
-  ✅ Je stage is goedgekeurd!
-</div>
-<div v-if="stage.status === 'afgerond'" class="alert success">
-  🎓 Je stage is afgerond!
-</div>
-<div v-if="stage.status === 'stagevoorstel aanpassingen vereist'" class="alert">
-  ✏️ Je stagevoorstel heeft aanpassingen nodig.
-</div>
-<div v-if="stage.status === 'stagevoorstel geweigerd'" class="alert error">
-  ❌ Je stagevoorstel is afgekeurd. Je kan een nieuw voorstel indienen.
-</div>
-
-        <h3>Gegevens bedrijf</h3>
-<div class="info-grid">
-  <div class="info-item">
-    <div class="field-display">{{ info.bedrijfsnaam || '-' }}</div>
-    <label>Bedrijfsnaam</label>
-  </div>
-  <div class="info-item">
-    <div class="field-display">{{ stage.stagementor?.voornaam || '-' }}</div>
-    <label>Voornaam stagementor</label>
-  </div>
-  <div class="info-item">
-    <div class="field-display">{{ stage.stagementor?.achternaam || '-' }}</div>
-    <label>Achternaam stagementor</label>
-  </div>
-  <div class="info-item">
-    <div class="field-display">{{ stage.stagementor?.email || '-' }}</div>
-    <label>E-mail stagementor</label>
-  </div>
-</div>
-
-        <h3>Stageperiode</h3>
-        <div class="info-grid">
-          <div class="info-item">
-            <div class="field-display">{{ formatDate(stage.start_datum) }}</div>
-            <label>Startdatum</label>
-          </div>
-          <div class="info-item">
-            <div class="field-display">{{ formatDate(stage.eind_datum) }}</div>
-            <label>Einddatum</label>
-          </div>
-        </div>
-
-        <h3>Stageopdracht</h3>
-        <div class="info-item full">
-          <div class="field-display textarea-display">{{ info.beschrijving || '-' }}</div>
-          <label>Omschrijving stageopdracht</label>
-        </div>
-
-        <h3>Competenties</h3>
-        <div class="info-grid">
-          <div class="info-item">
-            <div class="field-display">{{ info.technische_skills || '-' }}</div>
-            <label>Technische skills</label>
-          </div>
-          <div class="info-item">
-            <div class="field-display">{{ info.tools || '-' }}</div>
-            <label>Tools</label>
-          </div>
-        </div>
-
-        <h3>Werkadres</h3>
-        <div class="info-grid">
-          <div class="info-item">
-            <div class="field-display">{{ info.straat || '-' }}</div>
-            <label>Straat</label>
-          </div>
-          <div class="info-item">
-            <div class="field-display">{{ info.huisnummer || '-' }}</div>
-            <label>Huisnummer</label>
-          </div>
-          <div class="info-item">
-            <div class="field-display">{{ info.gemeente || '-' }}</div>
-            <label>Gemeente</label>
-          </div>
-          <div class="info-item">
-            <div class="field-display">{{ info.land || '-' }}</div>
-            <label>Land</label>
-          </div>
-        </div>
-
-        <div v-if="stage.status === 'stagevoorstel geweigerd' && info.feedback" class="feedback">
-  <label>Feedback van stagecommissie:</label>
-  <p>{{ info.feedback }}</p>
-</div>
-
- <div v-if="stage.status === 'stagevoorstel geweigerd'" class="actions">
-  <button @click="handleDeleteAndCreateNew" class="btn-submit">
-    + Nieuw voorstel indienen
-  </button>
-</div>
       </div>
-    </div>
-
+      <!-- ── end Mijn Stage View ── -->
+    </main>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
+import { useRouter } from 'vue-router'
 
+const router = useRouter()
+const user = JSON.parse(localStorage.getItem('user'))
+const activeView = ref('mijn-stage')
+
+// ── Stage state ──────────────────────────────────────────────
 const stage = ref(null)
+const stageStatus = ref(null)
 const criarNovo = ref(false)
 const loading = ref(false)
 const errorMessage = ref('')
@@ -235,6 +283,7 @@ const form = ref({ ...initialForm })
 
 const info = computed(() => stage.value?.stagevoorstellen || {})
 
+// Pre-fill form when changes are required
 watch(stage, (newStage) => {
   if (newStage?.status === 'stagevoorstel aanpassingen vereist') {
     form.value = {
@@ -255,17 +304,13 @@ watch(stage, (newStage) => {
   }
 })
 
+// ── Helpers ──────────────────────────────────────────────────
 function formatDate(dateStr) {
   if (!dateStr) return ''
   return new Date(dateStr).toLocaleDateString('nl-BE')
 }
 
-function gaNaarLogboeken() {
-  router.push('/studentlogboeken')
-}
-
-
-
+// ── API calls ─────────────────────────────────────────────────
 async function loadStage() {
   const token = localStorage.getItem('token')
   try {
@@ -273,21 +318,16 @@ async function loadStage() {
       headers: { Authorization: `Bearer ${token}` }
     })
     const data = await response.json()
-
     if (Array.isArray(data) && data.length > 0) {
       stage.value = data[0]
+      stageStatus.value = data[0].status
     } else {
       stage.value = null
+      stageStatus.value = null
     }
   } catch (err) {
     console.error(err)
   }
-}
-
-function handleAnnuleren() {
-  form.value = { ...initialForm }
-  errorMessage.value = ''
-  criarNovo.value = false
 }
 
 async function handleSubmit() {
@@ -317,7 +357,6 @@ async function handleSubmit() {
     await loadStage()
     form.value = { ...initialForm }
     criarNovo.value = false
-
   } catch (err) {
     errorMessage.value = err.message || 'Indienen mislukt'
   } finally {
@@ -338,19 +377,114 @@ async function handleDeleteAndCreateNew() {
       throw new Error(data.error)
     }
 
-    // Sucesso → limpar tudo e mostrar formulário
     stage.value = null
+    stageStatus.value = null
     criarNovo.value = false
     form.value = { ...initialForm }
-
   } catch (err) {
     errorMessage.value = err.message || 'Verwijderen mislukt'
   }
 }
 
+function handleAnnuleren() {
+  form.value = { ...initialForm }
+  errorMessage.value = ''
+  criarNovo.value = false
+}
+
+function handleLogout() {
+  localStorage.removeItem('token')
+  localStorage.removeItem('user')
+  router.push('/login')
+}
+
 onMounted(loadStage)
 </script>
+
 <style scoped>
+/* ── Layout ─────────────────────────────────────────────────── */
+.dashboard {
+  display: flex;
+  min-height: 100vh;
+  font-family: 'Segoe UI', sans-serif;
+}
+
+/* ── Sidebar ─────────────────────────────────────────────────── */
+.sidebar {
+  width: 200px;
+  background: #4a90c9;
+  color: white;
+  display: flex;
+  flex-direction: column;
+  padding: 1.5rem 1rem;
+}
+
+.logo {
+  background: #e0f0ff;
+  color: #2c3e50;
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  font-weight: bold;
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+nav {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+nav button {
+  background: #e0e0e0;
+  border: none;
+  padding: 0.75rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  text-align: center;
+  color: #333;
+  transition: background 0.2s;
+}
+
+nav button:hover,
+nav button.active {
+  background: white;
+  font-weight: 600;
+}
+
+.logout-btn {
+  background: #e0e0e0;
+  border: none;
+  padding: 0.75rem;
+  border-radius: 6px;
+  cursor: pointer;
+  color: #333;
+  margin-top: auto;
+}
+
+/* ── Main ────────────────────────────────────────────────────── */
+.main-content {
+  flex: 1;
+  background: #f5f5f5;
+}
+
+.topbar {
+  background: white;
+  padding: 1rem 2rem;
+  border-bottom: 1px solid #e0e0e0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.user-name {
+  font-weight: 600;
+  color: #333;
+}
+
+/* ── Mijn Stage ──────────────────────────────────────────────── */
 .mijn-stage {
   padding: 2rem;
   max-width: 950px;
@@ -383,6 +517,7 @@ h3:first-of-type {
   margin-top: 0;
 }
 
+/* ── Alerts ──────────────────────────────────────────────────── */
 .alert {
   background: #fff8d6;
   border-left: 4px solid #f5d142;
@@ -405,6 +540,7 @@ h3:first-of-type {
   color: #8b1a1a;
 }
 
+/* ── Grids ───────────────────────────────────────────────────── */
 .info-grid,
 .form-grid {
   display: grid;
@@ -419,6 +555,13 @@ h3:first-of-type {
   flex-direction: column;
 }
 
+.info-item.full,
+.form-group.full {
+  grid-column: 1 / -1;
+  margin-bottom: 1.5rem;
+}
+
+/* ── Field display ───────────────────────────────────────────── */
 .field-display {
   background: #d9d9d9;
   padding: 0.65rem 0.85rem;
@@ -440,12 +583,7 @@ h3:first-of-type {
   margin-top: 0.35rem;
 }
 
-.info-item.full,
-.form-group.full {
-  grid-column: 1 / -1;
-  margin-bottom: 1.5rem;
-}
-
+/* ── Form inputs ─────────────────────────────────────────────── */
 .form-group input,
 .form-group textarea {
   background: #d9d9d9;
@@ -468,6 +606,7 @@ h3:first-of-type {
   background: white;
 }
 
+/* ── Feedback ────────────────────────────────────────────────── */
 .feedback {
   margin-top: 1.5rem;
   padding: 1rem;
@@ -481,6 +620,7 @@ h3:first-of-type {
   color: #555;
 }
 
+/* ── Error ───────────────────────────────────────────────────── */
 .error {
   background: #f5c6c6;
   color: #8b1a1a;
@@ -489,6 +629,7 @@ h3:first-of-type {
   margin-bottom: 1rem;
 }
 
+/* ── Actions ─────────────────────────────────────────────────── */
 .actions {
   display: flex;
   justify-content: flex-end;
