@@ -8,9 +8,9 @@
 
       <nav class="sidebar-nav">
         <button class="nav-item" @click="router.push('/student')">Stagevoorstel</button>
-        <button class="nav-item" @click="router.push('/studentlogboeken')">Logboek</button>
+        <button class="nav-item" @click="router.push('/studentlogboeken')">Logboeken</button>
         <button class="nav-item active">Evaluatie</button>
-        <button class="nav-item">Documenten</button>
+        <button class="nav-item" @click="router.push('/student/documenten')">Documenten</button>
       </nav>
 
       <div class="sidebar-footer">
@@ -183,6 +183,9 @@ html, body, #app {
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
+  position: sticky;
+  top: 0;            
+  height: 100vh;     
 }
 
 .sidebar-brand {

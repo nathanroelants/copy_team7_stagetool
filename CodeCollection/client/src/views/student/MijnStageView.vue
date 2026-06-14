@@ -2,17 +2,21 @@
   <div class="dashboard">
     <!-- Sidebar -->
     <aside class="sidebar">
-      <div class="logo">STAGE.BE</div>
-      <nav>
+      <div class="sidebar-brand">
+        <span class="brand-text">STAGE.BE</span>
+      </div>
+      <nav class="sidebar-nav">
         <button
+          class="nav-item"
           :class="{ active: activeView === 'mijn-stage' }"
           @click="activeView = 'mijn-stage'"
         >
-          Mijn stage
+          Stagevoorstel
         </button>
 
         <button
           v-if="stageStatus === 'stagevoorstel geaccepteerd' || stageStatus === 'lopend' || stageStatus === 'afgerond'"
+          class="nav-item"
           @click="router.push('/studentlogboeken')"
         >
           Logboeken
@@ -20,19 +24,30 @@
 
         <button
           v-if="stageStatus === 'stagevoorstel geaccepteerd' || stageStatus === 'lopend' || stageStatus === 'afgerond'"
+          class="nav-item"
           @click="router.push('/student/evaluatie')"
         >
           Evaluatie
         </button>
+                <button
+          v-if="stageStatus === 'stagevoorstel geaccepteerd' || stageStatus === 'lopend' || stageStatus === 'afgerond'"
+          class="nav-item"
+          @click="router.push('/student/documenten')"
+        >
+          Documenten
+        </button>
       </nav>
 
-      <button class="logout-btn" @click="handleLogout">Uitloggen</button>
+      <div class="sidebar-footer">
+        <button class="logout-btn" @click="handleLogout">Uitloggen</button>
+      </div>
     </aside>
 
     <!-- Main content -->
     <main class="main-content">
       <header class="topbar">
-        <span class="user-name">{{ user?.voornaam }} {{ user?.achternaam }}</span>
+        <div class="topbar-user">{{ user?.voornaam }} {{ user?.achternaam }}</div>
+          <img src="../../assets/erasmus-logo.png" alt="Erasmus Hogeschool Brussel" class="topbar-logo" />
       </header>
 
       <!-- ── Mijn Stage View ── -->
@@ -406,109 +421,143 @@ onMounted(loadStage)
 .dashboard {
   display: flex;
   min-height: 100vh;
-  font-family: 'Segoe UI', sans-serif;
+  font-family: Arial, Helvetica, sans-serif;
+  background: #f0f4f8;
 }
 
 /* ── Sidebar ─────────────────────────────────────────────────── */
 .sidebar {
-  width: 200px;
-  background: #4a90c9;
-  color: white;
+  width: 180px;
+  background: #29a8e0;
   display: flex;
   flex-direction: column;
-  padding: 1.5rem 1rem;
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  height: 100vh;
 }
 
-.logo {
-  background: #e0f0ff;
-  color: #2c3e50;
-  padding: 0.75rem 1rem;
-  border-radius: 6px;
-  font-weight: bold;
-  text-align: center;
-  margin-bottom: 1.5rem;
+.sidebar-brand {
+  padding: 1.25rem 1rem;
+  background: #1ec8f0;
 }
 
-nav {
+.brand-text {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: 0.5px;
+}
+
+.sidebar-nav {
   flex: 1;
+  padding: 1rem 0.75rem;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
 }
 
-nav button {
-  background: #e0e0e0;
+.nav-item {
+  width: 100%;
+  text-align: left;
+  background: white;
   border: none;
-  padding: 0.75rem;
   border-radius: 6px;
+  padding: 0.65rem 1rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #222;
   cursor: pointer;
-  font-size: 0.95rem;
-  text-align: center;
-  color: #333;
-  transition: background 0.2s;
+  transition: background 0.15s;
 }
 
-nav button:hover,
-nav button.active {
-  background: white;
-  font-weight: 600;
+.nav-item:hover,
+.nav-item.active {
+  background: #e0f0fb;
+  color: #1a7ab5;
+}
+
+.sidebar-footer {
+  padding: 1rem 0.75rem;
 }
 
 .logout-btn {
-  background: #e0e0e0;
+  width: 100%;
+  background: white;
   border: none;
-  padding: 0.75rem;
   border-radius: 6px;
+  padding: 0.65rem 1rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #222;
   cursor: pointer;
-  color: #333;
-  margin-top: auto;
+  transition: background 0.15s;
+}
+
+.logout-btn:hover {
+  background: #f0f0f0;
 }
 
 /* ── Main ────────────────────────────────────────────────────── */
 .main-content {
   flex: 1;
-  background: #f5f5f5;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
+/* ── Topbar ──────────────────────────────────────────────────── */
 .topbar {
   background: white;
-  padding: 1rem 2rem;
-  border-bottom: 1px solid #e0e0e0;
+  padding: 0.75rem 1.5rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  border-bottom: 1px solid #e0e0e0;
+}
+.topbar-logo {
+  height: 36px;
+  object-fit: contain;
 }
 
-.user-name {
+
+.topbar-user {
+  background: #e8e8e8;
+  border-radius: 6px;
+  padding: 0.4rem 1rem;
+  font-size: 0.95rem;
   font-weight: 600;
-  color: #333;
+  color: #222;
 }
 
 /* ── Mijn Stage ──────────────────────────────────────────────── */
 .mijn-stage {
-  padding: 2rem;
+  padding: 1.5rem 2rem;
   max-width: 950px;
   margin: 0 auto;
+  width: 100%;
+  overflow-y: auto;
 }
 
 h2 {
-  color: #333;
+  color: #111;
   font-size: 1.4rem;
+  font-weight: 700;
   margin-bottom: 1.5rem;
 }
 
 .card {
   background: white;
-  border-radius: 8px;
+  border-radius: 10px;
   padding: 2rem;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 h3 {
   color: #333;
-  font-size: 1.1rem;
+  font-size: 1rem;
   margin: 1.5rem 0 1rem 0;
-  font-weight: 500;
+  font-weight: 700;
   padding-bottom: 0.5rem;
   border-bottom: 1px solid #eee;
 }
@@ -535,9 +584,9 @@ h3:first-of-type {
 }
 
 .alert.error {
-  background: #f5d6d6;
-  border-left-color: #d44;
-  color: #8b1a1a;
+  background: #fdecea;
+  border-left-color: #f44336;
+  color: #b71c1c;
 }
 
 /* ── Grids ───────────────────────────────────────────────────── */
@@ -563,12 +612,13 @@ h3:first-of-type {
 
 /* ── Field display ───────────────────────────────────────────── */
 .field-display {
-  background: #d9d9d9;
+  background: #f0f0f0;
   padding: 0.65rem 0.85rem;
-  border-radius: 4px;
+  border-radius: 6px;
   font-size: 0.95rem;
   color: #333;
   min-height: 1.5rem;
+  font-weight: 600;
 }
 
 .textarea-display {
@@ -578,31 +628,36 @@ h3:first-of-type {
 
 .info-item label,
 .form-group label {
-  font-size: 0.85rem;
-  color: #999;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
   margin-top: 0.35rem;
 }
 
 /* ── Form inputs ─────────────────────────────────────────────── */
 .form-group input,
 .form-group textarea {
-  background: #d9d9d9;
+  background: #f0f0f0;
   padding: 0.65rem 0.85rem;
-  border: none;
-  border-radius: 4px;
-  font-size: 0.95rem;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  font-size: 0.92rem;
   font-family: inherit;
-  color: #333;
+  color: #222;
+  transition: border-color 0.15s;
 }
 
 .form-group input::placeholder,
 .form-group textarea::placeholder {
-  color: #888;
+  color: #aaa;
 }
 
 .form-group input:focus,
 .form-group textarea:focus {
-  outline: 2px solid #4a90c9;
+  outline: none;
+  border-color: #29a8e0;
   background: white;
 }
 
@@ -617,15 +672,21 @@ h3:first-of-type {
 
 .feedback label {
   font-weight: 600;
-  color: #555;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: #666;
 }
 
 /* ── Error ───────────────────────────────────────────────────── */
 .error {
-  background: #f5c6c6;
-  color: #8b1a1a;
+  background: #fdecea;
+  color: #b71c1c;
+  border: 1px solid #f5c6cb;
+  border-radius: 6px;
   padding: 0.75rem;
-  border-radius: 4px;
+  font-size: 0.92rem;
+  font-weight: 600;
   margin-bottom: 1rem;
 }
 
@@ -633,7 +694,7 @@ h3:first-of-type {
 .actions {
   display: flex;
   justify-content: flex-end;
-  gap: 1rem;
+  gap: 0.75rem;
   margin-top: 1rem;
 }
 
@@ -641,28 +702,29 @@ h3:first-of-type {
 .btn-submit {
   padding: 0.65rem 1.5rem;
   border: none;
-  border-radius: 4px;
+  border-radius: 6px;
   cursor: pointer;
-  font-size: 0.95rem;
-  font-weight: 500;
+  font-size: 0.9rem;
+  font-weight: 700;
+  transition: opacity 0.15s;
 }
 
 .btn-cancel {
-  background: #d9d9d9;
-  color: #333;
+  background: #aaa;
+  color: white;
 }
 
 .btn-cancel:hover {
-  background: #c4c4c4;
+  opacity: 0.88;
 }
 
 .btn-submit {
-  background: #4a90c9;
+  background: #29a8e0;
   color: white;
 }
 
 .btn-submit:hover:not(:disabled) {
-  background: #357ab0;
+  opacity: 0.88;
 }
 
 .btn-submit:disabled {
