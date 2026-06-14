@@ -439,7 +439,7 @@ html, body, #app {
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
-    position: sticky;
+  position: sticky;
   top: 0;            
   height: 100vh;
 }

@@ -22,6 +22,7 @@
     <main class="main-content">
       <header class="topbar">
         <div class="topbar-user">{{ gebruikerNaam }}</div>
+         <img src="../../assets/erasmus-logo.png" alt="Erasmus Hogeschool Brussel" class="topbar-logo" />
       </header>
 
       <section class="content-area">
@@ -268,15 +269,24 @@ onMounted(laadOpleidingen)
 }
 
 .sidebar {
-  width: 200px;
+  width: 180px;
   background: #29a8e0;
   display: flex;
   flex-direction: column;
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;            
+  height: 100vh;
 }
+
 
 .sidebar-brand {
   padding: 1.25rem 1rem;
   background: #1ec8f0;
+}
+.sidebar-nav {
+  flex: 1;
+  padding: 1rem 0.75rem;
 }
 
 .brand-text {
@@ -332,6 +342,9 @@ onMounted(laadOpleidingen)
 .topbar {
   background: white;
   padding: 0.75rem 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   border-bottom: 1px solid #e0e0e0;
 }
 
@@ -341,6 +354,10 @@ onMounted(laadOpleidingen)
   padding: 0.4rem 1rem;
   font-weight: 600;
   display: inline-block;
+}
+.topbar-logo {
+  height: 36px;
+  object-fit: contain;
 }
 
 .content-area {
