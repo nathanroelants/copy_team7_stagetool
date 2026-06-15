@@ -45,8 +45,7 @@ router.get('/studenten', requireAuth, requireDocent, async (req, res) => {
         id,
         voornaam,
         achternaam,
-        email,
-        opleiding_id
+        email
       ),
       stagementor:gebruikers!stagementor_id (
         voornaam,
@@ -71,14 +70,15 @@ router.get('/studenten', requireAuth, requireDocent, async (req, res) => {
   const stageIds = stages.map(s => s.id);
   const studentIds = stages.map(s => s.student?.id).filter(Boolean);
 
+  // 2. Haal opleidingen op via gebruiker_iddd
   const { data: opleidingen } = await supabase
     .from('opleidingen')
-    .select('id, naam')
-    .in('id', opleidingIds.length > 0 ? opleidingIds : [0]);
+    .select('gebruiker_id, naam')
+    .in('gebruiker_id', studentIds.length > 0 ? studentIds : [0]);
 
-  const opleidingPerId = {};
+  const opleidingPerStudent = {};
   for (const o of opleidingen || []) {
-    opleidingPerId[o.id] = o.naam;
+    opleidingPerStudent[o.gebruiker_id] = o.naam;
   }
 
   // 3. Haal meest recente logboek per stage op
@@ -107,20 +107,19 @@ router.get('/studenten', requireAuth, requireDocent, async (req, res) => {
     }
 
     return {
-      id:         stage.id,
-      voornaam:   stage.student?.voornaam   ?? '',
+      id: stage.id,
+      voornaam: stage.student?.voornaam ?? '',
       achternaam: stage.student?.achternaam ?? '',
-      email:      stage.student?.email      ?? '',
-      opleiding:  opleidingPerStudent[stage.student?.id] ?? '',
-
-      bedrijf:    stage.stagevoorstel?.bedrijfsnaam ?? '',
-      start_datum:  stage.start_datum,
-      eind_datum:   stage.eind_datum,
+      email: stage.student?.email ?? '',
+      opleiding: opleidingPerStudent[stage.student?.id] ?? '',
+      bedrijf: stage.stagevoorstel?.bedrijfsnaam ?? '',
+      start_datum: stage.start_datum,
+      eind_datum: stage.eind_datum,
       mentor_naam: stage.stagementor
         ? `${stage.stagementor.voornaam} ${stage.stagementor.achternaam}`.trim()
         : null,
       stagevoorstel_status: stage.status ?? 'Niet ingediend',
-      logboek_status:       logboekStatus
+      logboek_status: logboekStatus
     };
   });
 
