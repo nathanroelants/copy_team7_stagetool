@@ -23,6 +23,7 @@
       <!-- Top bar -->
       <header class="topbar">
         <div class="topbar-user">{{ gebruikerNaam }}</div>
+        <NotificationBell :stagecommissieId="stagecommissieId" />
         <img src="../../assets/erasmus-logo.png" alt="Erasmus Hogeschool Brussel" class="topbar-logo" />
       </header>
 
@@ -54,7 +55,6 @@
             <!-- Bedrijfsgegevens -->
             <div class="card">
               <div class="card-header">
-    
                 <h2 class="card-title">Gegevens bedrijf</h2>
               </div>
               <div class="card-body">
@@ -86,7 +86,6 @@
             <!-- Stageperiode -->
             <div class="card">
               <div class="card-header">
-         
                 <h2 class="card-title">Stageperiode</h2>
               </div>
               <div class="card-body">
@@ -110,7 +109,6 @@
             <!-- Adres -->
             <div class="card">
               <div class="card-header">
-   
                 <h2 class="card-title">Adres</h2>
               </div>
               <div class="card-body">
@@ -127,7 +125,6 @@
             <!-- Beschrijving -->
             <div class="card card-wide">
               <div class="card-header">
-     
                 <h2 class="card-title">Beschrijving</h2>
               </div>
               <div class="card-body">
@@ -138,7 +135,6 @@
             <!-- Competenties -->
             <div class="card card-wide">
               <div class="card-header">
-      
                 <h2 class="card-title">Competenties</h2>
               </div>
               <div class="card-body competenties-body">
@@ -168,76 +164,76 @@
               </div>
             </div>
 
-<div class="card card-wide">
-  <div class="card-header">
-    <h2 class="card-title">Docent toewijzen</h2>
-  </div>
+            <!-- Docent toewijzen -->
+            <div class="card card-wide">
+              <div class="card-header">
+                <h2 class="card-title">Docent toewijzen</h2>
+              </div>
 
-  <div class="card-body">
-    <div class="docent-form">
-      <input
-        v-model="docentVoornaam"
-        class="docent-input"
-        placeholder="Voornaam docent"
-      />
+              <div class="card-body">
+                <div class="docent-form">
+                  <input
+                    v-model="docentVoornaam"
+                    class="docent-input"
+                    placeholder="Voornaam docent"
+                  />
 
-      <input
-        v-model="docentAchternaam"
-        class="docent-input"
-        placeholder="Achternaam docent"
-      />
-    </div>
-  </div>
-</div>
+                  <input
+                    v-model="docentAchternaam"
+                    class="docent-input"
+                    placeholder="Achternaam docent"
+                  />
+                </div>
+              </div>
+            </div>
 
+            <!-- Beoordeling stagevoorstel -->
+            <div class="card card-wide">
+              <div class="card-header">
+                <h2 class="card-title">Beoordeling stagevoorstel</h2>
+              </div>
 
-<!-- Beoordeling stagevoorstel -->
-<div class="card card-wide">
-  <div class="card-header">
-    <h2 class="card-title">Beoordeling stagevoorstel</h2>
-  </div>
+              <div class="card-body">
+                <div class="actie-buttons">
+                  <button
+                    class="actie-btn btn-groen"
+                    :disabled="actieLoading"
+                    @click="wijzigStageVoorstelStatus('stagevoorstel geaccepteerd')"
+                  >
+                    Accepteren
+                  </button>
 
-  <div class="card-body">
-    <div class="actie-buttons">
-      <button
-        class="actie-btn btn-groen"
-        :disabled="actieLoading"
-        @click="wijzigStageVoorstelStatus('stagevoorstel geaccepteerd')"
-      >
-        Accepteren
-      </button>
+                  <button
+                    class="actie-btn btn-rood"
+                    :disabled="actieLoading"
+                    @click="wijzigStageVoorstelStatus('stagevoorstel geweigerd')"
+                  >
+                    Weigeren
+                  </button>
+                </div>
 
-      <button
-        class="actie-btn btn-rood"
-        :disabled="actieLoading"
-        @click="wijzigStageVoorstelStatus('stagevoorstel geweigerd')"
-      >
-        Weigeren
-      </button>
-    </div>
+                <div class="feedback-section">
+                  <label class="field-label">
+                    Feedback voor vereiste aanpassingen
+                  </label>
 
-    <div class="feedback-section">
-      <label class="field-label">
-        Feedback voor vereiste aanpassingen
-      </label>
+                  <textarea
+                    v-model="feedbackTekst"
+                    class="feedback-input"
+                    rows="5"
+                    placeholder="Beschrijf welke aanpassingen nodig zijn..."
+                  />
 
-      <textarea
-        v-model="feedbackTekst"
-        class="feedback-input"
-        rows="5"
-        placeholder="Beschrijf welke aanpassingen nodig zijn..."
-      />
-
-      <button
-        class="actie-btn btn-oranje"
-        :disabled="actieLoading || !feedbackTekst.trim()"
-        @click="wijzigStageVoorstelStatus('stagevoorstel aanpassingen vereist')"
-      >
-        Aanpassingen vereisen
-      </button>
-    </div>
-  </div>
-</div>
+                  <button
+                    class="actie-btn btn-oranje"
+                    :disabled="actieLoading || !feedbackTekst.trim()"
+                    @click="wijzigStageVoorstelStatus('stagevoorstel aanpassingen vereist')"
+                  >
+                    Aanpassingen vereisen
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         </template>
 
@@ -250,6 +246,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import NotificationBell from '../../components/NotificationBell.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -269,9 +266,9 @@ const docentVoornaam = ref('')
 const docentAchternaam = ref('')
 const docentLoading = ref(false)
 
-
 const user = JSON.parse(localStorage.getItem('user') || '{}')
-const gebruikerNaam = `${user.voornaam || ''} ${user.naam || ''}`.trim() || user.email || 'Docent'
+const gebruikerNaam = `${user.voornaam || ''} ${user.naam || ''}`.trim() || user.email || 'Stagecommissie'
+const stagecommissieId = user._id || user.id || ''
 
 function initialen(voornaam, achternaam) {
   return `${(voornaam || '')[0] || ''}${(achternaam || '')[0] || ''}`.toUpperCase()
@@ -289,7 +286,6 @@ function berekenWeken(start, eind) {
 
 function parseTags(raw) {
   if (!raw) return []
-  // Support comma-separated or newline-separated values
   return raw.split(/[,\n]+/).map(s => s.trim()).filter(Boolean)
 }
 
@@ -307,7 +303,6 @@ async function wijzigStageVoorstelStatus(status) {
   try {
     actieLoading.value = true
 
-    // Bij goedkeuren eerst docent controleren/toewijzen
     if (status === 'stagevoorstel geaccepteerd') {
       if (
         !docentVoornaam.value.trim() ||
@@ -358,7 +353,6 @@ async function wijzigStageVoorstelStatus(status) {
       feedbackTekst.value = ''
     }
 
-    // velden leegmaken na succesvolle goedkeuring
     if (status === 'stagevoorstel geaccepteerd') {
       docentVoornaam.value = ''
       docentAchternaam.value = ''
@@ -377,7 +371,6 @@ async function laadDetail() {
   fout.value = ''
   try {
     const token = localStorage.getItem('token')
-    // studentId comes from route params or query
     const studentId = route.params.studentId || route.query.studentId
     const stageId = route.params.stageId
     const res = await fetch(`/api/stagecommissie/studenten/${stageId}/voorstel`, {
@@ -396,7 +389,6 @@ async function laadDetail() {
     loading.value = false
   }
 }
-
 
 async function wijsDocentToe() {
   try {
@@ -538,6 +530,7 @@ onMounted(laadDetail)
   align-items: center;
   justify-content: space-between;
   border-bottom: 1px solid #e0e0e0;
+  gap: 1rem;
 }
 
 .topbar-user {
@@ -637,10 +630,6 @@ onMounted(laadDetail)
   gap: 0.6rem;
   padding: 0.85rem 1.25rem 0.6rem;
   border-bottom: 1px solid #d0d0d0;
-}
-
-.card-icon {
-  font-size: 1rem;
 }
 
 .card-title {
@@ -828,7 +817,6 @@ onMounted(laadDetail)
 .badge-blauw  { background: #2196f3; color: #fff; }
 .badge-grijs  { background: #aaa;    color: #fff; }
 
-
 .feedback-section {
   margin-top: 1rem;
   display: flex;
@@ -891,9 +879,4 @@ onMounted(laadDetail)
   border-radius: 6px;
   min-width: 220px;
 }
-
-.btn-blauw {
-  background: #2196f3;
-}
-
 </style>
