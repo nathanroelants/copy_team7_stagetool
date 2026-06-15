@@ -7,9 +7,10 @@
       </div>
 
       <nav class="sidebar-nav">
-        <button class="nav-item" @click="router.push('/stagementor')">Mijn studenten</button>
-        <button class="nav-item" @click="router.push('/stagementorlogboeken')">Logboeken</button>
+        <button class="nav-item" @click="router.push('/stagementorlogboeken')">Logboek</button>
+        <button class="nav-item" @click="router.push('/stagementorlogboeken')">Stagevoorstel</button>
         <button class="nav-item active">Evaluatie</button>
+        <button class="nav-item" @click="router.push('/stagementorlogboeken')">Documenten</button>
       </nav>
 
       <div class="sidebar-footer">
