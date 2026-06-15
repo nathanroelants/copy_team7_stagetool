@@ -45,7 +45,8 @@ router.get('/studenten', requireAuth, requireDocent, async (req, res) => {
         id,
         voornaam,
         achternaam,
-        email
+        email,
+        opleiding_id
       ),
       stagementor:gebruikers!stagementor_id (
         voornaam,
@@ -70,15 +71,14 @@ router.get('/studenten', requireAuth, requireDocent, async (req, res) => {
   const stageIds = stages.map(s => s.id);
   const studentIds = stages.map(s => s.student?.id).filter(Boolean);
 
-  // 2. Haal opleidingen op via gebruiker_id
   const { data: opleidingen } = await supabase
     .from('opleidingen')
-    .select('gebruiker_id, naam')
-    .in('gebruiker_id', studentIds.length > 0 ? studentIds : [0]);
+    .select('id, naam')
+    .in('id', opleidingIds.length > 0 ? opleidingIds : [0]);
 
-  const opleidingPerStudent = {};
+  const opleidingPerId = {};
   for (const o of opleidingen || []) {
-    opleidingPerStudent[o.gebruiker_id] = o.naam;
+    opleidingPerId[o.id] = o.naam;
   }
 
   // 3. Haal meest recente logboek per stage op
@@ -112,6 +112,7 @@ router.get('/studenten', requireAuth, requireDocent, async (req, res) => {
       achternaam: stage.student?.achternaam ?? '',
       email:      stage.student?.email      ?? '',
       opleiding:  opleidingPerStudent[stage.student?.id] ?? '',
+
       bedrijf:    stage.stagevoorstel?.bedrijfsnaam ?? '',
       start_datum:  stage.start_datum,
       eind_datum:   stage.eind_datum,
