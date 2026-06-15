@@ -45,6 +45,8 @@
         <div v-else class="student-list">
           <div
             v-for="student in studenten"
+            @click="$router.push(`/docent/logboeken`)"
+            style="cursor: pointer;"
             :key="student.id"
             class="student-card"
           >
@@ -101,7 +103,7 @@ const loading = ref(true)
 const fout = ref('')
 
 const user = JSON.parse(localStorage.getItem('user') || '{}')
-const gebruikerNaam = `${user.voornaam || ''} ${user.naam || ''}`.trim() || user.email || 'Docent'
+const gebruikerNaam = `${user.voornaam || ''} ${user.achternaam || ''}`.trim() || user.email || 'Docent'
 
 // Badge kleurklasse op basis van statustekst
 function badgeKlasse(status) {

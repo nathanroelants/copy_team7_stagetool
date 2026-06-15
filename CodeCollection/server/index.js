@@ -13,8 +13,6 @@ import studentlogboekenRoutes from './routes/logboek.routes.js';
 import adminRoutes from './routes/admin/admin-routes.js';
 import competentiesRoutes from './routes/admin/competenties.js';
 
-
- 
 dotenv.config();
  
 const app = express();
