@@ -7,10 +7,10 @@
       </div>
 
       <nav class="sidebar-nav">
-        <button class="nav-item">Stagevoorstel</button>
-        <button class="nav-item">Logboek</button>
+        <button class="nav-item" @click="router.push('/student')">Stagevoorstel</button>
+        <button class="nav-item" @click="router.push('/studentlogboeken')">Logboeken</button>
         <button class="nav-item active">Evaluatie</button>
-        <button class="nav-item">Documenten</button>
+        <button class="nav-item" @click="router.push('/student/documenten')">Documenten</button>
       </nav>
 
       <div class="sidebar-footer">
@@ -127,7 +127,8 @@
 
 <script setup>
 import { useStudentEvaluatie } from './useStudentEvaluatie.js'
-
+import { useRouter } from 'vue-router'
+const router = useRouter()
 const {
   gebruikerNaam,
   actieveTab,
@@ -151,116 +152,130 @@ const {
 } = useStudentEvaluatie()
 </script>
 
-<style scoped>
-* { box-sizing: border-box; }
+<style>
+html, body, #app {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+}
+</style>
 
+<style scoped>
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+/* ── Layout ── */
 .dashboard-layout {
   display: flex;
   min-height: 100vh;
-  font-family: 'Segoe UI', Arial, sans-serif;
-  background: #eef2f7;
+  background: #f0f4f8;
 }
 
+/* ── Sidebar ── */
 .sidebar {
-  width: 280px;
-  background: linear-gradient(180deg, #5a9ab8 0%, #7ab8d0 100%);
+  width: 180px;
+  background: #29a8e0;
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
-  box-shadow: 2px 0 8px rgba(0,0,0,0.08);
+  position: sticky;
+  top: 0;            
+  height: 100vh;     
 }
 
 .sidebar-brand {
-  padding: 1.5rem 1.25rem;
-  background: rgba(0,0,0,0.12);
+  padding: 1.25rem 1rem;
+  background: #1ec8f0;
 }
 
 .brand-text {
-  font-size: 1.8rem;
-  font-weight: 900;
+  font-size: 1.4rem;
+  font-weight: 800;
   color: #fff;
-  letter-spacing: 1px;
+  letter-spacing: 0.5px;
 }
 
 .sidebar-nav {
   flex: 1;
-  padding: 1.25rem 0.85rem;
+  padding: 1rem 0.75rem;
   display: flex;
   flex-direction: column;
-  gap: 0.3rem;
+  gap: 0.5rem;
 }
 
 .nav-item {
   width: 100%;
   text-align: left;
-  background: transparent;
+  background: white;
   border: none;
-  border-radius: 8px;
-  padding: 0.85rem 1.25rem;
-  font-size: 1rem;
+  border-radius: 6px;
+  padding: 0.65rem 1rem;
+  font-size: 0.9rem;
   font-weight: 600;
-  color: rgba(255,255,255,0.8);
+  color: #222;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: background 0.15s;
 }
 
-.nav-item:hover {
-  background: rgba(255,255,255,0.15);
-  color: white;
+.nav-item:hover,
+.nav-item.active {
+  background: #f0f0f0;
 }
 
 .nav-item.active {
-  background: white;
-  color: #3a7a9e;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  background: #e0f0fb;
+  color: #1a7ab5;
 }
 
 .sidebar-footer {
-  padding: 1rem 0.85rem 1.5rem;
+  padding: 1rem 0.75rem;
 }
 
 .logout-btn {
   width: 100%;
-  background: rgba(255,255,255,0.12);
-  border: 1px solid rgba(255,255,255,0.25);
-  border-radius: 8px;
-  padding: 0.7rem 1rem;
-  font-size: 0.88rem;
+  background: white;
+  border: none;
+  border-radius: 6px;
+  padding: 0.65rem 1rem;
+  font-size: 0.9rem;
   font-weight: 600;
-  color: white;
+  color: #222;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: background 0.15s;
 }
 
-.logout-btn:hover {
-  background: rgba(255,255,255,0.22);
-}
+.logout-btn:hover { background: #f0f0f0; }
 
+/* ── Main ── */
 .main-content {
   flex: 1;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  min-width: 0;
 }
 
+/* ── Topbar ── */
 .topbar {
   background: white;
-  padding: 0.85rem 2rem;
+  padding: 0.75rem 1.5rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid #dde3ec;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  border-bottom: 1px solid #e0e0e0;
 }
 
 .topbar-user {
-  background: #eaf1f6;
-  border-radius: 8px;
-  padding: 0.5rem 1.25rem;
-  font-size: 1.3rem;
-  font-weight: 800;
-  color: #1a7aaa;
+  background: #e8e8e8;
+  border-radius: 6px;
+  padding: 0.4rem 1rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #222;
 }
 
 .topbar-logo {
@@ -268,61 +283,44 @@ const {
   object-fit: contain;
 }
 
-.topbar-label {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: #4a90b8;
-  opacity: 0.75;
-}
-
+/* ── Content area ── */
 .content-area {
-  padding: 2rem 1rem;
+  padding: 1.5rem 2rem;
   overflow-y: auto;
   flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  background: #f2f5f8;
 }
 
-.tabs,
-.status-message,
-.competenties-lijst {
-  width: 100%;
-  max-width: 780px;
-}
-
+/* ── Tabs ── */
 .tabs {
   display: flex;
   gap: 0;
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
   background: white;
-  border-radius: 10px;
-  padding: 0.35rem;
+  border-radius: 8px;
+  padding: 0.3rem;
   width: fit-content;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  border: 1px solid #e0e0e0;
 }
 
 .tab-btn {
   background: none;
   border: none;
-  padding: 0.75rem 2rem;
-  font-size: 1.05rem;
+  padding: 0.6rem 1.5rem;
+  font-size: 0.95rem;
   font-weight: 600;
   color: #888;
   cursor: pointer;
-  border-radius: 7px;
+  border-radius: 6px;
   transition: all 0.15s;
 }
 
 .tab-btn:hover {
-  color: #4a90b8;
+  color: #29a8e0;
 }
 
 .tab-btn.active {
-  background: #4a90b8;
+  background: #29a8e0;
   color: white;
-  box-shadow: 0 2px 6px rgba(41,168,224,0.3);
 }
 
 .tab-btn.geblokkeerd {
@@ -330,24 +328,20 @@ const {
   cursor: not-allowed;
 }
 
+/* ── Feedback banners ── */
 .geblokkeerd-melding {
-  width: 100%;
   background: #e8f4fb;
   border: 1px solid #b0d4e8;
   border-radius: 8px;
-  padding: 1.25rem 1.5rem;
-  font-size: 1rem;
+  padding: 1rem 1.25rem;
+  font-size: 0.92rem;
   font-weight: 600;
-  color: #4a7a9e;
+  color: #1a7ab5;
   margin-bottom: 1rem;
 }
 
-.eindevaluatie-bg {
-  background: #e8f4fb;
-}
-
 .status-message {
-  color: #666;
+  color: #888;
   padding: 2rem 0;
   font-size: 0.95rem;
   text-align: center;
@@ -355,301 +349,24 @@ const {
 
 .status-message.error { color: #e53935; }
 
-.competenties-lijst {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-  border: 2px solid #c5d5e0;
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.competentie-blok {
-  background: #ffffff;
-  border-bottom: 1px solid #c5d5e0;
-}
-
-.competentie-blok:last-child {
-  border-bottom: none;
-}
-
-.competentie-header {
-  width: 100%;
-  background: #f4f8fb;
-  border: none;
-  padding: 1rem 1.25rem;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-
-.competentie-header:hover {
-  background: #e8f0f5;
-}
-
-.competentie-titel {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  text-align: left;
-}
-
-.lo-label {
-  font-size: 0.75rem;
-  font-weight: 800;
-  color: white;
-  background: #4a90b8;
-  padding: 0.25rem 0.6rem;
-  border-radius: 5px;
-  white-space: nowrap;
-  letter-spacing: 0.3px;
-}
-
-.lo-naam {
-  font-size: 0.97rem;
-  font-weight: 600;
-  color: #1a1a2e;
-}
-
-.competentie-rechts {
-  display: flex;
-  align-items: center;
-  gap: 0.85rem;
-  flex-shrink: 0;
-}
-
-.score-preview {
-  font-size: 0.85rem;
-  font-weight: 800;
-  color: white;
-  background: #4a90b8;
-  padding: 0.2rem 0.6rem;
-  border-radius: 20px;
-}
-
-.chevron {
-  font-size: 1.3rem;
-  color: #bbb;
-  transition: transform 0.2s;
-  line-height: 1;
-  display: inline-block;
-}
-
-.chevron.open {
-  transform: rotate(90deg);
-  color: #4a90b8;
-}
-
-.competentie-body {
-  padding: 1.25rem 1.5rem 1.5rem;
-  border-top: 1px solid #eef2f7;
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-  background: #fafcfe;
-}
-
-.sectie-label {
-  display: block;
-  font-size: 0.78rem;
-  font-weight: 800;
-  color: #4a90b8;
-  text-transform: uppercase;
-  letter-spacing: 0.6px;
-  margin-bottom: 0.6rem;
-}
-
-.score-opties {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.score-optie {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.85rem;
-  padding: 0.75rem 1rem;
-  border-radius: 8px;
-  border: 2px solid #e8edf3;
-  cursor: pointer;
-  background: white;
-  transition: all 0.15s;
-}
-
-.score-optie:has(input:disabled) {
-  background: #f0f0f0;
-  cursor: not-allowed;
-  opacity: 0.75;
-  border-color: #ddd;
-}
-
-.score-optie input[type="radio"] {
-  margin-top: 3px;
-  accent-color: #4a90b8;
-  flex-shrink: 0;
-  width: 16px;
-  height: 16px;
-  cursor: pointer;
-}
-
-.score-optie:hover {
-  border-color: #4a90b8;
-  background: #f5fafd;
-}
-
-.score-optie.geselecteerd {
-  border-color: #4a90b8;
-  background: #eaf1f6;
-  opacity: 1;
-}
-
-.optie-inhoud {
-  display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
-}
-
-.optie-punt {
-  font-size: 0.92rem;
-  font-weight: 700;
-  color: #1a1a2e;
-}
-
-.optie-beschrijving {
-  font-size: 0.82rem;
-  color: #777;
-}
-
-.tekst-sectie {
-  display: flex;
-  flex-direction: column;
-}
-
-.tekstvak {
-  width: 100%;
-  min-height: 100px;
-  padding: 0.85rem 1rem;
-  border: 2px solid #e8edf3;
-  border-radius: 8px;
-  font-size: 0.9rem;
-  font-family: inherit;
-  color: #222;
-  resize: vertical;
-  transition: border-color 0.15s;
-  background: white;
-}
-
-.tekstvak:focus {
-  outline: none;
-  border-color: #4a90b8;
-  box-shadow: 0 0 0 3px rgba(41,168,224,0.1);
-}
-
-.tekstvak:disabled {
-  background: #f0f0f0;
-  color: #999;
-  cursor: not-allowed;
-  border-color: #ddd;
-}
-
-.mentor-sectie {
-  background: white;
-  border: 2px solid #e8edf3;
-  border-radius: 8px;
-  padding: 1rem 1.1rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.85rem;
-}
-
-.mentor-veld {
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
-}
-
-.mentor-waarde {
-  font-size: 0.9rem;
-  color: #aaa;
-  font-style: italic;
-}
-
-.opslaan-rij {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-.opslaan-btn {
-  background: #4a90b8;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  padding: 0.6rem 1.75rem;
-  font-size: 0.9rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.15s;
-  box-shadow: 0 2px 6px rgba(41,168,224,0.3);
-}
-
-.opslaan-btn:hover:not(:disabled) {
-  background: #3a7a9e;
-  box-shadow: 0 4px 10px rgba(41,168,224,0.4);
-  transform: translateY(-1px);
-}
-
-.opslaan-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  transform: none;
-}
-
-.opgeslagen-melding {
-  font-size: 0.88rem;
-  color: #43a047;
-  font-weight: 700;
-}
-
-.bewerken-btn {
-  background: white;
-  color: #4a90b8;
-  border: 2px solid #4a90b8;
-  border-radius: 8px;
-  padding: 0.6rem 1.25rem;
-  font-size: 0.9rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-
-.bewerken-btn:hover {
-  background: #eaf1f6;
-}
-
-.fout-melding {
-  font-size: 0.85rem;
-  color: #e53935;
-  font-weight: 600;
-}
-
 /* ── Rubriek tabel ── */
 .rubriek-tabel {
   width: 100%;
-  border: 1px solid #c5d5e0;
-  border-radius: 8px;
+  border: 1px solid #d0d0d0;
+  border-radius: 10px;
   overflow: hidden;
   background: white;
+}
+
+.eindevaluatie-bg {
+  background: #e8f4fb;
 }
 
 .rubriek-header,
 .rubriek-rij {
   display: grid;
   grid-template-columns: 150px repeat(3, 1fr) 300px;
-  border-bottom: 1px solid #c5d5e0;
+  border-bottom: 1px solid #e0e0e0;
 }
 
 .rubriek-rij:last-child {
@@ -657,18 +374,18 @@ const {
 }
 
 .rubriek-header {
-  background: #4a90b8;
+  background: #29a8e0;
   color: white;
   font-weight: 700;
   font-size: 0.82rem;
 }
 
 .rubriek-header > div {
-  padding: 0.75rem 0.75rem;
+  padding: 0.75rem;
   display: flex;
   flex-direction: column;
   gap: 0.15rem;
-  border-right: 1px solid rgba(255,255,255,0.2);
+  border-right: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .score-punten {
@@ -682,33 +399,34 @@ const {
 }
 
 .col-criteria {
+  color: black;
   padding: 0.85rem 0.75rem;
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
-  border-right: 1px solid #c5d5e0;
-  background: #f4f8fb;
+  border-right: 1px solid #e0e0e0;
+  background: #f0f4f8;
 }
 
 .lo-badge {
   font-size: 0.72rem;
   font-weight: 800;
   color: white;
-  background: #4a90b8;
+  background: #29a8e0;
   padding: 0.2rem 0.5rem;
   border-radius: 4px;
   width: fit-content;
 }
 
 .lo-naam {
-  font-size: 0.95rem;
+  font-size: 0.88rem;
   font-weight: 600;
-  color: #1a1a2e;
+  color: #222;
 }
 
 .col-score {
   padding: 0.75rem 0.6rem;
-  border-right: 1px solid #c5d5e0;
+  border-right: 1px solid #e0e0e0;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -717,25 +435,26 @@ const {
 }
 
 .col-score:hover {
-  background: #f0f6fb;
+  background: #f0f4f8;
 }
 
 .col-score.geselecteerd {
-  background: #daeaf5;
-  border-left: 3px solid #4a90b8;
+  background: #d6eef9;
+  border-left: 3px solid #29a8e0;
 }
 
 .col-score .optie-beschrijving {
-  font-size: 1rem;
-  font-weight: 600;
+  font-size: 0.88rem;
+  font-weight: 500;
   color: #333;
   line-height: 1.5;
   flex: 1;
+  margin: 0;
 }
 
 .col-score input[type="radio"] {
   margin-top: 0.5rem;
-  accent-color: #4a90b8;
+  accent-color: #29a8e0;
 }
 
 .col-zelfevaluatie {
@@ -743,5 +462,88 @@ const {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+}
+
+/* ── Textarea ── */
+.tekstvak {
+  width: 100%;
+  min-height: 90px;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-family: inherit;
+  color: #222;
+  resize: vertical;
+  transition: border-color 0.15s;
+  background: white;
+}
+
+.tekstvak:focus {
+  outline: none;
+  border-color: #29a8e0;
+}
+
+.tekstvak:disabled {
+  background: #f0f0f0;
+  color: #999;
+  cursor: not-allowed;
+  border-color: #ddd;
+}
+
+/* ── Save row ── */
+.opslaan-rij {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.opslaan-btn {
+  background: #29a8e0;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 0.5rem 1.25rem;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.opslaan-btn:hover:not(:disabled) {
+  opacity: 0.88;
+}
+
+.opslaan-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.opgeslagen-melding {
+  font-size: 0.85rem;
+  color: #43a047;
+  font-weight: 700;
+}
+
+.bewerken-btn {
+  background: white;
+  color: #29a8e0;
+  border: 2px solid #29a8e0;
+  border-radius: 6px;
+  padding: 0.45rem 1rem;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.bewerken-btn:hover {
+  background: #e0f0fb;
+}
+
+.fout-melding {
+  font-size: 0.85rem;
+  color: #e53935;
+  font-weight: 600;
 }
 </style>

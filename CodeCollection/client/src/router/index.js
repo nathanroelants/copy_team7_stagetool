@@ -4,8 +4,9 @@ import LoginView from '../views/LoginView.vue'
 const routes = [
   { path: '/', component: LoginView },
   { path: '/login', component: LoginView },
-  { path: '/student', component: () => import('../views/student/DashboardView.vue') },
+  { path: '/student', component: () => import('../views/student/MijnStageView.vue') },
   { path: '/studentlogboeken', component: () => import('../views/student/StudentLogboeken.vue') },
+  { path: '/student/documenten', component: () => import('../views/student/StudentLogboeken.vue') },
   { path: '/student/evaluatie', component: () => import('../views/student/StudentEvaluatieView.vue') },
   { path: '/docent', component: () => import('../views/docent/DocentStudenten.vue') },
   { path: '/mentor', component: () => import('../views/mentor/DashboardView.vue') },

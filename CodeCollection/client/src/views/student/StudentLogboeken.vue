@@ -8,9 +8,9 @@
       </div>
       <nav class="sidebar-nav">
         <button class="nav-item"   @click="moveToStagevoorstel">Stagevoorstel</button>
-        <button class="nav-item active">Logboek</button>
-        <button class="nav-item">Evaluatie</button>
-        <button class="nav-item">Documenten</button>
+        <button class="nav-item active">Logboeken</button>
+        <button class="nav-item" @click="moveToEvaluatie" >Evaluatie</button>
+        <button class="nav-item" @click="router.push('/student/documenten')">Documenten</button>
       </nav>
       <div class="sidebar-footer">
         <button class="logout-btn" @click="handleLogout">Uitloggen</button>
@@ -281,7 +281,10 @@ export default {
     function moveToStagevoorstel() {
       router.push('/student')
     }
-
+    function moveToEvaluatie() {
+      router.push('/student/evaluatie')
+    }
+      
 
     onMounted(async () => {
       try {
@@ -399,7 +402,7 @@ export default {
       student, weken, dagForm,
       alleCompetenties, competentiesLaden, competentiesFout,
       initialen, totaalUren, statusKleur,
-      weekIndienen, openDagModal, slaDagOp, handleLogout, moveToStagevoorstel
+      weekIndienen, openDagModal, slaDagOp, handleLogout, moveToStagevoorstel, moveToEvaluatie
     }
   },
 }
@@ -436,6 +439,9 @@ html, body, #app {
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
+  position: sticky;
+  top: 0;            
+  height: 100vh;
 }
 
 .sidebar-brand {
