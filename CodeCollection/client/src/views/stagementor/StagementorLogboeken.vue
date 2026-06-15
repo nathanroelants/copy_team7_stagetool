@@ -56,11 +56,10 @@
         <span class="badge" :class="statusKleur(week.status)">{{ week.status }}</span>
       </div>
       <div class="week-acties">
-        <button
-          v-if="!week.afgetekend"
-          class="knop-groen"
-          @click="tekenAf(week)"
-        >Aftekenen</button>
+        <template v-if="week.status !== 'Goedgekeurd' && week.status !== 'Afgekeurd'">
+          <button class="knop-groen" @click="goedkeuren(week)">Goedkeuren</button>
+          <button class="knop-rood"  @click="afkeuren(week)">Afkeuren</button>
+        </template>
       </div>
     </div>
 
@@ -341,21 +340,41 @@ watch(pagina, (nova) => {
 
 function statusKleur(status) {
   const s = (status || '').toLowerCase()
-  if (s.includes('afgetekend')) return 'badge-groen'
-  if (s.includes('ingediend')) return 'badge-blauw'
+  if (s.includes('goedgekeurd')) return 'badge-groen'
+  if (s.includes('afgekeurd'))   return 'badge-rood'
+  if (s.includes('ingediend'))   return 'badge-blauw'
   return 'badge-grijs'
 }
 
-async function tekenAf(week) {
-  if (!confirm(`Week ${week.nummer} aftekenen?`)) return
+async function goedkeuren(week) {
   try {
-    const res = await fetch(`${API_BASE}/logboek/week/${week.nummer}/aftekenen`, {
+    const res = await fetch(`${API_BASE}/logboek/week/${week.nummer}/goedkeuren`, {
       method: 'POST',
       headers: authHeaders()
     })
     if (!res.ok) {
-      const data = await res.json()
-      throw new Error(data.error || 'Fout bij aftekenen')
+      const text = await res.text()
+      let msg = 'Fout bij goedkeuren'
+      try { msg = JSON.parse(text).error || msg } catch {}
+      throw new Error(msg)
+    }
+    await laadLogboek()
+  } catch (err) {
+    alert(err.message)
+  }
+}
+
+async function afkeuren(week) {
+  try {
+    const res = await fetch(`${API_BASE}/logboek/week/${week.nummer}/afkeuren`, {
+      method: 'POST',
+      headers: authHeaders()
+    })
+    if (!res.ok) {
+      const text = await res.text()
+      let msg = 'Fout bij afkeuren'
+      try { msg = JSON.parse(text).error || msg } catch {}
+      throw new Error(msg)
     }
     await laadLogboek()
   } catch (err) {
@@ -650,6 +669,7 @@ onMounted(async () => {
 
 .badge-groen { background: #4caf50; color: #fff; }
 .badge-blauw { background: #2196f3; color: #fff; }
+.badge-rood  { background: #e53935; color: #fff; }
 .badge-grijs  { background: #aaa;    color: #fff; }
 
 .knop-blauw {
@@ -681,6 +701,21 @@ onMounted(async () => {
 
 .knop-groen:hover {
   background: #388e3c;
+}
+
+.knop-rood {
+  background: #e53935;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.knop-rood:hover {
+  background: #b71c1c;
 }
 /* Tabela compacta com texto truncado */
 .dag-tabel {

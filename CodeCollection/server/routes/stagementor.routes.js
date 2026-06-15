@@ -206,9 +206,13 @@ router.get('/student/:studentId/logboek', requireAuth, requireStagementor, async
   const weken = {};
   for (const r of regels || []) {
     if (!weken[r.week_nummer]) {
+      let weekStatus = r.status || 'Ingediend';
+      if (weekStatus === 'goedgekeurd') weekStatus = 'Goedgekeurd';
+      else if (weekStatus === 'afgekeurd') weekStatus = 'Afgekeurd';
+      else if (r.afgetekend) weekStatus = 'Goedgekeurd';
       weken[r.week_nummer] = {
         nummer: r.week_nummer,
-        status: r.afgetekend ? 'Afgetekend' : (r.status || 'Ingediend'),
+        status: weekStatus,
         afgetekend: r.afgetekend,
         dagen: []
       };
@@ -275,6 +279,44 @@ router.get('/student/:studentId/documenten', requireAuth, requireStagementor, as
   });
 
   res.json(docs);
+});
+
+// ── POST .../logboek/week/:weekNummer/goedkeuren
+router.post('/student/:studentId/logboek/week/:weekNummer/goedkeuren', requireAuth, requireStagementor, async (req, res) => {
+  const supabase = req.app.get('supabase');
+  const { studentId, weekNummer } = req.params;
+  const mentorId = req.user.id;
+
+  const stage = await getStageVoorMentor(supabase, studentId, mentorId);
+  if (!stage) return res.status(404).json({ error: 'Stage niet gevonden' });
+
+  const { error } = await supabase
+    .from('logboeken')
+    .update({ status: 'goedgekeurd', afgetekend: true, afgetekend_op: new Date().toISOString() })
+    .eq('stage_id', stage.id)
+    .eq('week_nummer', parseInt(weekNummer));
+
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ success: true });
+});
+
+// ── POST .../logboek/week/:weekNummer/afkeuren
+router.post('/student/:studentId/logboek/week/:weekNummer/afkeuren', requireAuth, requireStagementor, async (req, res) => {
+  const supabase = req.app.get('supabase');
+  const { studentId, weekNummer } = req.params;
+  const mentorId = req.user.id;
+
+  const stage = await getStageVoorMentor(supabase, studentId, mentorId);
+  if (!stage) return res.status(404).json({ error: 'Stage niet gevonden' });
+
+  const { error } = await supabase
+    .from('logboeken')
+    .update({ status: 'afgekeurd', afgetekend: false })
+    .eq('stage_id', stage.id)
+    .eq('week_nummer', parseInt(weekNummer));
+
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ success: true });
 });
 
 export default router;
