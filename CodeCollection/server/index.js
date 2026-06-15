@@ -6,6 +6,7 @@ import authRoutes from './routes/auth.js';
 import docentRoutes from './routes/docent.routes.js';
 import stagecommissieRoutes from './routes/stagecommissie.routes.js';
 import stagementorRoutes from './routes/stagementor.routes.js';
+import stagementorEvaluatieRoutes from './routes/stagementor.evaluatie.routes.js';
 dotenv.config();
 import studentEvaluatieRoutes from './routes/student.evaluatie.routes.js';
 import stagevoorstellenRoutes from './routes/Studentstagevoorstellen-routes.js';
@@ -37,6 +38,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/docent', docentRoutes);
 app.use('/api/stagecommissie', stagecommissieRoutes);
 app.use('/api/stagementor', stagementorRoutes)
+app.use('/api/stagementor', stagementorEvaluatieRoutes)
 app.use('/api/student', studentEvaluatieRoutes);
 app.use('/api/stagevoorstellen', stagevoorstellenRoutes);
 app.use('/api/studentlogboeken', studentlogboekenRoutes);
