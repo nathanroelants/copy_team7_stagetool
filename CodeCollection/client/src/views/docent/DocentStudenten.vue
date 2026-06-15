@@ -103,7 +103,7 @@ const loading = ref(true)
 const fout = ref('')
 
 const user = JSON.parse(localStorage.getItem('user') || '{}')
-const gebruikerNaam = `${user.voornaam || ''} ${user.naam || ''}`.trim() || user.email || 'Docent'
+const gebruikerNaam = `${user.voornaam || ''} ${user.achternaam || ''}`.trim() || user.email || 'Docent'
 
 // Badge kleurklasse op basis van statustekst
 function badgeKlasse(status) {
