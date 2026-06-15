@@ -38,56 +38,50 @@
         </div>
 
         <div v-else class="student-list">
-          <div
-            v-for="student in studenten"
-            :key="student.id"
-            class="student-card"
-            @click="$router.push(`/stagementorlogboeken`)"
-            style="cursor: pointer;"
-          >
-          <div
-            v-for="student in studenten"
-            :key="student.id"
-            class="student-card"
-          >
-            <div class="student-avatar">
-              <div class="avatar-circle">
-                {{ initialen(student.voornaam, student.achternaam) }}
-              </div>
-            </div>
+  <div
+    v-for="student in studenten"
+    :key="student.id"
+    class="student-card"
+    @click="$router.push('/stagementorlogboeken')"
+    style="cursor: pointer;"
+  >
+    <div class="student-avatar">
+      <div class="avatar-circle">
+        {{ initialen(student.voornaam, student.achternaam) }}
+      </div>
+    </div>
 
-            <div class="student-info">
-              <div class="student-name">{{ student.voornaam }} {{ student.achternaam }}</div>
-              <div class="student-opleiding">
-                {{ student.opleiding }} — {{ student.bedrijf }}
-              </div>
-              <div class="student-meta">
-                <span class="meta-item">
-                  {{ formatDatum(student.start_datum) }} → {{ formatDatum(student.eind_datum) }}
-                </span>
-                <span class="meta-item">
-                  <a :href="`mailto:${student.email}`" class="email-link">{{ student.email }}</a>
-                </span>
-              </div>
+    <div class="student-info">
+      <div class="student-name">{{ student.voornaam }} {{ student.achternaam }}</div>
+      <div class="student-opleiding">
+        {{ student.opleiding }} — {{ student.bedrijf }}
+      </div>
+      <div class="student-meta">
+        <span class="meta-item">
+          {{ formatDatum(student.start_datum) }} → {{ formatDatum(student.eind_datum) }}
+        </span>
+        <span class="meta-item">
+          <a :href="`mailto:${student.email}`" class="email-link" @click.stop>{{ student.email }}</a>
+        </span>
+      </div>
 
-              <div class="badge-row">
-                <div class="badge-group">
-                  <span class="badge-label">Stagevoorstel</span>
-                  <span :class="['badge', badgeKlasse(student.stagevoorstel_status)]">
-                    {{ student.stagevoorstel_status || '—' }}
-                  </span>
-                </div>
-                <div class="badge-group">
-                  <span class="badge-label">Logboek</span>
-                  <span :class="['badge', logboekBadgeKlasse(student.logboek_status)]">
-                    {{ student.logboek_status || '—' }}
-                  </span>
-                </div>
-              </div>
-            </div>
-              </div>
-          </div>
+      <div class="badge-row">
+        <div class="badge-group">
+          <span class="badge-label">Stagevoorstel</span>
+          <span :class="['badge', badgeKlasse(student.stagevoorstel_status)]">
+            {{ student.stagevoorstel_status || '—' }}
+          </span>
         </div>
+        <div class="badge-group">
+          <span class="badge-label">Logboek</span>
+          <span :class="['badge', logboekBadgeKlasse(student.logboek_status)]">
+            {{ student.logboek_status || '—' }}
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
       </section>
     </main>
   </div>

@@ -7,6 +7,12 @@
       </div>
 
       <nav class="sidebar-nav">
+        <button class="nav-item nav-back" @click="router.push('/stagementor')">
+          ← Mijn studenten
+        </button>
+
+        <div class="nav-separator"></div>
+
         <button class="nav-item" :class="{ active: pagina === 'logboek' }"    @click="pagina = 'logboek'">Logboek</button>
         <button class="nav-item" :class="{ active: pagina === 'stageinfo' }"  @click="pagina = 'stageinfo'">Stagevoorstel</button>
         <button class="nav-item" :class="{ active: pagina === 'evaluatie' }"  @click="pagina = 'evaluatie'">Evaluatie</button>
@@ -119,71 +125,64 @@
   </div>
 </template>
 
-<script>
+<script setup>
 import { ref, reactive } from 'vue'
+import { useRouter } from 'vue-router'
 
-export default {
-  name: 'MentorLogboek',
-  setup() {
-    const pagina = ref('logboek')
+const router = useRouter()
 
-    const mentor = reactive({
-      naam: 'Mevr. Janssen',
-    })
+const pagina = ref('logboek')
 
-    const student = reactive({
-      naam: 'Nathan De Smedt',
-      leergroep: '3 Informatica',
-      startDatum: '01/09/2025',
-      eindDatum: '31/01/2026',
-      bedrijf: 'TechCorp BV',
-      mentor: 'Mevr. Janssen',
-    })
+const mentor = reactive({
+  naam: 'Mevr. Janssen',
+})
 
-    const weken = reactive([
-      {
-        nummer: 1,
-        status: 'Ingediend',
-        dagen: [
-          { datum: '01/09/2025', taak: 'Introductie bedrijf', uren: 8, los: 'Kennismaking', reflectie: 'Goed ontvangen', leerpunten: 'Structuur bedrijf' },
-          { datum: '02/09/2025', taak: 'Opzetten omgeving', uren: 8, los: 'Technische setup', reflectie: 'Veel geleerd', leerpunten: 'Git workflow' },
-        ],
-      },
-      {
-        nummer: 2,
-        status: 'Niet ingediend',
-        dagen: [
-          { datum: '08/09/2025', taak: 'Frontend taak', uren: 8, los: 'Vue componenten', reflectie: 'Vlot gegaan', leerpunten: 'Props en events' },
-        ],
-      },
-    ])
+const student = reactive({
+  naam: 'Nathan De Smedt',
+  leergroep: '3 Informatica',
+  startDatum: '01/09/2025',
+  eindDatum: '31/01/2026',
+  bedrijf: 'TechCorp BV',
+  mentor: 'Mevr. Janssen',
+})
 
-    const evaluatie = reactive({ tussentijds: null, eind: null, opmerking: null })
-    const documenten = reactive([])
-
-    function statusKleur(status) {
-      if (status === 'Afgetekend') return 'badge-groen'
-      if (status === 'Ingediend')  return 'badge-blauw'
-      return 'badge-grijs'
-    }
-
-    function tekenAf(week) {
-      if (confirm(`Week ${week.nummer} aftekenen?`)) {
-        week.status = 'Afgetekend'
-      }
-    }
-
-    function uitloggen() {
-      if (confirm('Bent u zeker dat u wilt uitloggen?')) {
-        alert('U bent uitgelogd.')
-      }
-    }
-
-    return {
-      pagina, mentor, student, weken, evaluatie, documenten,
-      statusKleur, tekenAf, uitloggen,
-    }
+const weken = reactive([
+  {
+    nummer: 1,
+    status: 'Ingediend',
+    dagen: [
+      { datum: '01/09/2025', taak: 'Introductie bedrijf', uren: 8, los: 'Kennismaking', reflectie: 'Goed ontvangen', leerpunten: 'Structuur bedrijf' },
+      { datum: '02/09/2025', taak: 'Opzetten omgeving', uren: 8, los: 'Technische setup', reflectie: 'Veel geleerd', leerpunten: 'Git workflow' },
+    ],
   },
+  {
+    nummer: 2,
+    status: 'Niet ingediend',
+    dagen: [
+      { datum: '08/09/2025', taak: 'Frontend taak', uren: 8, los: 'Vue componenten', reflectie: 'Vlot gegaan', leerpunten: 'Props en events' },
+    ],
+  },
+])
+
+const evaluatie = reactive({ tussentijds: null, eind: null, opmerking: null })
+const documenten = reactive([])
+
+function statusKleur(status) {
+  if (status === 'Afgetekend') return 'badge-groen'
+  if (status === 'Ingediend')  return 'badge-blauw'
+  return 'badge-grijs'
+}
+
+function tekenAf(week) {
+  if (confirm(`Week ${week.nummer} aftekenen?`)) {
+    week.status = 'Afgetekend'
+  }
+}
+
+function uitloggen() {
+    localStorage.removeItem('token')
+    localStorage.removeItem('user')
+    router.push('/')
 }
 </script>
 
@@ -238,6 +237,22 @@ export default {
 .nav-item:hover,
 .nav-item.active {
   background: #f0f0f0;
+}
+
+.nav-back {
+  background: #1ec8f0;
+  color: white;
+  font-weight: 700;
+}
+
+.nav-back:hover {
+  background: #18b5d8;
+}
+
+.nav-separator {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.3);
+  margin: 0.5rem 0 0.75rem;
 }
 
 .sidebar-footer {
