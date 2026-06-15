@@ -5,11 +5,14 @@ import { createClient } from '@supabase/supabase-js';
 import authRoutes from './routes/auth.js';
 import docentRoutes from './routes/docent.routes.js';
 import stagecommissieRoutes from './routes/stagecommissie.routes.js';
+import stagementorRoutes from './routes/stagementor.routes.js';
+dotenv.config();
 import studentEvaluatieRoutes from './routes/student.evaluatie.routes.js';
 import stagevoorstellenRoutes from './routes/Studentstagevoorstellen-routes.js';
 import studentlogboekenRoutes from './routes/logboek.routes.js';
 import adminRoutes from './routes/admin/admin-routes.js';
 import competentiesRoutes from './routes/admin/competenties.js';
+import stagementorRoutes from './routes/stagementor.routes.js';
 
 
  
@@ -33,6 +36,7 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/api/docent', docentRoutes);
 app.use('/api/stagecommissie', stagecommissieRoutes);
+app.use('/api/stagementor', stagementorRoutes)
 app.use('/api/student', studentEvaluatieRoutes);
 app.use('/api/stagevoorstellen', stagevoorstellenRoutes);
 app.use('/api/studentlogboeken', studentlogboekenRoutes);
