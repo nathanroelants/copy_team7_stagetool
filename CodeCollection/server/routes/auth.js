@@ -1,12 +1,14 @@
 import express from 'express';
 import jwt from 'jsonwebtoken';
+import bcrypt from 'bcrypt';
 
 const router = express.Router();
 console.log('Auth routes geladen');
-// POST /api/auth/login
+
 router.get('/test', (req, res) => {
   res.json({ ok: true });
 });
+
 router.post('/login', async (req, res) => {
   const { email, password } = req.body;
 
@@ -14,10 +16,8 @@ router.post('/login', async (req, res) => {
     return res.status(400).json({ error: 'Email en wachtwoord zijn verplicht' });
   }
 
-  // Supabase client halen uit de app (zodat we geen dubbele client maken)
   const supabase = req.app.get('supabase');
 
-  // Gebruiker ophalen uit database
   const { data: gebruiker, error } = await supabase
     .from('gebruikers')
     .select('*')
@@ -32,12 +32,18 @@ router.post('/login', async (req, res) => {
     return res.status(401).json({ error: 'Account is niet actief' });
   }
 
-  // Wachtwoord vergelijken (simpel, geen hash voor nu)
-  if (password !== gebruiker.wachtwoord_hash) {
+  // Wachtwoord vergelijken met bcrypt
+  let isGeldig = false;
+  try {
+    isGeldig = await bcrypt.compare(password, gebruiker.wachtwoord_hash);
+  } catch (err) {
+    return res.status(500).json({ error: 'Fout bij wachtwoordverificatie' });
+  }
+
+  if (!isGeldig) {
     return res.status(401).json({ error: 'Ongeldig wachtwoord' });
   }
 
-  // JWT token aanmaken
   const token = jwt.sign(
     { id: gebruiker.id, email: gebruiker.email, rol: gebruiker.rol },
     process.env.JWT_SECRET,
@@ -50,6 +56,7 @@ router.post('/login', async (req, res) => {
       id: gebruiker.id,
       naam: gebruiker.naam,
       voornaam: gebruiker.voornaam,
+      achternaam: gebruiker.achternaam,
       email: gebruiker.email,
       rol: gebruiker.rol
     }
