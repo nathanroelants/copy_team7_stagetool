@@ -12,7 +12,6 @@ import stagevoorstellenRoutes from './routes/Studentstagevoorstellen-routes.js';
 import studentlogboekenRoutes from './routes/logboek.routes.js';
 import adminRoutes from './routes/admin/admin-routes.js';
 import competentiesRoutes from './routes/admin/competenties.js';
-import stagementorRoutes from './routes/stagementor.routes.js';
 
 
  
