@@ -220,9 +220,9 @@ html, body, #app {
   transition: background 0.15s;
 }
 
-.nav-item:hover,
-.nav-item.active {
-  background: #f0f0f0;
+.nav-item:hover {
+  background: #e0f0fb;
+  color: #1a7ab5;
 }
 
 .nav-item.active {

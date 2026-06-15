@@ -9,7 +9,7 @@
       <nav class="sidebar-nav">
         <button class="nav-item" :class="{ active: pagina === 'logboek' }"    @click="pagina = 'logboek'">Logboek</button>
         <button class="nav-item" :class="{ active: pagina === 'stageinfo' }"  @click="pagina = 'stageinfo'">Stagevoorstel</button>
-          <button class="nav-item" @click="$router.push('/stagementor/evaluatie')">Evaluatie</button>
+        <button class="nav-item" @click="$router.push('/stagementor/evaluatie')">Evaluatie</button>
         <button class="nav-item" :class="{ active: pagina === 'documenten' }" @click="pagina = 'documenten'">Documenten</button>
       </nav>
 
@@ -235,9 +235,14 @@ export default {
   transition: background 0.15s;
 }
 
-.nav-item:hover,
+.nav-item:hover {
+  background: #e0f0fb;
+  color: #1a7ab5;
+}
+
 .nav-item.active {
-  background: #f0f0f0;
+  background: #e0f0fb;
+  color: #1a7ab5;
 }
 
 .sidebar-footer {
