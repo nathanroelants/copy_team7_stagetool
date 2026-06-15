@@ -245,9 +245,8 @@ onMounted(laadStudenten)
   padding: 0.75rem 1.5rem;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  border-bottom: 1px solid #e0e0e0;
   gap: 1rem;
+  border-bottom: 1px solid #e0e0e0;
 }
 
 .topbar-user {
@@ -262,6 +261,7 @@ onMounted(laadStudenten)
 .topbar-logo {
   height: 36px;
   object-fit: contain;
+  margin-left: auto;
 }
 
 /* ── Content ── */
