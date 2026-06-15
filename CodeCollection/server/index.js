@@ -12,16 +12,16 @@ import stagevoorstellenRoutes from './routes/Studentstagevoorstellen-routes.js';
 import studentlogboekenRoutes from './routes/logboek.routes.js';
 import adminRoutes from './routes/admin/admin-routes.js';
 import competentiesRoutes from './routes/admin/competenties.js';
-import stagementorRoutes from './routes/stagementor.routes.js';
 
 
- 
+
+
 dotenv.config();
- 
+
 const app = express();
 
 const PORT = process.env.PORT || 3000;
- 
+
 const supabase = createClient(
 
   process.env.SUPABASE_URL,
@@ -29,7 +29,7 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_KEY
 
 );
- 
+
 app.set('supabase', supabase);
 app.use(cors());
 app.use(express.json());
@@ -49,10 +49,9 @@ app.get('/api/test', (req, res) => {
   res.json({ message: 'Backend werkt! 🚀' });
 
 });
- 
+
 app.listen(PORT, () => {
 
   console.log(`🚀 Server draait op http://localhost:${PORT}`);
 
 });
- 
