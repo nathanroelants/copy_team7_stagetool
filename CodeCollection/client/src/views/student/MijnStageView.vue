@@ -111,6 +111,17 @@
 <div v-if="stage.status === 'stagevoorstel geaccepteerd' || stage.status === 'lopend'" class="alert success">
   ✅ Je stage is goedgekeurd!
 </div>
+
+<!-- stage ondertekenen -->
+<div v-if="stage.status === 'stagevoorstel geaccepteerd'" class="signing-action">
+  <router-link 
+    :to="`/student/stages/${stage.id}/ondertekenen`"
+    class="btn-ondertekenen"
+  >
+    ✍ Stageovereenkomst ondertekenen
+  </router-link>
+</div>
+
 <div v-if="stage.status === 'afgerond'" class="alert success">
   🎓 Je stage is afgerond!
 </div>
@@ -521,5 +532,35 @@ h3:first-of-type {
 .btn-submit:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+/* Signing button for student */
+.signing-action {
+  margin: 1rem 0 0 0;
+  text-align: right;
+}
+
+.btn-ondertekenen {
+  display: inline-block;
+  background: #4caf50;
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border-radius: 6px;
+  text-decoration: none;
+  font-size: 0.95rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  border: none;
+  cursor: pointer;
+}
+
+.btn-ondertekenen:hover {
+  background: #45a049;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.btn-ondertekenen:active {
+  transform: translateY(0);
 }
 </style>
