@@ -255,6 +255,114 @@
               </div>
             </div>
 
+            <!-- ── NIEUW: Stageovereenkomst uploaden ── -->
+            <div class="card card-wide">
+              <div class="card-header">
+                <h2 class="card-title">📄 Stageovereenkomst</h2>
+              </div>
+              <div class="card-body">
+
+                <!-- Bestaand document -->
+                <div v-if="overeenkomst && !uploadActief" class="document-card">
+                  <div class="document-icon">📎</div>
+                  <div class="document-info">
+                    <span class="document-name">{{ overeenkomst.bestandsnaam }}</span>
+                    <span class="document-meta">
+                      Geüpload op {{ formatDatum(overeenkomst.upload_datum) }}
+                      door {{ overeenkomst.geupload_door || '—' }}
+                    </span>
+                  </div>
+                  <div class="document-actions">
+                    <button class="doc-btn doc-btn-download" @click="downloadOvereenkomst">
+                      ⬇ Downloaden
+                    </button>
+                    <button
+                      v-if="magUploaden"
+                      class="doc-btn doc-btn-replace"
+                      @click="triggerUpload"
+                    >
+                      🔄 Vervangen
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Geen document aanwezig -->
+                <div v-else-if="!uploadActief" class="document-empty">
+                  <div class="document-empty-icon">📂</div>
+                  <p class="document-empty-text">Er is nog geen stageovereenkomst geüpload.</p>
+                  <button v-if="magUploaden" class="actie-btn btn-blauw" @click="triggerUpload">
+                    📤 Overeenkomst uploaden
+                  </button>
+                  <p v-else class="document-empty-hint">
+                    De stageovereenkomst kan geüpload worden door de student, docent of stagementor.
+                  </p>
+                </div>
+
+                <!-- Upload zone -->
+                <div
+                  v-if="uploadActief"
+                  class="upload-zone"
+                  :class="{ 'upload-zone--drag': dragOver }"
+                  @dragover.prevent="dragOver = true"
+                  @dragleave.prevent="dragOver = false"
+                  @drop.prevent="handleDrop"
+                >
+                  <input
+                    ref="fileInput"
+                    type="file"
+                    accept=".pdf,.doc,.docx"
+                    class="upload-input-hidden"
+                    @change="handleFileSelect"
+                  />
+
+                  <div v-if="!geselecteerdBestand" class="upload-placeholder">
+                    <span class="upload-zone-icon">☁</span>
+                    <p class="upload-zone-text">
+                      Sleep een bestand hierheen of
+                      <button class="upload-browse-link" @click="fileInput.click()">kies een bestand</button>
+                    </p>
+                    <p class="upload-zone-hint">Toegestane formaten: PDF, DOC, DOCX — max. 10 MB</p>
+                  </div>
+
+                  <div v-else class="upload-preview">
+                    <div class="upload-preview-file">
+                      <span class="upload-preview-icon">📄</span>
+                      <div class="upload-preview-info">
+                        <span class="upload-preview-name">{{ geselecteerdBestand.name }}</span>
+                        <span class="upload-preview-size">{{ formatBestandsgrootte(geselecteerdBestand.size) }}</span>
+                      </div>
+                      <button class="upload-preview-remove" @click="geselecteerdBestand = null" title="Verwijder selectie">✕</button>
+                    </div>
+
+                    <div v-if="uploadFout" class="error-message">{{ uploadFout }}</div>
+
+                    <div v-if="uploadVoortgang > 0 && uploadVoortgang < 100" class="upload-progress">
+                      <div class="upload-progress-bar">
+                        <div class="upload-progress-fill" :style="{ width: `${uploadVoortgang}%` }"></div>
+                      </div>
+                      <span class="upload-progress-label">{{ uploadVoortgang }}%</span>
+                    </div>
+
+                    <div class="upload-preview-actions">
+                      <button class="actie-btn btn-groen" :disabled="uploadLoading" @click="handleUpload">
+                        {{ uploadLoading ? 'Bezig met uploaden...' : '📤 Uploaden' }}
+                      </button>
+                      <button class="actie-btn btn-grijs" :disabled="uploadLoading" @click="annuleerUpload">
+                        Annuleren
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Succes melding -->
+                <div v-if="uploadSucces" class="upload-succes-banner">
+                  ✓ De stageovereenkomst is succesvol geüpload en centraal opgeslagen.
+                </div>
+
+              </div>
+            </div>
+            <!-- ── EINDE NIEUW ── -->
+
           </div>
         </template>
 
@@ -295,6 +403,18 @@ const { loading: ondertekeningLoading, fout: foutOndertekening, onderteken } = u
 
 const user = JSON.parse(localStorage.getItem('user') || '{}')
 const gebruikerNaam = `${user.voornaam || ''} ${user.naam || ''}`.trim() || user.email || 'Gebruiker'
+const token = localStorage.getItem('token')
+
+// ── NIEUW: overeenkomst state ──
+const overeenkomst     = ref(null)
+const uploadActief     = ref(false)
+const geselecteerdBestand = ref(null)
+const uploadLoading    = ref(false)
+const uploadFout       = ref('')
+const uploadSucces     = ref(false)
+const uploadVoortgang  = ref(0)
+const dragOver         = ref(false)
+const fileInput        = ref(null)
 
 // ── Computed ──
 const kanOndertekenen = computed(() => {
@@ -309,6 +429,9 @@ const kanOndertekenen = computed(() => {
 
 const eigenHandtekening = computed(() => ondertekeningen.value[props.rol])
 const heeftOndertekend = computed(() => !!eigenHandtekening.value)
+
+// NIEUW
+const magUploaden = computed(() => ['student', 'docent', 'stagementor'].includes(props.rol))
 
 // ── Helpers ──
 function initialen(voornaam, achternaam) {
@@ -355,12 +478,18 @@ function formatHandtekening(ts) {
   })}`
 }
 
+// NIEUW
+function formatBestandsgrootte(bytes) {
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+}
+
 // ── Data loading ──
 async function laadDetail() {
   loading.value = true
   foutLaden.value = ''
   try {
-    const token = localStorage.getItem('token')
     const stageId = route.params.stageId
 
     const response = await fetch(`/api/stagevoorstellen/${stageId}/detail`, {
@@ -380,11 +509,142 @@ async function laadDetail() {
       docent: data.ondertekeningen?.docent || null,
       stagementor: data.ondertekeningen?.stagementor || null,
     }
+
+    // NIEUW: laad overeenkomst metadata
+    await laadOvereenkomst()
   } catch (err) {
     console.error('Laden fout:', err)
     foutLaden.value = err.message || 'Kon gegevens niet laden.'
   } finally {
     loading.value = false
+  }
+}
+
+// NIEUW: haal overeenkomst metadata op
+async function laadOvereenkomst() {
+  try {
+    const res = await fetch(`/api/stagevoorstellen/${route.params.stageId}/overeenkomst`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    if (res.ok) {
+      const data = await res.json()
+      overeenkomst.value = data.overeenkomst || null
+    }
+  } catch {
+    overeenkomst.value = null
+  }
+}
+
+// ── NIEUW: Upload handlers ──
+function triggerUpload() {
+  uploadActief.value = true
+  geselecteerdBestand.value = null
+  uploadFout.value = ''
+  uploadSucces.value = false
+}
+
+function annuleerUpload() {
+  uploadActief.value = false
+  geselecteerdBestand.value = null
+  uploadFout.value = ''
+  uploadVoortgang.value = 0
+}
+
+function handleFileSelect(event) {
+  const file = event.target.files[0]
+  if (file) validerenEnSelecteren(file)
+}
+
+function handleDrop(event) {
+  dragOver.value = false
+  const file = event.dataTransfer.files[0]
+  if (file) validerenEnSelecteren(file)
+}
+
+function validerenEnSelecteren(file) {
+  uploadFout.value = ''
+  const toegestaan = [
+    'application/pdf',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  ]
+  if (!toegestaan.includes(file.type)) {
+    uploadFout.value = 'Ongeldig bestandstype. Alleen PDF, DOC en DOCX zijn toegestaan.'
+    return
+  }
+  if (file.size > 10 * 1024 * 1024) {
+    uploadFout.value = `Bestand is te groot (${formatBestandsgrootte(file.size)}). Maximum is 10 MB.`
+    return
+  }
+  geselecteerdBestand.value = file
+}
+
+async function handleUpload() {
+  if (!geselecteerdBestand.value) return
+  uploadLoading.value = true
+  uploadFout.value = ''
+  uploadVoortgang.value = 0
+
+  try {
+    const formData = new FormData()
+    formData.append('overeenkomst', geselecteerdBestand.value)
+    formData.append('rol', props.rol)
+
+    await new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest()
+
+      xhr.upload.addEventListener('progress', (e) => {
+        if (e.lengthComputable) {
+          uploadVoortgang.value = Math.round((e.loaded / e.total) * 100)
+        }
+      })
+
+      xhr.addEventListener('load', () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          resolve(JSON.parse(xhr.responseText))
+        } else {
+          try {
+            reject(new Error(JSON.parse(xhr.responseText).error || 'Upload mislukt.'))
+          } catch {
+            reject(new Error('Upload mislukt.'))
+          }
+        }
+      })
+
+      xhr.addEventListener('error', () => reject(new Error('Netwerkfout tijdens upload.')))
+      xhr.open('POST', `/api/stagevoorstellen/${route.params.stageId}/overeenkomst`)
+      xhr.setRequestHeader('Authorization', `Bearer ${token}`)
+      xhr.send(formData)
+    })
+
+    uploadSucces.value = true
+    uploadActief.value = false
+    geselecteerdBestand.value = null
+    uploadVoortgang.value = 0
+    await laadOvereenkomst()
+    setTimeout(() => { uploadSucces.value = false }, 4000)
+  } catch (err) {
+    uploadFout.value = err.message || 'Er liep iets fout tijdens het uploaden.'
+  } finally {
+    uploadLoading.value = false
+  }
+}
+
+async function downloadOvereenkomst() {
+  try {
+    const res = await fetch(`/api/stagevoorstellen/${route.params.stageId}/overeenkomst/download`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    if (!res.ok) throw new Error('Download mislukt.')
+    const blob = await res.blob()
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = overeenkomst.value?.bestandsnaam || 'stageovereenkomst'
+    a.click()
+    URL.revokeObjectURL(url)
+  } catch (err) {
+    alert(err.message)
   }
 }
 
@@ -668,5 +928,79 @@ onMounted(laadDetail)
 }
 
 .btn-groen  { background: #4caf50; }
+.btn-blauw  { background: #29a8e0; }
+.btn-grijs  { background: #888; }
 .actie-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ── NIEUW: Document card (bestaand bestand) ── */
+.document-card {
+  display: flex; align-items: center; gap: 1rem;
+  background: #fff; border: 1px solid #d0d0d0; border-radius: 8px; padding: 1rem 1.25rem;
+}
+.document-icon { font-size: 2rem; flex-shrink: 0; }
+.document-info { flex: 1; display: flex; flex-direction: column; gap: 0.2rem; }
+.document-name { font-size: 0.95rem; font-weight: 700; color: #111; }
+.document-meta { font-size: 0.78rem; color: #666; }
+.document-actions { display: flex; gap: 0.6rem; flex-wrap: wrap; }
+.doc-btn {
+  border: none; border-radius: 6px; padding: 0.5rem 1rem; font-size: 0.85rem;
+  font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 0.3rem;
+}
+.doc-btn-download { background: #29a8e0; color: #fff; }
+.doc-btn-download:hover { opacity: 0.88; }
+.doc-btn-replace { background: #f0f0f0; color: #333; border: 1px solid #ccc; }
+.doc-btn-replace:hover { background: #e0e0e0; }
+
+/* ── NIEUW: Document leeg ── */
+.document-empty {
+  display: flex; flex-direction: column; align-items: center; gap: 0.75rem;
+  padding: 2rem 1rem; text-align: center;
+}
+.document-empty-icon { font-size: 2.5rem; opacity: 0.4; }
+.document-empty-text { font-size: 0.92rem; color: #555; margin: 0; }
+.document-empty-hint { font-size: 0.82rem; color: #888; margin: 0; }
+
+/* ── NIEUW: Upload zone ── */
+.upload-zone {
+  border: 2px dashed #b0c4d8; border-radius: 10px; padding: 2rem 1.5rem;
+  background: #f7fbff; transition: border-color 0.2s, background 0.2s;
+}
+.upload-zone--drag { border-color: #29a8e0; background: #e3f4fc; }
+.upload-input-hidden { display: none; }
+.upload-placeholder { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; text-align: center; }
+.upload-zone-icon { font-size: 2.5rem; color: #29a8e0; }
+.upload-zone-text { font-size: 0.95rem; color: #333; margin: 0; }
+.upload-browse-link {
+  background: none; border: none; color: #29a8e0; font-weight: 700;
+  font-size: 0.95rem; cursor: pointer; text-decoration: underline; padding: 0;
+}
+.upload-zone-hint { font-size: 0.8rem; color: #888; margin: 0; }
+
+/* ── NIEUW: Upload preview ── */
+.upload-preview { display: flex; flex-direction: column; gap: 1rem; }
+.upload-preview-file {
+  display: flex; align-items: center; gap: 0.85rem;
+  background: #fff; border: 1px solid #d0d0d0; border-radius: 8px; padding: 0.85rem 1rem;
+}
+.upload-preview-icon { font-size: 1.5rem; flex-shrink: 0; }
+.upload-preview-info { flex: 1; display: flex; flex-direction: column; gap: 0.1rem; }
+.upload-preview-name { font-size: 0.92rem; font-weight: 700; color: #111; word-break: break-all; }
+.upload-preview-size { font-size: 0.78rem; color: #666; }
+.upload-preview-remove {
+  background: none; border: none; font-size: 1rem; color: #888; cursor: pointer; padding: 0.25rem; flex-shrink: 0;
+}
+.upload-preview-remove:hover { color: #f44336; }
+.upload-preview-actions { display: flex; gap: 0.75rem; flex-wrap: wrap; }
+
+/* ── NIEUW: Upload voortgang ── */
+.upload-progress { display: flex; align-items: center; gap: 0.75rem; }
+.upload-progress-bar { flex: 1; height: 6px; background: #ddd; border-radius: 99px; overflow: hidden; }
+.upload-progress-fill { height: 100%; background: #29a8e0; border-radius: 99px; transition: width 0.2s; }
+.upload-progress-label { font-size: 0.8rem; font-weight: 600; color: #29a8e0; min-width: 36px; }
+
+/* ── NIEUW: Upload succes ── */
+.upload-succes-banner {
+  margin-top: 1rem; background: #e8f5e9; border: 1px solid #a5d6a7;
+  border-radius: 8px; padding: 0.85rem 1rem; font-size: 0.92rem; font-weight: 600; color: #2e7d32;
+}
 </style>
