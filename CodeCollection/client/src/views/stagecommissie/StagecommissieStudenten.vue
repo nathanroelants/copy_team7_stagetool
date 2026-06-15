@@ -5,7 +5,6 @@
     <aside class="sidebar">
       <div class="sidebar-brand">
         <span class="brand-text">STAGE.BE</span>
-
       </div>
 
       <nav class="sidebar-nav">
@@ -23,26 +22,31 @@
       <!-- Top bar -->
       <header class="topbar">
         <div class="topbar-user">{{ gebruikerNaam }}</div>
+        <NotificationBell :stagecommissieId="stagecommissieId" />
         <img src="../../assets/erasmus-logo.png" alt="Erasmus Hogeschool Brussel" class="topbar-logo" />
       </header>
 
       <!-- Student list -->
       <section class="content-area">
         <div class="section-header">
-          <h2>Actieve studenten</h2>
+          <h2>Mijn studenten</h2>
+          <p class="subtitle" v-if="!loading && !fout">
+            {{ studenten.length }} studenten zijn momenteel toegewezen aan jou dit semester
+          </p>
         </div>
 
         <div v-if="loading" class="status-message">Studenten laden...</div>
         <div v-else-if="fout" class="status-message error"> {{ fout }}</div>
 
+        <div v-else-if="studenten.length === 0" class="status-message">
+          Geen studenten toegewezen dit semester.
+        </div>
 
         <div v-else class="student-list">
           <div
             v-for="student in studenten"
             :key="student.id"
             class="student-card"
-            @click="$router.push(`/stagecommissie/studenten/${student.id}/voorstel`)"
-            style="cursor: pointer;"
           >
             <div class="student-avatar">
               <div class="avatar-circle">
@@ -57,10 +61,10 @@
               </div>
               <div class="student-meta">
                 <span class="meta-item">
-                  {{ formatDatum(student.start_datum) }} → {{ formatDatum(student.eind_datum) }}
+                  📅 {{ formatDatum(student.start_datum) }} → {{ formatDatum(student.eind_datum) }}
                 </span>
                 <span class="meta-item" v-if="student.mentor_naam">
-                  Stagementor: {{ student.mentor_naam }}
+                  🏢 Stagementor: {{ student.mentor_naam }}
                 </span>
               </div>
 
@@ -69,6 +73,12 @@
                   <span class="badge-label">Stagevoorstel</span>
                   <span :class="['badge', badgeKlasse(student.stagevoorstel_status)]">
                     {{ student.stagevoorstel_status || '—' }}
+                  </span>
+                </div>
+                <div class="badge-group">
+                  <span class="badge-label">Logboek</span>
+                  <span :class="['badge', badgeKlasse(student.logboek_status)]">
+                    {{ student.logboek_status || '—' }}
                   </span>
                 </div>
               </div>
@@ -83,6 +93,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import NotificationBell from '../../components/NotificationBell.vue'
 
 const router = useRouter()
 
@@ -91,16 +102,17 @@ const loading = ref(true)
 const fout = ref('')
 
 const user = JSON.parse(localStorage.getItem('user') || '{}')
-const gebruikerNaam = `${user.voornaam || ''} ${user.naam || ''}`.trim() || user.email || 'Docent'
+const gebruikerNaam = `${user.voornaam || ''} ${user.naam || ''}`.trim() || user.email || 'Stagecommissie'
+const stagecommissieId = user._id || user.id || ''
 
 // Badge kleurklasse op basis van statustekst
 function badgeKlasse(status) {
   if (!status) return 'badge-grijs'
   const s = status.toLowerCase()
-  if (s.includes('goedgekeurd') || s.includes('geaccepteerd') || s.includes('afgetekend')) return 'badge-groen'
-  if (s.includes('ingediend')) return 'badge-geel'
-  if (s.includes('geweigerd')|| s.includes('aanpassingen')) return 'badge-rood'
-  if (s.includes('lopend')) return 'badge-blauw'
+  if (s.includes('goedgekeurd') || s.includes('afgerond') || s.includes('afgetekend')) return 'badge-groen'
+  if (s.includes('open') || s.includes('afwachting')) return 'badge-geel'
+  if (s.includes('niet') || s.includes('afgekeurd') || s.includes('ingediend') === false) return 'badge-rood'
+  if (s.includes('ingediend')) return 'badge-blauw'
   return 'badge-grijs'
 }
 
@@ -235,6 +247,7 @@ onMounted(laadStudenten)
   align-items: center;
   justify-content: space-between;
   border-bottom: 1px solid #e0e0e0;
+  gap: 1rem;
 }
 
 .topbar-user {
