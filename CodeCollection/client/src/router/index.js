@@ -12,9 +12,9 @@ const routes = [
   { path: '/stagecommissie', component: () => import('../views/stagecommissie/StagecommissieStudenten.vue') },
   { path: '/administratie', component: () => import('../views/administratie/DashboardView.vue') },
   { path: '/stagecommissie/studenten/:stageId/voorstel', component: () => import('../views/stagecommissie/StagecommissieVoorstellen.vue') },
-  { path: '/student/stages/:stageId/ondertekenen',   component: () => import('../views/shared/OndertekeningView.vue/index.js'), props: { rol: 'student' } },
-  { path: '/docent/studenten/:stageId/ondertekenen', component: () => import('../views/shared/OndertekeningView.vue/index.js'), props: { rol: 'docent' } },
-  { path: '/mentor/stages/:stageId/ondertekenen',    component: () => import('../views/shared/OndertekeningView.vue/index.js'), props: { rol: 'stagementor' } },
+  { path: '/student/stages/:stageId/ondertekenen',   component: () => import('../views/shared/OndertekeningView.vue'), props: { rol: 'student' } },
+  { path: '/docent/studenten/:stageId/ondertekenen', component: () => import('../views/shared/OndertekeningView.vue'), props: { rol: 'docent' } },
+  { path: '/mentor/stages/:stageId/ondertekenen',    component: () => import('../views/shared/OndertekeningView.vue'), props: { rol: 'stagementor' } },
   { path: '/:pathMatch(.*)*', redirect: '/' },
 ]
 
