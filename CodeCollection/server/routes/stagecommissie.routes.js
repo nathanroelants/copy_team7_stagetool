@@ -44,7 +44,8 @@ router.get('/studenten', requireAuth, requireDocent, async (req, res) => {
         id,
         voornaam,
         achternaam,
-        email
+        email,
+        opleiding_id
       ),
       stagementor:gebruikers!stagementor_id (
         voornaam,
@@ -68,16 +69,17 @@ router.get('/studenten', requireAuth, requireDocent, async (req, res) => {
   const stageIds = stages.map(s => s.id);
   const studentIds = stages.map(s => s.student?.id).filter(Boolean);
 
+  const opleidingIds = stages.map(s => s.student?.opleiding_id).filter(Boolean);
+
   const { data: opleidingen } = await supabase
     .from('opleidingen')
-    .select('gebruiker_id, naam')
-    .in('gebruiker_id', studentIds.length > 0 ? studentIds : [0]);
+    .select('id, naam')
+    .in('id', opleidingIds.length > 0 ? opleidingIds : [0]);
 
-  const opleidingPerStudent = {};
+  const opleidingPerId = {};
   for (const o of opleidingen || []) {
-    opleidingPerStudent[o.gebruiker_id] = o.naam;
+    opleidingPerId[o.id] = o.naam;
   }
-
   const { data: logboeken } = await supabase
     .from('logboeken')
     .select('stage_id, week_nummer, afgetekend')
@@ -106,7 +108,7 @@ router.get('/studenten', requireAuth, requireDocent, async (req, res) => {
       voornaam:             stage.student?.voornaam   ?? '',
       achternaam:           stage.student?.achternaam ?? '',
       email:                stage.student?.email      ?? '',
-      opleiding:            opleidingPerStudent[stage.student?.id] ?? '',
+      opleiding: opleidingPerId[stage.student?.opleiding_id] ?? '',
       bedrijf:              stage.stagevoorstel?.bedrijfsnaam ?? '',
       start_datum:          stage.start_datum,
       eind_datum:           stage.eind_datum,

@@ -13,7 +13,8 @@ router.get('/studenten', requireAuth, requireDocent, async (req, res) => {
         id,
         voornaam,
         achternaam,
-        email
+        email,
+        opleiding_id
       ),
       stagevoorstel:stagevoorstellen!stagevoorstel_id (
         id,
@@ -32,14 +33,19 @@ router.get('/studenten', requireAuth, requireDocent, async (req, res) => {
   const stageIds = stages.map(s => s.id);
   const studentIds = stages.map(s => s.student?.id).filter(Boolean);
 
+
+  // 2. Haal opleidingen op via gebruiker_id
+  const opleidingIds = stages.map(s => s.student?.opleiding_id).filter(Boolean);
+
+
   const { data: opleidingen } = await supabase
     .from('opleidingen')
-    .select('gebruiker_id, naam')
-    .in('gebruiker_id', studentIds.length > 0 ? studentIds : [0]);
+    .select('id, naam')
+    .in('id', opleidingIds.length > 0 ? opleidingIds : [0]);
 
-  const opleidingPerStudent = {};
+  const opleidingPerId = {};
   for (const o of opleidingen || []) {
-    opleidingPerStudent[o.gebruiker_id] = o.naam;
+    opleidingPerId[o.id] = o.naam;
   }
 
   const { data: logboeken } = await supabase
@@ -66,14 +72,17 @@ router.get('/studenten', requireAuth, requireDocent, async (req, res) => {
     }
 
     return {
-      id:                   stage.id,
-      voornaam:             stage.student?.voornaam   ?? '',
-      achternaam:           stage.student?.achternaam ?? '',
-      email:                stage.student?.email      ?? '',
-      opleiding:            opleidingPerStudent[stage.student?.id] ?? '',
-      bedrijf:              stage.stagevoorstel?.bedrijfsnaam ?? '',
-      start_datum:          stage.start_datum,
-      eind_datum:           stage.eind_datum,
+      id:         stage.id,
+      voornaam:   stage.student?.voornaam   ?? '',
+      achternaam: stage.student?.achternaam ?? '',
+      email:      stage.student?.email      ?? '',
+      opleiding: opleidingPerId[stage.student?.opleiding_id] ?? '',
+      bedrijf:    stage.stagevoorstel?.bedrijfsnaam ?? '',
+      start_datum:  stage.start_datum,
+      eind_datum:   stage.eind_datum,
+      mentor_naam: stage.stagementor
+        ? `${stage.stagementor.voornaam} ${stage.stagementor.achternaam}`.trim()
+        : null,
       stagevoorstel_status: stage.status ?? 'Niet ingediend',
       logboek_status:       logboekStatus
     };
