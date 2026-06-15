@@ -5,9 +5,9 @@ export function useStudentEvaluatie() {
   const router = useRouter()
   const user = JSON.parse(localStorage.getItem('user') || '{}')
   const gebruikerNaam = `${user.voornaam || ''} ${user.achternaam || ''}`.trim() || user.email || 'Student'
-
-  const actieveTab = ref('tussentijds')
-  const eindevaluatieOpen = ref(false) // wordt later door docent aangezet
+  const eindevaluatieOpen = ref(true)
+  const actieveTab = ref(eindevaluatieOpen.value ? 'eindevaluatie' : 'tussentijds')
+  // wordt later door docent aangezet
   const openCompetentie = ref(null)
   const competenties = ref([])
   const evaluaties = ref([])
@@ -77,6 +77,7 @@ export function useStudentEvaluatie() {
   }
 
   async function slaOp(competentieId) {
+    if (eindevaluatieOpen.value && actieveTab.value === 'tussentijds') return
     const evaluatie = getEvaluatie(competentieId)
     if (!evaluatie || !evaluatie.feedback?.trim()) {
       foutMelding.value[competentieId] = 'Invullen feedback is verplicht!'
@@ -104,7 +105,7 @@ export function useStudentEvaluatie() {
       })
       const data = await response.json()
       if (!response.ok) throw new Error(data.error || 'Fout bij opslaan')
-      opgeslagen.value[competentieId] = true
+      opgeslagen.value[`${competentieId}_${actieveTab.value}`] = true
     } catch (err) {
       alert(err.message || 'Kon niet opslaan.')
     } finally {
@@ -129,10 +130,10 @@ export function useStudentEvaluatie() {
       evaluaties.value = evalData
 
       for (const e of evalData) {
-        if (e.beoordelaar_id === user.id) {
-          opgeslagen.value[e.competentie_id] = true
-        }
-      }
+  if (e.beoordelaar_id === user.id) {
+    opgeslagen.value[`${e.competentie_id}_${e.type}`] = true
+  }
+}
     } catch (err) {
       fout.value = err.message || 'Kon data niet laden.'
     } finally {

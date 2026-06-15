@@ -41,6 +41,9 @@
             Eindevaluatie
           </button>
         </div>
+        <div v-if="actieveTab === 'tussentijds' && eindevaluatieOpen" class="geblokkeerd-melding">
+  De tussentijdse evaluatie kan niet meer bewerkt worden. De eindevaluatie is gestart.
+</div>
 
         <div v-if="actieveTab === 'eindevaluatie' && !eindevaluatieOpen" class="geblokkeerd-melding">
           Eindevaluatie is nog niet beschikbaar. Wacht tot de docent dit activeert.
@@ -75,7 +78,7 @@
               v-for="optie in scoreOpties"
               :key="optie.waarde"
               :class="{ geselecteerd: Number(getEvaluatie(competentie.id)?.score) === optie.waarde }"
-              @click="!opgeslagen[competentie.id] && setScore(competentie.id, optie.waarde)"
+              @click="(!opgeslagen[`${competentie.id}_${actieveTab}`] && !(eindevaluatieOpen && actieveTab === 'tussentijds')) && setScore(competentie.id, optie.waarde)"
             >
               <p class="optie-beschrijving">{{ optie.beschrijving }}</p>
               <input
@@ -83,7 +86,7 @@
                 :name="'score-' + competentie.id"
                 :value="optie.waarde"
                 :checked="Number(getEvaluatie(competentie.id)?.score) === optie.waarde"
-                :disabled="opgeslagen[competentie.id]"
+                :disabled="opgeslagen[`${competentie.id}_${actieveTab}`] || (eindevaluatieOpen && actieveTab === 'tussentijds')"
               @change="setScore(competentie.id, optie.waarde)"
               />
             </div>
@@ -94,25 +97,25 @@
                 placeholder="Jouw zelfevaluatie..."
                 :value="getEvaluatie(competentie.id)?.feedback || ''"
                 @input="setFeedback(competentie.id, $event.target.value)"
-                :disabled="opgeslagen[competentie.id]"
+                :disabled="opgeslagen[`${competentie.id}_${actieveTab}`] || (eindevaluatieOpen && actieveTab === 'tussentijds')"
               ></textarea>
               <div class="opslaan-rij">
                 <button
-                  v-if="!opgeslagen[competentie.id]"
+                 v-if="!opgeslagen[`${competentie.id}_${actieveTab}`] && !(eindevaluatieOpen && actieveTab === 'tussentijds')"
                   class="opslaan-btn"
                   @click="slaOp(competentie.id)"
                   :disabled="bezig[competentie.id]"
                 >
                   {{ bezig[competentie.id] ? 'Opslaan...' : 'Opslaan' }}
                 </button>
-                <button
-                  v-if="opgeslagen[competentie.id]"
-                  class="bewerken-btn"
-                  @click="opgeslagen[competentie.id] = false"
-                >
-                  Bewerken
-                </button>
-                <span v-if="opgeslagen[competentie.id]" class="opgeslagen-melding">✓ Opgeslagen</span>
+            <button
+ v-if="opgeslagen[`${competentie.id}_${actieveTab}`] && !(eindevaluatieOpen && actieveTab === 'tussentijds')"
+  class="bewerken-btn"
+  @click="opgeslagen[`${competentie.id}_${actieveTab}`] = false"
+>
+  Bewerken
+</button>
+<span v-if="opgeslagen[`${competentie.id}_${actieveTab}`]" class="opgeslagen-melding">✓ Opgeslagen</span>
                 <span v-if="foutMelding[competentie.id]" class="fout-melding">{{ foutMelding[competentie.id] }}</span>
               </div>
             </div>
@@ -358,8 +361,17 @@ html, body, #app {
   background: white;
 }
 
-.eindevaluatie-bg {
-  background: #e8f4fb;
+.eindevaluatie-bg .col-score {
+  background: white;
+}
+
+.eindevaluatie-bg .col-score:hover {
+  background: #f0f4f8;
+}
+
+.eindevaluatie-bg .col-score.geselecteerd {
+  background: #d6eef9;
+  border-left: 3px solid #29a8e0;
 }
 
 .rubriek-header,
@@ -517,6 +529,10 @@ html, body, #app {
 .opslaan-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+.rubriek-header .col-score {
+  background: #29a8e0;
+  cursor: default;
 }
 
 .opgeslagen-melding {
