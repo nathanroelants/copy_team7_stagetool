@@ -37,8 +37,11 @@ export default function UseOndertekening(rol) {
         },
       })
 
-      const data = await response.json()
-      
+      const contentType = response.headers.get('content-type')
+      const data = contentType?.includes('application/json')
+        ? await response.json()
+        : { error: `Server fout: ${response.status} ${response.statusText}` }
+
       if (!response.ok) {
         throw new Error(data.error || data.message || 'Ondertekening mislukt.')
       }

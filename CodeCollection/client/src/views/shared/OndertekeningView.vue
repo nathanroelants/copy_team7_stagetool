@@ -375,7 +375,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import UseOndertekening from '../../components/UseOndertekening.js'
+import UseOndertekening from '../../../../server/routes/UseOndertekening.js'
 
 const props = defineProps({
   rol: {
