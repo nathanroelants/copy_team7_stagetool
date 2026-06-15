@@ -4,7 +4,7 @@ import { ref } from 'vue'
  * Shared composable for signing a stagevoorstel.
  * @param {string} rol - 'student' | 'docent' | 'stagementor'
  */
-export default function useOndertekening(rol) {
+export default function UseOndertekening(rol) {
   const loading = ref(false)
   const fout = ref('')
   const succes = ref(false)
