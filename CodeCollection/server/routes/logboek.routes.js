@@ -69,6 +69,11 @@ function vandaagUTC() {
   const nu = new Date();
   return new Date(Date.UTC(nu.getFullYear(), nu.getMonth(), nu.getDate()));
 }
+/** Normaliseert een datum naar middernacht UTC, zonder naar de maandag te springen. */
+function naarUTCDatum(d) {
+  const dt = new Date(d);
+  return new Date(Date.UTC(dt.getFullYear(), dt.getMonth(), dt.getDate()));
+}
 
 
 
@@ -208,28 +213,48 @@ router.get('/:stageId/weken', requireAuth, async (req, res) => {
     wekenMap[wn].afgetekend = entry.afgetekend ?? wekenMap[wn].afgetekend;
   }
 
-  const vandaag = vandaagUTC();
+const vandaag = vandaagUTC();
 
-  const weken = Object.values(wekenMap).map(week => {
-    const maandag = maandagVanWeek(week.nummer, stageRow.start_datum);
-    const zondag = new Date(maandag);
-    zondag.setUTCDate(zondag.getUTCDate() + 6);
-    const zaterdag = zaterdagVanWeek(week.nummer, stageRow.start_datum);
+const weken = Object.values(wekenMap).map(week => {
+  if (week.nummer === 0) {
+    const startDatum = naarUTCDatum(stageRow.start_datum);
 
     return {
-      nummer: week.nummer,
-      van: formatDatum(maandag),
-      tot: formatDatumVolledig(zondag),
-      maxUren: 40,
+      nummer: 0,
+      voorStageperiode: true,
+      van: null,
+      tot: null,
+      maxUren: null,
       status: week.status,
       open: false,
-      magIndienen: vandaag >= zaterdag,
-      vroegsteIndienDatum: formatDatumVolledig(zaterdag),
+      magIndienen: vandaag >= startDatum,
+      vroegsteIndienDatum: formatDatumVolledig(startDatum),
       entries: week.entries.map(mapEntry),
     };
-  });
+  }
 
-  res.json(weken);
+  const maandag = maandagVanWeek(week.nummer, stageRow.start_datum);
+  const zondag = new Date(maandag);
+  zondag.setUTCDate(zondag.getUTCDate() + 6);
+  const zaterdag = zaterdagVanWeek(week.nummer, stageRow.start_datum);
+
+  return {
+    nummer: week.nummer,
+    voorStageperiode: false,
+    van: formatDatum(maandag),
+    tot: formatDatumVolledig(zondag),
+    maxUren: 40,
+    status: week.status,
+    open: false,
+    magIndienen: vandaag >= zaterdag,
+    vroegsteIndienDatum: formatDatumVolledig(zaterdag),
+    entries: week.entries.map(mapEntry),
+  };
+});
+
+weken.sort((a, b) => a.nummer - b.nummer); // "Voor stageperiode" (0) altijd eerst
+
+res.json(weken);
 });
 
 // ─── POST /api/logboek/:stageId/dag ───────────────────────────────────────────
@@ -377,12 +402,22 @@ router.patch('/:stageId/week/:weekNummer/indienen', requireAuth, requireStudent,
   }
 
   // Indienen mag ten vroegste vanaf zaterdag van de betreffende week
+if (weekNummerInt === 0) {
+  // "Voor stageperiode" mag pas ingediend worden zodra de stage echt gestart is
+  const startDatum = naarUTCDatum(stage.start_datum);
+  if (vandaagUTC() < startDatum) {
+    return res.status(409).json({
+      error: `Je kan deze dagen nog niet indienen. Dat kan ten vroegste vanaf de start van je stage, op ${formatDatumVolledig(startDatum)}.`,
+    });
+  }
+} else {
   const zaterdag = zaterdagVanWeek(weekNummerInt, stage.start_datum);
   if (vandaagUTC() < zaterdag) {
     return res.status(409).json({
       error: `Je kan deze week nog niet indienen. Dat kan ten vroegste op zaterdag ${formatDatumVolledig(zaterdag)}.`,
     });
   }
+}
 
   const { error } = await supabase
     .from('logboeken')
@@ -485,9 +520,15 @@ function formatDatumVolledig(d) {
  * Week 1 = de week waarin de stage begint.
  */
 function berekenWeeknummer(datum, startDatum) {
+  // Dagen vóór de officiële startdatum horen niet bij een gewone week,
+  // maar bij de aparte "Voor stageperiode"-sectie.
+  if (naarUTCDatum(datum) < naarUTCDatum(startDatum)) {
+    return 0;
+  }
+
   const maandagVan = (d) => {
     const dt = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-    const dayNum = dt.getUTCDay() || 7; // maandag=1 ... zondag=7
+    const dayNum = dt.getUTCDay() || 7;
     dt.setUTCDate(dt.getUTCDate() - (dayNum - 1));
     return dt;
   };

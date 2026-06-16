@@ -71,10 +71,10 @@
               >
                 <div class="week-header-left">
                   <span class="week-toggle">{{ week.open ? '▲' : '▼' }}</span>
-                  <span class="card-title">Week {{ week.nummer }} — {{ week.van }} – {{ week.tot }}</span>
+                  <span class="card-title">{{ weekTitel(week) }}</span>
                 </div>
                 <div class="week-header-right">
-                  <span class="uren-pill">{{ totaalUren(week) }}/{{ week.maxUren }}u</span>
+                  <span class="uren-pill">{{ urenLabel(week) }}</span>
                   <span class="badge" :class="statusKleur(week.status)">{{ week.status }}</span>
                 </div>
               </div>
@@ -133,8 +133,8 @@
 
                <div class="week-footer">
   <span v-if="week.status === 'aangemaakt' && !week.magIndienen" class="indien-hint">
-    Indienen kan ten vroegste op zaterdag {{ week.vroegsteIndienDatum }}
-  </span>
+  {{ indienHint(week) }}
+</span>
   <button
     v-if="week.status === 'aangemaakt'"
     class="actie-btn btn-oranje"
@@ -276,6 +276,22 @@ export default {
     })
 
     // ── Laden ────────────────────────────────────────────────────────────────
+    function weekTitel(week) {
+  if (week.voorStageperiode) return 'Voor stageperiode'
+  return `Week ${week.nummer} — ${week.van} – ${week.tot}`
+}
+
+function urenLabel(week) {
+  const totaal = totaalUren(week)
+  return week.maxUren != null ? `${totaal}/${week.maxUren}u` : `${totaal}u`
+}
+
+function indienHint(week) {
+  if (week.voorStageperiode) {
+    return `Indienen kan ten vroegste vanaf de start van je stage, op ${week.vroegsteIndienDatum}`
+  }
+  return `Indienen kan ten vroegste op zaterdag ${week.vroegsteIndienDatum}`
+}
     function handleLogout() {
       localStorage.removeItem('token')
       localStorage.removeItem('user')
@@ -401,13 +417,14 @@ export default {
       return `${dd}/${mm}/${jaar}`
     }
 
-    return {
-      toonDagModal, isLaden, fout, modalFout,
-      student, weken, dagForm,
-      alleCompetenties, competentiesLaden, competentiesFout,
-      initialen, totaalUren, statusKleur,
-      weekIndienen, openDagModal, slaDagOp, handleLogout, moveToStagevoorstel, moveToEvaluatie
-    }
+return {
+  toonDagModal, isLaden, fout, modalFout,
+  student, weken, dagForm,
+  alleCompetenties, competentiesLaden, competentiesFout,
+  initialen, totaalUren, statusKleur,
+  weekTitel, urenLabel, indienHint,
+  weekIndienen, openDagModal, slaDagOp, handleLogout, moveToStagevoorstel, moveToEvaluatie
+}
   },
 }
 </script>
