@@ -7,6 +7,8 @@
       </div>
 
       <nav class="sidebar-nav">
+        <button class="nav-item nav-back" @click="router.push('/docent')">← Mijn studenten</button>
+        <div class="nav-separator"></div>
         <button class="nav-item" :class="{ active: pagina === 'logboek' }" @click="pagina = 'logboek'">Logboek</button>
         <button class="nav-item disabled" disabled>Stagevoorstel</button>
         <button class="nav-item disabled" disabled>Evaluatie</button>
@@ -95,8 +97,53 @@
 </template>
 
 <script>
-import { ref, reactive } from 'vue'
+import { ref, reactive, watch } from 'vue'
 import { useRouter } from 'vue-router'
+
+const studentenData = {
+  'Nathan De Smedt': {
+    naam: 'Nathan De Smedt',
+    leergroep: '3 Informatica',
+    startDatum: '01/09/2025',
+    eindDatum: '31/01/2026',
+    bedrijf: 'TechCorp BV',
+    mentor: 'Mevr. Janssen',
+    weken: [
+      {
+        nummer: 1, status: 'Ingediend',
+        dagen: [
+          { datum: '01/09/2025', taak: 'Introductie bedrijf', uren: 8, los: 'Kennismaking', reflectie: 'Goed ontvangen', leerpunten: 'Structuur bedrijf' },
+          { datum: '02/09/2025', taak: 'Opzetten omgeving', uren: 8, los: 'Technische setup', reflectie: 'Veel geleerd', leerpunten: 'Git workflow' },
+        ],
+      },
+      { nummer: 2, status: 'Afgetekend', dagen: [{ datum: '08/09/2025', taak: 'Frontend taak', uren: 8, los: 'Vue componenten', reflectie: 'Vlot gegaan', leerpunten: 'Props en events' }] },
+      { nummer: 3, status: 'Niet ingediend', dagen: [] },
+    ],
+  },
+  'Emma Claes': {
+    naam: 'Emma Claes',
+    leergroep: '3 Communicatie',
+    startDatum: '01/09/2025',
+    eindDatum: '31/01/2026',
+    bedrijf: 'MediaLab',
+    mentor: 'Dhr. Peeters',
+    weken: [
+      { nummer: 1, status: 'Afgetekend', dagen: [{ datum: '01/09/2025', taak: 'Projectintroductie', uren: 8, los: 'Planning', reflectie: 'Goede start', leerpunten: 'Agile werken' }] },
+      { nummer: 2, status: 'Niet ingediend', dagen: [] },
+    ],
+  },
+  'Lars Bogaert': {
+    naam: 'Lars Bogaert',
+    leergroep: '3 Elektronica',
+    startDatum: '01/09/2025',
+    eindDatum: '31/01/2026',
+    bedrijf: 'ElectroPro',
+    mentor: 'Ing. Vermeersch',
+    weken: [
+      { nummer: 1, status: 'Ingediend', dagen: [{ datum: '01/09/2025', taak: 'Hardware installatie', uren: 8, los: 'Technische setup', reflectie: 'Interessant', leerpunten: 'PCB werking' }] },
+    ],
+  },
+}
 
 export default {
   name: 'DocentLogboek',
@@ -104,44 +151,21 @@ export default {
     const router = useRouter()
     const pagina = ref('logboek')
 
-    const docent = reactive({
-      naam: 'Prof. De Smedt',
-    })
+    const docent = reactive({ naam: 'Prof. De Smedt' })
 
     const geselecteerdeStudent = ref('Nathan De Smedt')
-    const studenten = ['Nathan De Smedt', 'Emma Claes', 'Lars Bogaert']
+    const studenten = Object.keys(studentenData)
 
-    const student = reactive({
-      naam: 'Nathan De Smedt',
-      leergroep: '3 Informatica',
-      startDatum: '01/09/2025',
-      eindDatum: '31/01/2026',
-      bedrijf: 'TechCorp BV',
-      mentor: 'Mevr. Janssen',
+    const beginData = studentenData['Nathan De Smedt']
+    const student = reactive({ ...beginData })
+    const weken = reactive([...beginData.weken])
+
+    watch(geselecteerdeStudent, (nieuweNaam) => {
+      const data = studentenData[nieuweNaam]
+      if (!data) return
+      Object.assign(student, data)
+      weken.splice(0, weken.length, ...data.weken)
     })
-
-    const weken = reactive([
-      {
-        nummer: 1,
-        status: 'Ingediend',
-        dagen: [
-          { datum: '01/09/2025', taak: 'Introductie bedrijf', uren: 8, los: 'Kennismaking', reflectie: 'Goed ontvangen', leerpunten: 'Structuur bedrijf' },
-          { datum: '02/09/2025', taak: 'Opzetten omgeving', uren: 8, los: 'Technische setup', reflectie: 'Veel geleerd', leerpunten: 'Git workflow' },
-        ],
-      },
-      {
-        nummer: 2,
-        status: 'Afgetekend',
-        dagen: [
-          { datum: '08/09/2025', taak: 'Frontend taak', uren: 8, los: 'Vue componenten', reflectie: 'Vlot gegaan', leerpunten: 'Props en events' },
-        ],
-      },
-      {
-        nummer: 3,
-        status: 'Niet ingediend',
-        dagen: [],
-      },
-    ])
 
     function statusKleur(status) {
       if (status === 'Afgetekend') return 'badge-groen'
@@ -156,7 +180,7 @@ export default {
     }
 
     return {
-      pagina, docent, student, studenten, geselecteerdeStudent,
+      router, pagina, docent, student, studenten, geselecteerdeStudent,
       weken, statusKleur, uitloggen,
     }
   },
@@ -214,6 +238,20 @@ export default {
 
 .nav-item:hover { background: #f0f7fc; }
 .nav-item.active { background: #29a8e0; color: white; }
+
+.nav-back {
+  background: #29a8e0;
+  color: white;
+  font-weight: 700;
+}
+
+.nav-back:hover { background: #1e90c0; }
+
+.nav-separator {
+  height: 1px;
+  background: #e5e8ec;
+  margin: 0.5rem 0 0.75rem;
+}
 
 .nav-item.disabled {
   background: transparent;
