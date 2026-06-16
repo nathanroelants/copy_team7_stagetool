@@ -52,7 +52,7 @@
   <div v-for="week in weken" :key="week.nummer" class="week-kaart">
     <div class="week-header">
       <div class="week-titel">
-        Week {{ week.nummer }}
+        {{ week.nummer === 0 ? 'Voor stageperiode' : `Week ${week.nummer}` }}
         <span class="badge" :class="statusKleur(week.status)">{{ week.status }}</span>
       </div>
       <div class="week-acties">
