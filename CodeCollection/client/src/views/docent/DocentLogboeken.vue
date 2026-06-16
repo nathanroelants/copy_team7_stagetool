@@ -96,10 +96,12 @@
 
 <script>
 import { ref, reactive } from 'vue'
+import { useRouter } from 'vue-router'
 
 export default {
   name: 'DocentLogboek',
   setup() {
+    const router = useRouter()
     const pagina = ref('logboek')
 
     const docent = reactive({
@@ -148,9 +150,9 @@ export default {
     }
 
     function uitloggen() {
-      if (confirm('Bent u zeker dat u wilt uitloggen?')) {
-        alert('U bent uitgelogd.')
-      }
+      localStorage.removeItem('token')
+      localStorage.removeItem('user')
+      router.push('/')
     }
 
     return {
