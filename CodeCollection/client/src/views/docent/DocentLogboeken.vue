@@ -9,7 +9,7 @@
       <nav class="sidebar-nav">
         <button class="nav-item" :class="{ active: pagina === 'logboek' }" @click="pagina = 'logboek'">Logboek</button>
         <button class="nav-item disabled" disabled>Stagevoorstel</button>
-        <button class="nav-item disabled" disabled>Evaluatie</button>
+        <button class="nav-item" @click="$router.push('/docent/evaluatie/1')">Evaluatie</button>
         <button class="nav-item disabled" disabled>Documenten</button>
       </nav>
 
