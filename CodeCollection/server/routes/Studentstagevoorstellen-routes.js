@@ -491,10 +491,18 @@ router.post('/:stageId/ondertekenen/student', verifyToken, async (req, res) => {
   const supabase = req.app.get('supabase');
   const { stageId } = req.params;
   try {
+    const { data: stage, error: stageError } = await supabase
+      .from('stages')
+      .select('stagevoorstel_id')
+      .eq('id', stageId)
+      .single();
+
+    if (stageError || !stage) throw new Error('Stage niet gevonden.');
+
     const { error } = await supabase
       .from('stagevoorstellen')
-      .update({ student_ondertekend: true })
-      .eq('id', stageId);
+      .update({ student_ondertekend: true, student_ondertekend_op: new Date().toISOString() })
+      .eq('id', stage.stagevoorstel_id);
     if (error) throw error;
     res.json({ message: 'Student ondertekening gelukt.' });
   } catch (err) {
@@ -506,10 +514,18 @@ router.post('/:stageId/ondertekenen/docent', verifyToken, async (req, res) => {
   const supabase = req.app.get('supabase');
   const { stageId } = req.params;
   try {
+    const { data: stage, error: stageError } = await supabase
+      .from('stages')
+      .select('stagevoorstel_id')
+      .eq('id', stageId)
+      .single();
+
+    if (stageError || !stage) throw new Error('Stage niet gevonden.');
+
     const { error } = await supabase
       .from('stagevoorstellen')
-      .update({ docent_ondertekend: true })
-      .eq('id', stageId);
+      .update({ docent_ondertekend: true, docent_ondertekend_op: new Date().toISOString() })
+      .eq('id', stage.stagevoorstel_id);
     if (error) throw error;
     res.json({ message: 'Docent ondertekening gelukt.' });
   } catch (err) {
@@ -521,10 +537,18 @@ router.post('/:stageId/ondertekenen/stagementor', verifyToken, async (req, res) 
   const supabase = req.app.get('supabase');
   const { stageId } = req.params;
   try {
+    const { data: stage, error: stageError } = await supabase
+      .from('stages')
+      .select('stagevoorstel_id')
+      .eq('id', stageId)
+      .single();
+
+    if (stageError || !stage) throw new Error('Stage niet gevonden.');
+
     const { error } = await supabase
       .from('stagevoorstellen')
-      .update({ mentor_ondertekend: true })
-      .eq('id', stageId);
+      .update({ mentor_ondertekend: true, mentor_ondertekend_op: new Date().toISOString() })
+      .eq('id', stage.stagevoorstel_id);
     if (error) throw error;
     res.json({ message: 'Mentor ondertekening gelukt.' });
   } catch (err) {
