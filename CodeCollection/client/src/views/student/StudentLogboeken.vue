@@ -337,7 +337,7 @@ function indienHint(week) {
 
     async function laadWeken() {
       const data = await apiGet(`/api/studentlogboeken/${stageId.value}/weken`)
-      weken.splice(0, weken.length, ...data)
+      weken.splice(0, weken.length, ...data.sort((a, b) => b.nummer - a.nummer))
     }
 
     // ── Dag opslaan ──────────────────────────────────────────────────────────

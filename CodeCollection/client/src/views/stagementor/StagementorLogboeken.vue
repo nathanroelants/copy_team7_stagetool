@@ -287,7 +287,8 @@ async function laadLogboek() {
   loadingLogboek.value = true
   try {
     const res = await fetch(`${API_BASE}/logboek`, { headers: authHeaders() })
-    weken.value = await res.json()
+    const data = await res.json()
+    weken.value = data.sort((a, b) => b.nummer - a.nummer)
   } catch (err) {
     console.error(err)
   } finally {
