@@ -55,6 +55,7 @@ router.get('/evaluaties/:studentId', requireAuth, requireDocent, async (req, res
     .single();
 
   if (stageError || !stage) {
+    console.log('DEBUG evaluaties — studentId:', studentId, '| docent req.user.id:', req.user.id, '| stageError:', stageError);
     return res.status(404).json({ error: 'Geen stage gevonden voor deze student' });
   }
 
