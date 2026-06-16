@@ -1,6 +1,9 @@
 import express from 'express';
 import jwt from 'jsonwebtoken';
 
+import multer from 'multer';
+const upload = multer({ storage: multer.memoryStorage() });
+
 const router = express.Router();
 
 function verifyToken(req, res, next) {
@@ -43,6 +46,157 @@ router.get('/mijn', verifyToken, async (req, res) => {
   }
 
   res.json(data);
+});
+
+// ─── GET /:stageId/detail ────────────────────────────────────────────────────
+router.get('/:stageId/detail', verifyToken, async (req, res) => {
+  const supabase = req.app.get('supabase');
+  const { stageId } = req.params;
+
+  const { data: stage, error: stageError } = await supabase
+    .from('stages')
+    .select(`
+      id, status, start_datum, eind_datum,
+      student_id, docent_id, stagementor_id, stagevoorstel_id,
+      stagevoorstellen (*)
+    `)
+    .eq('id', stageId)
+    .single();
+
+  if (stageError || !stage) {
+    return res.status(404).json({ error: 'Stage niet gevonden' });
+  }
+
+  const { data: student } = await supabase
+    .from('gebruikers')
+    .select('voornaam, achternaam, email, opleiding')
+    .eq('id', stage.student_id)
+    .single();
+
+  const { data: mentor } = await supabase
+    .from('gebruikers')
+    .select('voornaam, achternaam, email')
+    .eq('id', stage.stagementor_id)
+    .single();
+
+  const { data: docent } = await supabase
+    .from('gebruikers')
+    .select('voornaam, achternaam, email')
+    .eq('id', stage.docent_id)
+    .single();
+
+  const voorstel = stage.stagevoorstellen;
+  const ondertekeningen = {
+    student:     voorstel?.student_ondertekend ? voorstel.student_ondertekend_op : null,
+    docent:      voorstel?.docent_ondertekend  ? voorstel.docent_ondertekend_op  : null,
+    stagementor: voorstel?.mentor_ondertekend  ? voorstel.mentor_ondertekend_op  : null,
+  };
+
+  res.json({
+    stage,
+    stagevoorstel: voorstel,
+    student:  student  || {},
+    mentor:   mentor   || {},
+    docent:   docent   || {},
+    ondertekeningen,
+  });
+});
+
+// ─── GET /:stageId/overeenkomst ───────────────────────────────────────────────
+router.get('/:stageId/overeenkomst', verifyToken, upload.single('overeenkomst'),  async (req, res) => {
+  const supabase = req.app.get('supabase');
+  const { stageId } = req.params;
+
+  const { data, error } = await supabase
+    .from('stageovereenkomsten')
+    .select('*')
+    .eq('stage_id', stageId)
+    .single();
+
+  if (error || !data) return res.json({ overeenkomst: null });
+  res.json({ overeenkomst: data });
+});
+
+// ─── GET /:stageId/overeenkomst/download ─────────────────────────────────────
+router.get('/:stageId/overeenkomst/download', verifyToken, async (req, res) => {
+  const supabase = req.app.get('supabase');
+  const { stageId } = req.params;
+
+  const { data: meta } = await supabase
+    .from('stageovereenkomsten')
+    .select('bestandspad, bestandsnaam')
+    .eq('stage_id', stageId)
+    .single();
+
+  if (!meta) return res.status(404).json({ error: 'Geen overeenkomst gevonden.' });
+
+  const { data, error } = await supabase.storage
+    .from('stagebestanden')
+    .download(meta.bestandspad);
+
+  if (error) return res.status(500).json({ error: error.message });
+
+  const buffer = Buffer.from(await data.arrayBuffer());
+  res.setHeader('Content-Disposition', `attachment; filename="${meta.bestandsnaam}"`);
+  res.setHeader('Content-Type', 'application/octet-stream');
+  res.send(buffer);
+});
+
+// ─── POST /:stageId/overeenkomst (upload) ────────────────────────────────────
+router.post('/:stageId/overeenkomst', verifyToken, async (req, res) => {
+  const supabase = req.app.get('supabase');
+  const { stageId } = req.params;
+
+  // You'll need multer for file uploads - add at top of file:
+  // import multer from 'multer'
+  // const upload = multer({ storage: multer.memoryStorage() })
+  // Then change this line to: router.post('/:stageId/overeenkomst', verifyToken, upload.single('overeenkomst'), async ...
+
+  const file = req.file;
+  if (!file) return res.status(400).json({ error: 'Geen bestand ontvangen.' });
+
+  const bestandspad = `overeenkomsten/${stageId}/${Date.now()}_${file.originalname}`;
+
+  const { error: uploadError } = await supabase.storage
+    .from('stagebestanden')
+    .upload(bestandspad, file.buffer, { contentType: file.mimetype });
+
+  if (uploadError) return res.status(500).json({ error: uploadError.message });
+
+  await supabase.from('stageovereenkomsten').upsert({
+    stage_id: stageId,
+    bestandspad,
+    bestandsnaam: file.originalname,
+    upload_datum: new Date().toISOString(),
+    geupload_door: req.user.rol || req.user.id,
+  }, { onConflict: 'stage_id' });
+
+  res.json({ success: true });
+});
+
+// ─── GET /:stageId/overeenkomst/download ─────────────────────────────────────
+router.get('/:stageId/overeenkomst/download', verifyToken, async (req, res) => {
+  const supabase = req.app.get('supabase');
+  const { stageId } = req.params;
+
+  const { data: meta } = await supabase
+    .from('stageovereenkomsten')
+    .select('bestandspad, bestandsnaam')
+    .eq('stage_id', stageId)
+    .single();
+
+  if (!meta) return res.status(404).json({ error: 'Geen overeenkomst gevonden.' });
+
+  const { data, error } = await supabase.storage
+    .from('stagebestanden')
+    .download(meta.bestandspad);
+
+  if (error) return res.status(500).json({ error: error.message });
+
+  const buffer = Buffer.from(await data.arrayBuffer());
+  res.setHeader('Content-Disposition', `attachment; filename="${meta.bestandsnaam}"`);
+  res.setHeader('Content-Type', 'application/octet-stream');
+  res.send(buffer);
 });
 
 // POST /api/stagevoorstellen
@@ -481,152 +635,6 @@ router.delete('/:id', verifyToken, async (req, res) => {
   res.json({ success: true });
 });
 
-
-// ─── 1. GET /mijn ────────────────────────────────────────────────────────────
-router.get('/mijn', verifyToken, async (req, res) => {
-  const supabase = req.app.get('supabase');
-
-  const { data, error } = await supabase
-    .from('stages')
-    .select(`
-      id, status, start_datum, eind_datum,
-      docent_id, stagementor_id,
-      stagevoorstellen (*),
-      stagementor:gebruikers!stages_bedrijfsbegeleider_id_fkey (voornaam, achternaam, email)
-    `)
-    .eq('student_id', req.user.id)
-    .order('aangemaakt_op', { ascending: false });
-
-  if (error) {
-    return res.status(500).json({ error: error.message });
-  }
-
-  res.json(data);
-});
-
-// ─── 2. POST / (nieuw voorstel) ──────────────────────────────────────────────
-router.post('/', verifyToken, async (req, res) => {
-  const supabase = req.app.get('supabase');
-
-  const {
-    bedrijfsnaam, voornaam_stagementor, achternaam_stagementor, email_stagementor,
-    stage_begin, stage_einde, beschrijving,
-    technische_skills, tools, straat, huisnummer, gemeente, land
-  } = req.body;
-
-  if (!bedrijfsnaam || !stage_begin || !stage_einde || !beschrijving ||
-      !voornaam_stagementor || !achternaam_stagementor || !email_stagementor || !straat || !gemeente) {
-    return res.status(400).json({ error: 'Verplichte velden ontbreken' });
-  }
-
-  let stagementorId;
-  const { data: bestaandeMentor } = await supabase
-    .from('gebruikers')
-    .select('id')
-    .eq('email', email_stagementor)
-    .single();
-
-  if (bestaandeMentor) {
-    stagementorId = bestaandeMentor.id;
-  } else {
-    const { data: nieuweMentor, error: mentorError } = await supabase
-      .from('gebruikers')
-      .insert([{
-        voornaam: voornaam_stagementor,
-        achternaam: achternaam_stagementor,
-        email: email_stagementor,
-        wachtwoord_hash: generatePassword(),
-        rol: 'stagementor',
-        actief: false
-      }])
-      .select()
-      .single();
-
-    if (mentorError) {
-      return res.status(500).json({ error: 'Fout stagementor: ' + mentorError.message });
-    }
-    stagementorId = nieuweMentor.id;
-  }
-
-  const { data: voorstel, error: voorstelError } = await supabase
-    .from('stagevoorstellen')
-    .insert([{
-      bedrijfsnaam, beschrijving, technische_skills, tools,
-      straat, huisnummer, gemeente, land,
-      indieningsdatum: new Date().toISOString()
-    }])
-    .select()
-    .single();
-
-  if (voorstelError) {
-    return res.status(500).json({ error: 'Fout voorstel: ' + voorstelError.message });
-  }
-
-  const { data: stage, error: stageError } = await supabase
-    .from('stages')
-    .insert([{
-      student_id: req.user.id,
-      stagevoorstel_id: voorstel.id,
-      stagementor_id: stagementorId,
-      docent_id: null,
-      status: 'stagevoorstel ingediend',
-      start_datum: stage_begin,
-      eind_datum: stage_einde
-    }])
-    .select()
-    .single();
-
-  if (stageError) {
-    return res.status(500).json({ error: 'Fout stage: ' + stageError.message });
-  }
-
-  res.json({ stage, voorstel });
-});
-
-router.post('/:stageId/ondertekenen/student', async (req, res) => {
-  const supabase = req.app.get('supabase')
-  const { stageId } = req.params
-  try {
-    const { error } = await supabase
-      .from('stagevoorstellen')
-      .update({ student_ondertekend: true })
-      .eq('id', stageId)
-    if (error) throw error
-    res.json({ message: 'Student ondertekening gelukt.' })
-  } catch (err) {
-    res.status(500).json({ error: err.message })
-  }
-})
-
-router.post('/:stageId/ondertekenen/docent', async (req, res) => {
-  const supabase = req.app.get('supabase')
-  const { stageId } = req.params
-  try {
-    const { error } = await supabase
-      .from('stagevoorstellen')
-      .update({ docent_ondertekend: true })
-      .eq('id', stageId)
-    if (error) throw error
-    res.json({ message: 'Docent ondertekening gelukt.' })
-  } catch (err) {
-    res.status(500).json({ error: err.message })
-  }
-})
-
-router.post('/:stageId/ondertekenen/stagementor', async (req, res) => {
-  const supabase = req.app.get('supabase')
-  const { stageId } = req.params
-  try {
-    const { error } = await supabase
-      .from('stagevoorstellen')
-      .update({ mentor_ondertekend: true })
-      .eq('id', stageId)
-    if (error) throw error
-    res.json({ message: 'Mentor ondertekening gelukt.' })
-  } catch (err) {
-    res.status(500).json({ error: err.message })
-  }
-})
 
 
 export default router;

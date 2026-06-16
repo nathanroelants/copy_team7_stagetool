@@ -485,6 +485,8 @@ function formatBestandsgrootte(bytes) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 
+
+
 // ── Data loading ──
 async function laadDetail() {
   loading.value = true
