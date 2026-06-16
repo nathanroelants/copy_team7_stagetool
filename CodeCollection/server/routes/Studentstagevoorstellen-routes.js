@@ -103,7 +103,7 @@ router.get('/:stageId/detail', verifyToken, async (req, res) => {
 });
 
 // ─── GET /:stageId/overeenkomst ───────────────────────────────────────────────
-router.get('/:stageId/overeenkomst', verifyToken, upload.single('overeenkomst'),  async (req, res) => {
+router.get('/:stageId/overeenkomst', verifyToken, async (req, res) => {
   const supabase = req.app.get('supabase');
   const { stageId } = req.params;
 
@@ -143,35 +143,90 @@ router.get('/:stageId/overeenkomst/download', verifyToken, async (req, res) => {
 });
 
 // ─── POST /:stageId/overeenkomst (upload) ────────────────────────────────────
-router.post('/:stageId/overeenkomst', verifyToken, async (req, res) => {
+router.post('/:stageId/overeenkomst', verifyToken, upload.single('overeenkomst'), async (req, res) => {
   const supabase = req.app.get('supabase');
   const { stageId } = req.params;
 
-  // You'll need multer for file uploads - add at top of file:
-  // import multer from 'multer'
-  // const upload = multer({ storage: multer.memoryStorage() })
-  // Then change this line to: router.post('/:stageId/overeenkomst', verifyToken, upload.single('overeenkomst'), async ...
+  try {
+    // Debug logging
+    console.log('Upload request received for stage:', stageId);
+    console.log('Content-Type:', req.headers['content-type']);
+    console.log('File present:', !!req.file);
+    
+    // Check of bestand bestaat
+    if (!req.file) {
+      console.error('No file in request. Body keys:', Object.keys(req.body));
+      return res.status(400).json({ error: 'Geen bestand ontvangen. Zorg dat het veld "overeenkomst" heet.' });
+    }
 
-  const file = req.file;
-  if (!file) return res.status(400).json({ error: 'Geen bestand ontvangen.' });
+    const file = req.file;
+    
+    // Valideer bestandsgrootte (bijv. max 10MB)
+    const MAX_SIZE = 10 * 1024 * 1024; // 10MB
+    if (file.size > MAX_SIZE) {
+      return res.status(400).json({ error: 'Bestand is te groot. Maximaal 10MB toegestaan.' });
+    }
 
-  const bestandspad = `overeenkomsten/${stageId}/${Date.now()}_${file.originalname}`;
+    // Valideer bestandstype
+    const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+    if (!allowedTypes.includes(file.mimetype)) {
+      return res.status(400).json({ error: 'Alleen PDF, DOC en DOCX bestanden zijn toegestaan.' });
+    }
 
-  const { error: uploadError } = await supabase.storage
-    .from('stagebestanden')
-    .upload(bestandspad, file.buffer, { contentType: file.mimetype });
+    console.log(`Bestand ontvangen: ${file.originalname} (${file.size} bytes, ${file.mimetype})`);
 
-  if (uploadError) return res.status(500).json({ error: uploadError.message });
+    // Genereer uniek bestandspad
+    const timestamp = Date.now();
+    const safeFilename = file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const bestandspad = `overeenkomsten/${stageId}/${timestamp}_${safeFilename}`;
 
-  await supabase.from('stageovereenkomsten').upsert({
-    stage_id: stageId,
-    bestandspad,
-    bestandsnaam: file.originalname,
-    upload_datum: new Date().toISOString(),
-    geupload_door: req.user.rol || req.user.id,
-  }, { onConflict: 'stage_id' });
+    // Upload naar Supabase Storage
+    const { error: uploadError } = await supabase.storage
+      .from('stagebestanden')
+      .upload(bestandspad, file.buffer, { 
+        contentType: file.mimetype,
+        cacheControl: '3600'
+      });
 
-  res.json({ success: true });
+    if (uploadError) {
+      console.error('Supabase upload error:', uploadError);
+      return res.status(500).json({ error: 'Fout bij uploaden naar storage: ' + uploadError.message });
+    }
+
+    // Opslaan in database
+    const { error: dbError } = await supabase.from('stageovereenkomsten').upsert({
+      stage_id: stageId,
+      bestandspad,
+      bestandsnaam: file.originalname,
+      bestandsgrootte: file.size,
+      mimetype: file.mimetype,
+      upload_datum: new Date().toISOString(),
+      geupload_door: req.user.id,
+      geupload_door_rol: req.user.rol || 'student'
+    }, { onConflict: 'stage_id' });
+
+    if (dbError) {
+      console.error('Database error:', dbError);
+      // Probeer het geüploade bestand te verwijderen als de database insert faalt
+      await supabase.storage.from('stagebestanden').remove([bestandspad]);
+      return res.status(500).json({ error: 'Fout bij opslaan in database: ' + dbError.message });
+    }
+
+    console.log('Upload succesvol voor stage:', stageId);
+    res.json({ 
+      success: true, 
+      message: 'Bestand succesvol geüpload',
+      bestand: {
+        naam: file.originalname,
+        grootte: file.size,
+        type: file.mimetype
+      }
+    });
+
+  } catch (error) {
+    console.error('Upload error:', error);
+    res.status(500).json({ error: 'Interne server fout: ' + error.message });
+  }
 });
 
 // ─── GET /:stageId/overeenkomst/download ─────────────────────────────────────
