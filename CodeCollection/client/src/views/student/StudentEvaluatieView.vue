@@ -189,19 +189,20 @@ html, body, #app {
 .dashboard-layout {
   display: flex;
   min-height: 100vh;
-  background: #f0f4f8;
+  background: #f5f7fa;
 }
 
 /* ── Sidebar ── */
 .sidebar {
   width: 180px;
-  background: #29a8e0;
+  background: white;
+  border-right: 1px solid #e5e8ec;
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
   position: sticky;
-  top: 0;            
-  height: 100vh;     
+  top: 0;
+  height: 100vh;
 }
 
 .sidebar-brand {
@@ -227,26 +228,19 @@ html, body, #app {
 .nav-item {
   width: 100%;
   text-align: left;
-  background: white;
+  background: transparent;
   border: none;
   border-radius: 6px;
   padding: 0.65rem 1rem;
   font-size: 0.9rem;
   font-weight: 600;
-  color: #222;
+  color: #29a8e0;
   cursor: pointer;
   transition: background 0.15s;
 }
 
-.nav-item:hover,
-.nav-item.active {
-  background: #f0f0f0;
-}
-
-.nav-item.active {
-  background: #e0f0fb;
-  color: #1a7ab5;
-}
+.nav-item:hover { background: #f0f7fc; }
+.nav-item.active { background: #29a8e0; color: white; }
 
 .sidebar-footer {
   padding: 1rem 0.75rem;
@@ -254,18 +248,18 @@ html, body, #app {
 
 .logout-btn {
   width: 100%;
-  background: white;
+  background: #ffeaea;
+  color: #cc0000;
   border: none;
   border-radius: 6px;
   padding: 0.65rem 1rem;
   font-size: 0.9rem;
   font-weight: 600;
-  color: #222;
   cursor: pointer;
   transition: background 0.15s;
 }
 
-.logout-btn:hover { background: #f0f0f0; }
+.logout-btn:hover { background: #ffdada; }
 
 /* ── Main ── */
 .main-content {

@@ -166,12 +166,13 @@ export default {
   display: flex;
   min-height: 100vh;
   font-family: Arial, Helvetica, sans-serif;
-  background: #f0f4f8;
+  background: #f5f7fa;
 }
 
 .sidebar {
   width: 180px;
-  background: #29a8e0;
+  background: white;
+  border-right: 1px solid #e5e8ec;
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
@@ -197,32 +198,28 @@ export default {
 .nav-item {
   width: 100%;
   text-align: left;
-  background: white;
+  background: transparent;
   border: none;
   border-radius: 6px;
   padding: 0.65rem 1rem;
   font-size: 0.9rem;
   font-weight: 600;
-  color: #222;
+  color: #29a8e0;
   cursor: pointer;
   margin-bottom: 0.5rem;
   transition: background 0.15s;
 }
 
-.nav-item:hover,
-.nav-item.active {
-  background: #f0f0f0;
-}
+.nav-item:hover { background: #f0f7fc; }
+.nav-item.active { background: #29a8e0; color: white; }
 
 .nav-item.disabled {
-  background: #e0e0e0;
-  color: #aaa;
+  background: transparent;
+  color: #bbb;
   cursor: not-allowed;
 }
 
-.nav-item.disabled:hover {
-  background: #e0e0e0;
-}
+.nav-item.disabled:hover { background: transparent; }
 
 .sidebar-footer {
   padding: 1rem 0.75rem;
@@ -230,20 +227,18 @@ export default {
 
 .logout-btn {
   width: 100%;
-  background: white;
+  background: #ffeaea;
+  color: #cc0000;
   border: none;
   border-radius: 6px;
   padding: 0.65rem 1rem;
   font-size: 0.9rem;
   font-weight: 600;
-  color: #222;
   cursor: pointer;
   transition: background 0.15s;
 }
 
-.logout-btn:hover {
-  background: #f0f0f0;
-}
+.logout-btn:hover { background: #ffdada; }
 
 .main-content {
   flex: 1;
@@ -360,9 +355,11 @@ export default {
 .week-kaart {
   background: white;
   border-radius: 10px;
+  border-top: 3px solid #29a8e0;
   padding: 1.25rem;
   margin-bottom: 1.25rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
 }
 
 .week-header {
@@ -395,8 +392,8 @@ export default {
 }
 
 .dag-tabel th {
-  background: #f0f4ff;
-  color: #111;
+  background: #29a8e0;
+  color: white;
   padding: 8px 12px;
   text-align: left;
   font-weight: 600;
@@ -404,8 +401,8 @@ export default {
 
 .dag-tabel td {
   padding: 8px 12px;
-  border-bottom: 1px solid #eee;
-  color: #333;
+  border-bottom: 1px solid #f0f0f0;
+  color: #1a1a1a;
 }
 
 .dag-tabel tr:last-child td {
@@ -414,9 +411,9 @@ export default {
 
 .badge {
   display: inline-block;
-  padding: 0.3rem 0.75rem;
+  padding: 0.25rem 0.7rem;
   border-radius: 5px;
-  font-size: 0.82rem;
+  font-size: 0.78rem;
   font-weight: 700;
   white-space: nowrap;
 }

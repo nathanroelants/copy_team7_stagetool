@@ -449,18 +449,19 @@ onMounted(laadDetail)
   display: flex;
   min-height: 100vh;
   font-family: Arial, Helvetica, sans-serif;
-  background: #f0f4f8;
+  background: #f5f7fa;
 }
 
 /* ── Sidebar ── */
 .sidebar {
   width: 180px;
-  background: #29a8e0;
+  background: white;
+  border-right: 1px solid #e5e8ec;
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
   position: sticky;
-  top: 0;            
+  top: 0;
   height: 100vh;
 }
 
@@ -484,22 +485,20 @@ onMounted(laadDetail)
 .nav-item {
   width: 100%;
   text-align: left;
-  background: white;
+  background: transparent;
   border: none;
   border-radius: 6px;
   padding: 0.65rem 1rem;
   font-size: 0.9rem;
   font-weight: 600;
-  color: #222;
+  color: #29a8e0;
   cursor: pointer;
   margin-bottom: 0.5rem;
   transition: background 0.15s;
 }
 
-.nav-item:hover,
-.nav-item.active {
-  background: #f0f0f0;
-}
+.nav-item:hover { background: #f0f7fc; }
+.nav-item.active { background: #29a8e0; color: white; }
 
 .sidebar-footer {
   padding: 1rem 0.75rem;
@@ -507,20 +506,18 @@ onMounted(laadDetail)
 
 .logout-btn {
   width: 100%;
-  background: white;
+  background: #ffeaea;
+  color: #cc0000;
   border: none;
   border-radius: 6px;
   padding: 0.65rem 1rem;
   font-size: 0.9rem;
   font-weight: 600;
-  color: #222;
   cursor: pointer;
   transition: background 0.15s;
 }
 
-.logout-btn:hover {
-  background: #f0f0f0;
-}
+.logout-btn:hover { background: #ffdada; }
 
 /* ── Main ── */
 .main-content {
@@ -626,8 +623,10 @@ onMounted(laadDetail)
 
 /* ── Card ── */
 .card {
-  background: #e4e4e4;
+  background: white;
   border-radius: 10px;
+  border-top: 3px solid #29a8e0;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.04);
   overflow: hidden;
 }
 
@@ -815,9 +814,9 @@ onMounted(laadDetail)
 /* ── Badges ── */
 .badge {
   display: inline-block;
-  padding: 0.3rem 0.75rem;
+  padding: 0.25rem 0.7rem;
   border-radius: 5px;
-  font-size: 0.82rem;
+  font-size: 0.78rem;
   font-weight: 700;
   white-space: nowrap;
 }
@@ -840,10 +839,17 @@ onMounted(laadDetail)
   width: 100%;
   min-height: 120px;
   resize: vertical;
-  border: 1px solid #ccc;
+  border: 1px solid #d5dae0;
   border-radius: 6px;
   padding: 0.75rem;
   font-family: inherit;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.feedback-input:focus {
+  border-color: #29a8e0;
+  box-shadow: 0 0 0 3px rgba(41,168,224,0.12);
+  outline: none;
 }
 
 .actie-buttons {

@@ -410,12 +410,13 @@ onMounted(async () => {
   display: flex;
   min-height: 100vh;
   font-family: Arial, Helvetica, sans-serif;
-  background: #f0f4f8;
+  background: #f5f7fa;
 }
 
 .sidebar {
   width: 180px;
-  background: #29a8e0;
+  background: white;
+  border-right: 1px solid #e5e8ec;
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
@@ -441,36 +442,32 @@ onMounted(async () => {
 .nav-item {
   width: 100%;
   text-align: left;
-  background: white;
+  background: transparent;
   border: none;
   border-radius: 6px;
   padding: 0.65rem 1rem;
   font-size: 0.9rem;
   font-weight: 600;
-  color: #222;
+  color: #29a8e0;
   cursor: pointer;
   margin-bottom: 0.5rem;
   transition: background 0.15s;
 }
 
-.nav-item:hover,
-.nav-item.active {
-  background: #f0f0f0;
-}
+.nav-item:hover { background: #f0f7fc; }
+.nav-item.active { background: #29a8e0; color: white; }
 
 .nav-back {
-  background: #1ec8f0;
+  background: #29a8e0;
   color: white;
   font-weight: 700;
 }
 
-.nav-back:hover {
-  background: #18b5d8;
-}
+.nav-back:hover { background: #1e90c0; }
 
 .nav-separator {
   height: 1px;
-  background: rgba(255, 255, 255, 0.3);
+  background: #e5e8ec;
   margin: 0.5rem 0 0.75rem;
 }
 
@@ -480,20 +477,18 @@ onMounted(async () => {
 
 .logout-btn {
   width: 100%;
-  background: white;
+  background: #ffeaea;
+  color: #cc0000;
   border: none;
   border-radius: 6px;
   padding: 0.65rem 1rem;
   font-size: 0.9rem;
   font-weight: 600;
-  color: #222;
   cursor: pointer;
   transition: background 0.15s;
 }
 
-.logout-btn:hover {
-  background: #f0f0f0;
-}
+.logout-btn:hover { background: #ffdada; }
 
 .main-content {
   flex: 1;
@@ -561,9 +556,11 @@ onMounted(async () => {
 .week-kaart {
   background: white;
   border-radius: 10px;
+  border-top: 3px solid #29a8e0;
   padding: 1.25rem;
   margin-bottom: 1.25rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
 }
 
 .week-header {
@@ -601,8 +598,8 @@ onMounted(async () => {
 }
 
 .dag-tabel th {
-  background: #f0f4ff;
-  color: #111;
+  background: #29a8e0;
+  color: white;
   padding: 8px 12px;
   text-align: left;
   font-weight: 600;
@@ -610,8 +607,8 @@ onMounted(async () => {
 
 .dag-tabel td {
   padding: 8px 12px;
-  border-bottom: 1px solid #eee;
-  color: #333;
+  border-bottom: 1px solid #f0f0f0;
+  color: #1a1a1a;
 }
 
 .dag-tabel tr:last-child td {
@@ -621,14 +618,16 @@ onMounted(async () => {
 .info-kaart {
   background: white;
   border-radius: 10px;
+  border-top: 3px solid #29a8e0;
   padding: 1.25rem 1.5rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
   display: flex;
   flex-direction: column;
   gap: 10px;
   font-size: 14px;
   color: #333;
   margin-bottom: 1rem;
+  overflow: hidden;
 }
 
 .document-rij {
@@ -661,9 +660,9 @@ onMounted(async () => {
 
 .badge {
   display: inline-block;
-  padding: 0.3rem 0.75rem;
+  padding: 0.25rem 0.7rem;
   border-radius: 5px;
-  font-size: 0.82rem;
+  font-size: 0.78rem;
   font-weight: 700;
   white-space: nowrap;
 }
@@ -677,17 +676,18 @@ onMounted(async () => {
   background: #29a8e0;
   color: white;
   border: none;
-  padding: 0.5rem 1rem;
-  border-radius: 6px;
+  padding: 0.55rem 1.1rem;
+  border-radius: 8px;
   cursor: pointer;
   font-size: 0.85rem;
   font-weight: 600;
   text-decoration: none;
+  box-shadow: 0 2px 4px rgba(41,168,224,0.25);
+  transition: background 0.15s, box-shadow 0.15s, transform 0.05s;
 }
 
-.knop-blauw:hover {
-  background: #1e90c0;
-}
+.knop-blauw:hover { background: #1e90c0; box-shadow: 0 4px 8px rgba(41,168,224,0.35); }
+.knop-blauw:active { transform: translateY(1px); }
 
 .knop-groen {
   background: #4caf50;
@@ -705,19 +705,18 @@ onMounted(async () => {
 }
 
 .knop-rood {
-  background: #e53935;
+  background: #f44336;
   color: white;
   border: none;
-  padding: 0.5rem 1rem;
-  border-radius: 6px;
+  padding: 0.55rem 1.1rem;
+  border-radius: 8px;
   cursor: pointer;
   font-size: 0.85rem;
   font-weight: 600;
+  transition: background 0.15s;
 }
 
-.knop-rood:hover {
-  background: #b71c1c;
-}
+.knop-rood:hover { background: #d33; }
 /* Tabela compacta com texto truncado */
 .dag-tabel {
   table-layout: fixed;

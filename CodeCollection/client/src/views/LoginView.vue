@@ -223,9 +223,9 @@ async function handleLogin() {
 }
 
 .form-group input {
-  padding: 0.8rem 1rem;
-  border: 2px solid #e0e0e0;
-  border-radius: 8px;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid #d5dae0;
+  border-radius: 6px;
   font-size: 1rem;
   transition: border-color 0.2s, box-shadow 0.2s;
   outline: none;
@@ -236,7 +236,8 @@ async function handleLogin() {
 
 .form-group input:focus {
   border-color: #29a8e0;
-  box-shadow: 0 0 0 3px rgba(41, 168, 224, 0.15);
+  box-shadow: 0 0 0 3px rgba(41, 168, 224, 0.12);
+  outline: none;
 }
 
 .form-group input:disabled {
@@ -285,24 +286,27 @@ async function handleLogin() {
 }
 
 .login-btn {
-  background: linear-gradient(135deg, #29a8e0, #0f6fa8);
+  background: #29a8e0;
   color: white;
   border: none;
-  padding: 0.9rem;
+  padding: 0.55rem 1.1rem;
   border-radius: 8px;
   font-size: 1rem;
-  font-weight: 700;
+  font-weight: 600;
   cursor: pointer;
-  transition: opacity 0.2s, transform 0.1s, box-shadow 0.2s;
+  transition: background 0.15s, box-shadow 0.15s, transform 0.05s;
   margin-top: 0.5rem;
   letter-spacing: 0.02em;
-  box-shadow: 0 4px 12px rgba(41, 168, 224, 0.3);
+  box-shadow: 0 2px 4px rgba(41, 168, 224, 0.25);
 }
 
 .login-btn:hover:not(:disabled) {
-  opacity: 0.95;
-  transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(41, 168, 224, 0.4);
+  background: #1e90c0;
+  box-shadow: 0 4px 8px rgba(41, 168, 224, 0.35);
+}
+
+.login-btn:active:not(:disabled) {
+  transform: translateY(1px);
 }
 
 .login-btn:disabled {
