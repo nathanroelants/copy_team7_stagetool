@@ -131,15 +131,19 @@
                   </tbody>
                 </table>
 
-                <div class="week-footer">
-                  <button
-                    class="actie-btn btn-oranje"
-                    :disabled="week.status === 'ingediend' || week.status === 'Afgehandeld' || week.isBezig"
-                    @click="weekIndienen(wi)"
-                  >
-                    {{ week.isBezig ? 'Bezig…' : 'Week indienen' }}
-                  </button>
-                </div>
+               <div class="week-footer">
+  <span v-if="week.status === 'aangemaakt' && !week.magIndienen" class="indien-hint">
+    Indienen kan ten vroegste op zaterdag {{ week.vroegsteIndienDatum }}
+  </span>
+  <button
+    v-if="week.status === 'aangemaakt'"
+    class="actie-btn btn-oranje"
+    :disabled="!week.magIndienen || week.isBezig"
+    @click="weekIndienen(wi)"
+  >
+    {{ week.isBezig ? 'Bezig…' : 'Week indienen' }}
+  </button>
+</div>
               </div>
 
             </div>
@@ -384,7 +388,7 @@ export default {
     function statusKleur(s) {
       if (!s) return 'badge-grijs'
       const l = s.toLowerCase()
-      if (l === 'afgehandeld' || l === 'afgetekend') return 'badge-groen'
+      if (l === 'goedgekeurd' || l === 'afgetekend') return 'badge-groen'
       if (l === 'ingediend') return 'badge-geel'
       if (l === 'afgekeurd') return 'badge-rood'
       return 'badge-blauw'
@@ -838,6 +842,12 @@ html, body, #app {
   margin-top: 1rem;
   padding-top: 0.75rem;
   border-top: 1px solid #f0f0f0;
+}
+.indien-hint {
+  margin-right: auto;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #888;
 }
 
 /* ── Action buttons ── */

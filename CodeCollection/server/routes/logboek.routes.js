@@ -38,6 +38,39 @@ function requireDocent(req, res, next) {
 }
 
 // ─── Helper: verify stage belongs to student ──────────────────────────────────
+// ─── Datumhelpers (gedeeld) ────────────────────────────────────────────────
+
+/** Geeft de maandag (als Date, UTC) van de week waarin datum d valt. */
+function maandagVanDatum(d) {
+  const dt = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const dayNum = dt.getUTCDay() || 7; // maandag=1 ... zondag=7
+  dt.setUTCDate(dt.getUTCDate() - (dayNum - 1));
+  return dt;
+}
+
+/** Geeft de maandag van een specifiek weeknummer, relatief aan de startdatum van de stage. */
+function maandagVanWeek(weekNummer, startDatum) {
+  const startMaandag = maandagVanDatum(new Date(startDatum));
+  const maandag = new Date(startMaandag);
+  maandag.setUTCDate(maandag.getUTCDate() + (weekNummer - 1) * 7);
+  return maandag;
+}
+
+/** Geeft de zaterdag van een specifiek weeknummer (= maandag + 5 dagen). */
+function zaterdagVanWeek(weekNummer, startDatum) {
+  const maandag = maandagVanWeek(weekNummer, startDatum);
+  const zaterdag = new Date(maandag);
+  zaterdag.setUTCDate(zaterdag.getUTCDate() + 5);
+  return zaterdag;
+}
+
+/** Vandaag, genormaliseerd naar middernacht UTC, voor datumvergelijkingen. */
+function vandaagUTC() {
+  const nu = new Date();
+  return new Date(Date.UTC(nu.getFullYear(), nu.getMonth(), nu.getDate()));
+}
+
+
 
 async function getStageForStudent(supabase, stageId, studentId) {
   const { data, error } = await supabase
@@ -157,14 +190,6 @@ router.get('/:stageId/weken', requireAuth, async (req, res) => {
     return res.status(500).json({ error: 'Kon stage niet ophalen' });
   }
 
-  function maandagVan(d) {
-    const dt = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-    const dayNum = dt.getUTCDay() || 7;
-    dt.setUTCDate(dt.getUTCDate() - (dayNum - 1));
-    return dt;
-  }
-
-  const startMaandag = maandagVan(new Date(stageRow.start_datum));
 
   // Groepeer entries per weeknummer
   const wekenMap = {};
@@ -183,11 +208,13 @@ router.get('/:stageId/weken', requireAuth, async (req, res) => {
     wekenMap[wn].afgetekend = entry.afgetekend ?? wekenMap[wn].afgetekend;
   }
 
+  const vandaag = vandaagUTC();
+
   const weken = Object.values(wekenMap).map(week => {
-    const maandag = new Date(startMaandag);
-    maandag.setUTCDate(maandag.getUTCDate() + (week.nummer - 1) * 7);
+    const maandag = maandagVanWeek(week.nummer, stageRow.start_datum);
     const zondag = new Date(maandag);
     zondag.setUTCDate(zondag.getUTCDate() + 6);
+    const zaterdag = zaterdagVanWeek(week.nummer, stageRow.start_datum);
 
     return {
       nummer: week.nummer,
@@ -196,6 +223,8 @@ router.get('/:stageId/weken', requireAuth, async (req, res) => {
       maxUren: 40,
       status: week.status,
       open: false,
+      magIndienen: vandaag >= zaterdag,
+      vroegsteIndienDatum: formatDatumVolledig(zaterdag),
       entries: week.entries.map(mapEntry),
     };
   });
@@ -235,7 +264,27 @@ router.post('/:stageId/dag', requireAuth, requireStudent, async (req, res) => {
     return res.status(400).json({ error: 'Selecteer minstens één leerdoel (LO).' });
   }
 
-  const weekNummer = berekenWeeknummer(gekozenDatum, new Date(stage.start_datum));
+
+const weekNummer = berekenWeeknummer(gekozenDatum, new Date(stage.start_datum));
+
+  // Controleer of de week waarin deze dag valt nog open staat.
+  // Eens een week ingediend (of verder verwerkt) is, mogen er geen nieuwe dagen meer bij.
+  const { data: bestaandeWeekEntries, error: weekCheckError } = await supabase
+    .from('logboeken')
+    .select('status')
+    .eq('stage_id', stageId)
+    .eq('week_nummer', weekNummer)
+    .limit(1);
+
+  if (weekCheckError) {
+    console.error('Fout bij controleren weekstatus:', weekCheckError);
+    return res.status(500).json({ error: 'Kon weekstatus niet controleren' });
+  }
+
+  const weekStatus = bestaandeWeekEntries?.[0]?.status ?? 'aangemaakt';
+  if (weekStatus !== 'aangemaakt') {
+    return res.status(409).json({ error: 'Deze week is al ingediend; je kan hier geen dagen meer aan toevoegen.' });
+  }
 
   const { data: inserted, error } = await supabase
     .from('logboeken')
@@ -300,15 +349,46 @@ router.post('/:stageId/dag', requireAuth, requireStudent, async (req, res) => {
 router.patch('/:stageId/week/:weekNummer/indienen', requireAuth, requireStudent, async (req, res) => {
   const supabase = req.app.get('supabase');
   const { stageId, weekNummer } = req.params;
+  const weekNummerInt = parseInt(weekNummer, 10);
 
   const stage = await getStageForStudent(supabase, stageId, req.user.id);
   if (!stage) return res.status(403).json({ error: 'Geen toegang tot deze stage' });
+
+  // Huidige status opvragen, zodat een reeds (deels) ingediende/verwerkte week
+  // niet opnieuw ingediend kan worden
+  const { data: entries, error: entriesError } = await supabase
+    .from('logboeken')
+    .select('id, status')
+    .eq('stage_id', stageId)
+    .eq('week_nummer', weekNummerInt);
+
+  if (entriesError) {
+    console.error('Fout bij ophalen week voor indienen:', entriesError);
+    return res.status(500).json({ error: 'Kon week niet ophalen' });
+  }
+
+  if (!entries || entries.length === 0) {
+    return res.status(404).json({ error: 'Geen dagen gevonden voor deze week' });
+  }
+
+  const reedsVerwerkt = entries.some(e => (e.status ?? 'aangemaakt') !== 'aangemaakt');
+  if (reedsVerwerkt) {
+    return res.status(409).json({ error: 'Deze week is al ingediend en kan niet opnieuw ingediend worden' });
+  }
+
+  // Indienen mag ten vroegste vanaf zaterdag van de betreffende week
+  const zaterdag = zaterdagVanWeek(weekNummerInt, stage.start_datum);
+  if (vandaagUTC() < zaterdag) {
+    return res.status(409).json({
+      error: `Je kan deze week nog niet indienen. Dat kan ten vroegste op zaterdag ${formatDatumVolledig(zaterdag)}.`,
+    });
+  }
 
   const { error } = await supabase
     .from('logboeken')
     .update({ status: 'ingediend' })
     .eq('stage_id', stageId)
-    .eq('week_nummer', parseInt(weekNummer, 10));
+    .eq('week_nummer', weekNummerInt);
 
   if (error) {
     console.error('Fout bij indienen week:', error);
