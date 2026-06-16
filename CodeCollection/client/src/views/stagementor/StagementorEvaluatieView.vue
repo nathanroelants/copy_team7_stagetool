@@ -127,8 +127,9 @@
 
 <script setup>
 import { useStagementorEvaluatie } from './useStagementorEvaluatie.js'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 const router = useRouter()
+const route = useRoute()
 const {
   gebruikerNaam,
   actieveTab,
@@ -149,7 +150,7 @@ const {
   setFeedback,
   slaOp,
   handleLogout,
-} = useStagementorEvaluatie()
+} = useStagementorEvaluatie(route.params.studentId)
 </script>
 
 <style>
