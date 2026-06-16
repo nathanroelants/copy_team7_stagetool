@@ -108,6 +108,7 @@ router.get('/studenten', requireAuth, requireDocent, async (req, res) => {
 
     return {
       id: stage.id,
+      student_id: stage.student?.id ?? null,
       voornaam: stage.student?.voornaam ?? '',
       achternaam: stage.student?.achternaam ?? '',
       email: stage.student?.email ?? '',

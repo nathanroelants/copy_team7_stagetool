@@ -9,7 +9,7 @@
       <nav class="sidebar-nav">
         <button class="nav-item" :class="{ active: pagina === 'logboek' }" @click="pagina = 'logboek'">Logboek</button>
         <button class="nav-item disabled" disabled>Stagevoorstel</button>
-        <button class="nav-item" @click="$router.push('/docent/evaluatie/1')">Evaluatie</button>
+        <button class="nav-item" @click="$router.push(`/docent/evaluatie/${studentId}`)">Evaluatie</button>
         <button class="nav-item disabled" disabled>Documenten</button>
       </nav>
 
@@ -96,10 +96,13 @@
 
 <script>
 import { ref, reactive } from 'vue'
+import { useRoute } from 'vue-router'
 
 export default {
   name: 'DocentLogboek',
   setup() {
+    const route = useRoute()
+    const studentId = route.params.studentId
     const pagina = ref('logboek')
 
     const docent = reactive({
@@ -155,7 +158,7 @@ export default {
 
     return {
       pagina, docent, student, studenten, geselecteerdeStudent,
-      weken, statusKleur, uitloggen,
+      weken, statusKleur, uitloggen, studentId,
     }
   },
 }

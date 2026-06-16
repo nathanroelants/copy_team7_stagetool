@@ -49,13 +49,12 @@ router.get('/evaluaties/:studentId', requireAuth, requireDocent, async (req, res
 
   const { data: stage, error: stageError } = await supabase
     .from('stages')
-    .select('id, student_id, stagementor_id, eindevaluatie_open')
+    .select('id, student_id, stagementor_id')
     .eq('student_id', studentId)
     .eq('docent_id', req.user.id)
     .single();
 
   if (stageError || !stage) {
-    console.log('DEBUG evaluaties — studentId:', studentId, '| docent req.user.id:', req.user.id, '| stageError:', stageError);
     return res.status(404).json({ error: 'Geen stage gevonden voor deze student' });
   }
 
@@ -83,6 +82,7 @@ router.get('/evaluaties/:studentId', requireAuth, requireDocent, async (req, res
     evaluaties,
   });
 });
+
 
 // PATCH /api/docent/eindevaluatie/:studentId
 router.patch('/eindevaluatie/:studentId', requireAuth, requireDocent, async (req, res) => {
