@@ -1,4 +1,8 @@
-import { createNotification } from '../services/notificationService.js'
+import express from 'express';
+import { createNotification } from '../services/notificationService.js';
+import { requireAuth, requireDocent } from '../middleware/auth.js';
+
+const router = express.Router();
 
 router.put(
   '/studenten/:stageId/voorstel-status',
@@ -81,26 +85,23 @@ router.put(
             'stage_aanvaard'
           )
         }
+
+        if (stage.stagementor_id) {
+          const { error: mentorError } = await supabase
+            .from('gebruikers')
+            .update({ actief: true })
+            .eq('id', stage.stagementor_id)
+
+          if (mentorError) {
+            console.error(mentorError)
+          }
+        }
       } catch (error) {
         console.error('Fout bij aanmaken notificatie:', error)
       }
     }
 
     res.json({ success: true })
-
-    if (status === 'stagevoorstel geaccepteerd' && stage.stagementor_id) {
-      const { error: mentorError } = await supabase
-        .from('gebruikers')
-        .update({ actief: true })
-        .eq('id', stage.stagementor_id)
-
-      if (mentorError) {
-        console.error(mentorError)
-        return res.status(500).json({
-          error: 'Stagevoorstel goedgekeurd, maar mentor kon niet geactiveerd worden'
-        })
-      }
-    }
   }
 );
 
