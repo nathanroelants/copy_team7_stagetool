@@ -11,7 +11,7 @@
         <div class="nav-separator"></div>
         <button class="nav-item" :class="{ active: pagina === 'logboek' }" @click="pagina = 'logboek'">Logboek</button>
         <button class="nav-item disabled" disabled>Stagevoorstel</button>
-        <button class="nav-item disabled" disabled>Evaluatie</button>
+        <button class="nav-item" @click="$router.push(`/docent/evaluatie/${studentId}`)">Evaluatie</button>
         <button class="nav-item disabled" disabled>Documenten</button>
       </nav>
 
@@ -97,6 +97,7 @@
 </template>
 
 <script>
+
 import { ref, reactive, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
@@ -144,10 +145,11 @@ const studentenData = {
     ],
   },
 }
-
 export default {
   name: 'DocentLogboek',
   setup() {
+
+    const studentId = router.params.studentId
     const router = useRouter()
     const pagina = ref('logboek')
 
@@ -181,7 +183,7 @@ export default {
 
     return {
       router, pagina, docent, student, studenten, geselecteerdeStudent,
-      weken, statusKleur, uitloggen,
+      weken, statusKleur, uitloggen, studentId,
     }
   },
 }
@@ -236,6 +238,8 @@ export default {
   transition: background 0.15s;
 }
 
+
+
 .nav-item:hover { background: #f0f7fc; }
 .nav-item.active { background: #29a8e0; color: white; }
 
@@ -260,6 +264,7 @@ export default {
 }
 
 .nav-item.disabled:hover { background: transparent; }
+
 
 .sidebar-footer {
   padding: 1rem 0.75rem;

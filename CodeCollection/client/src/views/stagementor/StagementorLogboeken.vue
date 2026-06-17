@@ -15,7 +15,7 @@
 
         <button class="nav-item" :class="{ active: pagina === 'logboek' }"    @click="pagina = 'logboek'">Logboek</button>
         <button class="nav-item" :class="{ active: pagina === 'stageinfo' }"  @click="pagina = 'stageinfo'">Stagevoorstel</button>
-        <button class="nav-item" :class="{ active: pagina === 'evaluatie' }"  @click="pagina = 'evaluatie'">Evaluatie</button>
+        <button class="nav-item" @click="$router.push('/stagementor/evaluatie/1')">Evaluatie</button>
         <button class="nav-item" :class="{ active: pagina === 'documenten' }" @click="pagina = 'documenten'">Documenten</button>
       </nav>
 
@@ -457,6 +457,7 @@ onMounted(async () => {
   margin-bottom: 0.5rem;
   transition: background 0.15s;
 }
+
 
 .nav-item:hover { background: #f0f7fc; }
 .nav-item.active { background: #29a8e0; color: white; }

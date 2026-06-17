@@ -1,42 +1,19 @@
-import { ref, computed, onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 
-export function useStudentEvaluatie() {
+export function useDocentEvaluatie(studentId) {
   const router = useRouter()
   const user = JSON.parse(localStorage.getItem('user') || '{}')
-  const gebruikerNaam = `${user.voornaam || ''} ${user.achternaam || ''}`.trim() || user.email || 'Student'
+  const gebruikerNaam = `${user.voornaam || ''} ${user.achternaam || ''}`.trim() || user.email || 'Docent'
 
-  // Huidige fase vanuit de backend
-  const evaluatieStatus = ref('geen') // 'geen' | 'tussentijds' | 'tussentijdse_afgelopen' | 'eindevaluatie' | 'stage_afgelopen'
-
-  // Actieve tab: begin op tussentijds, tenzij dat niet zichtbaar is
   const actieveTab = ref('tussentijds')
-
-  // Afgeleid: wat is zichtbaar en wat is bewerkbaar?
-  const tussentijdsZichtbaar = computed(() =>
-    ['tussentijds', 'tussentijdse_afgelopen', 'eindevaluatie', 'stage_afgelopen'].includes(evaluatieStatus.value)
-  )
-  const eindevaluatieZichtbaar = computed(() =>
-    ['eindevaluatie', 'stage_afgelopen'].includes(evaluatieStatus.value)
-  )
-  const tussentijdsBewerkbaar = computed(() =>
-    evaluatieStatus.value === 'tussentijds'
-  )
-  const eindevaluatieBewerkbaar = computed(() =>
-    evaluatieStatus.value === 'eindevaluatie'
-  )
-
-  // Huidige tab is bewerkbaar?
-  const huidigeBewerkbaar = computed(() =>
-    actieveTab.value === 'tussentijds' ? tussentijdsBewerkbaar.value : eindevaluatieBewerkbaar.value
-  )
-
-  const openCompetentie = ref(null)
+  const eindevaluatieOpen = ref(false)
   const competenties = ref([])
   const evaluaties = ref([])
   const loading = ref(true)
   const fout = ref('')
-  const bezig = ref({})
+  const bezig = ref(false)
+  const bezigOpslaan = ref({})
   const opgeslagen = ref({})
   const foutMelding = ref({})
 
@@ -46,14 +23,14 @@ export function useStudentEvaluatie() {
     { waarde: 0, label: 'Niet aanwezig', beschrijving: 'Weinig of geen toepassing aanwezig.' },
   ]
 
-  function toggleCompetentie(id) {
-    openCompetentie.value = openCompetentie.value === id ? null : id
+  function getRubriek(score) {
+    return scoreOpties.find(o => o.waarde === Number(score)) || null
   }
 
-  function getEvaluatie(competentieId) {
+  function getStudentEvaluatie(competentieId) {
     return evaluaties.value.find(
       e => e.competentie_id === competentieId &&
-           e.beoordelaar_id === user.id &&
+           e.rol === 'student' &&
            e.type === actieveTab.value
     )
   }
@@ -61,15 +38,21 @@ export function useStudentEvaluatie() {
   function getMentorEvaluatie(competentieId) {
     return evaluaties.value.find(
       e => e.competentie_id === competentieId &&
-           e.beoordelaar_id !== user.id &&
-           e.type === actieveTab.value &&
-           e.zichtbaar_voor_student
+           e.rol === 'stagementor' &&
+           e.type === actieveTab.value
+    )
+  }
+
+  function getDocentEvaluatie(competentieId) {
+    return evaluaties.value.find(
+      e => e.competentie_id === competentieId &&
+           e.rol === 'docent' &&
+           e.type === actieveTab.value
     )
   }
 
   function setScore(competentieId, waarde) {
-    if (!huidigeBewerkbaar.value) return
-    const bestaande = getEvaluatie(competentieId)
+    const bestaande = getDocentEvaluatie(competentieId)
     if (bestaande) {
       if (Number(bestaande.score) === Number(waarde)) return
       bestaande.score = waarde
@@ -77,6 +60,7 @@ export function useStudentEvaluatie() {
       evaluaties.value.push({
         competentie_id: competentieId,
         beoordelaar_id: user.id,
+        rol: 'docent',
         type: actieveTab.value,
         score: waarde,
         feedback: '',
@@ -86,14 +70,14 @@ export function useStudentEvaluatie() {
   }
 
   function setFeedback(competentieId, tekst) {
-    if (!huidigeBewerkbaar.value) return
-    const bestaande = getEvaluatie(competentieId)
+    const bestaande = getDocentEvaluatie(competentieId)
     if (bestaande) {
       bestaande.feedback = tekst
     } else {
       evaluaties.value.push({
         competentie_id: competentieId,
         beoordelaar_id: user.id,
+        rol: 'docent',
         type: actieveTab.value,
         score: null,
         feedback: tekst,
@@ -103,19 +87,18 @@ export function useStudentEvaluatie() {
   }
 
   async function slaOp(competentieId) {
-    if (!huidigeBewerkbaar.value) return
-    const evaluatie = getEvaluatie(competentieId)
+    const evaluatie = getDocentEvaluatie(competentieId)
     if (!evaluatie || !evaluatie.feedback?.trim()) {
       foutMelding.value[competentieId] = 'Invullen feedback is verplicht!'
       return
     }
     foutMelding.value[competentieId] = ''
-    bezig.value[competentieId] = true
+    bezigOpslaan.value[competentieId] = true
     opgeslagen.value[competentieId] = false
 
     try {
       const token = localStorage.getItem('token')
-      const response = await fetch('/api/student/evaluaties', {
+      const response = await fetch(`/api/docent/evaluaties/${studentId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -130,11 +113,11 @@ export function useStudentEvaluatie() {
       })
       const data = await response.json()
       if (!response.ok) throw new Error(data.error || 'Fout bij opslaan')
-      opgeslagen.value[`${competentieId}_${actieveTab.value}`] = true
+      opgeslagen.value[competentieId] = true
     } catch (err) {
       alert(err.message || 'Kon niet opslaan.')
     } finally {
-      bezig.value[competentieId] = false
+      bezigOpslaan.value[competentieId] = false
     }
   }
 
@@ -144,35 +127,48 @@ export function useStudentEvaluatie() {
     try {
       const token = localStorage.getItem('token')
       const [compRes, evalRes] = await Promise.all([
-        fetch('/api/student/competenties', { headers: { Authorization: `Bearer ${token}` } }),
-        fetch('/api/student/evaluaties', { headers: { Authorization: `Bearer ${token}` } }),
+        fetch('/api/docent/competenties', { cache: 'no-store', headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`/api/docent/evaluaties/${studentId}`, { cache: 'no-store', headers: { Authorization: `Bearer ${token}` } }),
       ])
       const compData = await compRes.json()
       const evalData = await evalRes.json()
       if (!compRes.ok) throw new Error(compData.error || 'Fout bij laden competenties')
       if (!evalRes.ok) throw new Error(evalData.error || 'Fout bij laden evaluaties')
-
       competenties.value = compData
-      // Backend geeft nu { evaluatie_status, evaluaties } terug
-      evaluatieStatus.value = evalData.evaluatie_status || 'geen'
       evaluaties.value = evalData.evaluaties || []
-
-      // Zet actieve tab op een zichtbare tab
-      if (!tussentijdsZichtbaar.value && eindevaluatieZichtbaar.value) {
-        actieveTab.value = 'eindevaluatie'
-      } else {
-        actieveTab.value = 'tussentijds'
-      }
+      eindevaluatieOpen.value = evalData.eindevaluatie_open || false
 
       for (const e of evaluaties.value) {
-        if (e.beoordelaar_id === user.id) {
-          opgeslagen.value[`${e.competentie_id}_${e.type}`] = true
+        if (e.rol === 'docent') {
+          opgeslagen.value[e.competentie_id] = true
         }
       }
     } catch (err) {
       fout.value = err.message || 'Kon data niet laden.'
     } finally {
       loading.value = false
+    }
+  }
+
+  async function toggleEindevaluatie() {
+    bezig.value = true
+    try {
+      const token = localStorage.getItem('token')
+      const response = await fetch(`/api/docent/eindevaluatie/${studentId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ eindevaluatie_open: !eindevaluatieOpen.value }),
+      })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error || 'Fout bij bijwerken')
+      eindevaluatieOpen.value = data.eindevaluatie_open
+    } catch (err) {
+      alert(err.message || 'Kon eindevaluatie niet bijwerken.')
+    } finally {
+      bezig.value = false
     }
   }
 
@@ -187,27 +183,24 @@ export function useStudentEvaluatie() {
   return {
     gebruikerNaam,
     actieveTab,
-    evaluatieStatus,
-    tussentijdsZichtbaar,
-    eindevaluatieZichtbaar,
-    tussentijdsBewerkbaar,
-    eindevaluatieBewerkbaar,
-    huidigeBewerkbaar,
-    openCompetentie,
+    eindevaluatieOpen,
     competenties,
     evaluaties,
     loading,
     fout,
     bezig,
+    bezigOpslaan,
     opgeslagen,
     foutMelding,
     scoreOpties,
-    toggleCompetentie,
-    getEvaluatie,
+    getRubriek,
+    getStudentEvaluatie,
     getMentorEvaluatie,
+    getDocentEvaluatie,
     setScore,
     setFeedback,
     slaOp,
+    toggleEindevaluatie,
     handleLogout,
   }
 }
