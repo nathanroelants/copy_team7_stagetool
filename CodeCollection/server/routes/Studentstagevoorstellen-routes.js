@@ -150,6 +150,7 @@ router.get('/:stageId/overeenkomst/download', verifyToken, async (req, res) => {
 });
 
 // ─── POST /:stageId/overeenkomst (upload) ────────────────────────────────────
+// ─── POST /:stageId/overeenkomst (upload) ────────────────────────────────────
 router.post('/:stageId/overeenkomst', verifyToken, upload.single('overeenkomst'), async (req, res) => {
   const supabase = req.app.get('supabase');
   const { stageId } = req.params;
@@ -168,7 +169,7 @@ router.post('/:stageId/overeenkomst', verifyToken, upload.single('overeenkomst')
 
     const file = req.file;
     
-    // Valideer bestandsgrootte (bijv. max 10MB)
+    // Valideer bestandsgrootte (max 10MB)
     const MAX_SIZE = 10 * 1024 * 1024; // 10MB
     if (file.size > MAX_SIZE) {
       return res.status(400).json({ error: 'Bestand is te groot. Maximaal 10MB toegestaan.' });
@@ -182,10 +183,42 @@ router.post('/:stageId/overeenkomst', verifyToken, upload.single('overeenkomst')
 
     console.log(`Bestand ontvangen: ${file.originalname} (${file.size} bytes, ${file.mimetype})`);
 
+    // 🔧 CHECK OF BUCKET BESTAAT
+    try {
+      const { data: buckets, error: listError } = await supabase.storage.listBuckets();
+      
+      if (listError) {
+        console.error('Error listing buckets:', listError);
+      }
+      
+      const bucketExists = buckets?.some(b => b.name === 'stagebestanden');
+      
+      if (!bucketExists) {
+        console.log('📦 Bucket "stagebestanden" bestaat niet, wordt aangemaakt...');
+        const { error: createError } = await supabase.storage.createBucket('stagebestanden', {
+          public: true,
+          file_size_limit: 10485760,
+          allowed_mime_types: ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']
+        });
+        
+        if (createError) {
+          console.error('Error creating bucket:', createError);
+          return res.status(500).json({ error: 'Kon storage bucket niet aanmaken: ' + createError.message });
+        }
+        console.log('✅ Bucket "stagebestanden" succesvol aangemaakt!');
+      } else {
+        console.log('✅ Bucket "stagebestanden" bestaat al.');
+      }
+    } catch (bucketError) {
+      console.error('Bucket check error:', bucketError);
+    }
+
     // Genereer uniek bestandspad
     const timestamp = Date.now();
     const safeFilename = file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_');
     const bestandspad = `overeenkomsten/${stageId}/${timestamp}_${safeFilename}`;
+
+    console.log('📤 Uploaden naar:', bestandspad);
 
     // Upload naar Supabase Storage
     const { error: uploadError } = await supabase.storage
@@ -200,16 +233,15 @@ router.post('/:stageId/overeenkomst', verifyToken, upload.single('overeenkomst')
       return res.status(500).json({ error: 'Fout bij uploaden naar storage: ' + uploadError.message });
     }
 
+    console.log('✅ Upload naar storage gelukt!');
+
     // Opslaan in database
     const { error: dbError } = await supabase.from('stageovereenkomsten').upsert({
       stage_id: stageId,
       bestandspad,
       bestandsnaam: file.originalname,
-      bestandsgrootte: file.size,
-      mimetype: file.mimetype,
       upload_datum: new Date().toISOString(),
       geupload_door: req.user.id,
-      geupload_door_rol: req.user.rol || 'student'
     }, { onConflict: 'stage_id' });
 
     if (dbError) {
@@ -219,7 +251,7 @@ router.post('/:stageId/overeenkomst', verifyToken, upload.single('overeenkomst')
       return res.status(500).json({ error: 'Fout bij opslaan in database: ' + dbError.message });
     }
 
-    console.log('Upload succesvol voor stage:', stageId);
+    console.log('✅ Database update succesvol!');
     res.json({ 
       success: true, 
       message: 'Bestand succesvol geüpload',
@@ -456,13 +488,21 @@ router.get('/:stageId/download-pdf', verifyToken, async (req, res) => {
       }
     });
 
-    // Footer
-    const footerY = doc.page.height - 40;
-    doc.moveTo(50, footerY - 8).lineTo(doc.page.width - 50, footerY - 8).strokeColor(lichtgrijs).lineWidth(0.5).stroke();
-    doc.fillColor(grijs).fontSize(8).font('Helvetica')
-       .text(`Gegenereerd op ${formatDatum(new Date().toISOString())} via STAGE.BE`, 50, footerY, { align: 'center', width: doc.page.width - 100 });
+   
+    // ─── FOOTER ──────────────────────────────────────────────────────────────
+    // Check of er genoeg ruimte is voor de footer op de huidige pagina
+    const footerHeight = 50;
+    const heeftRuimteVoorFooter = y < doc.page.height - footerHeight;
 
-    doc.end();
+    if (!heeftRuimteVoorFooter) {
+      doc.addPage();
+    }
+
+    // Teken de footer op de huidige pagina (of de nieuwe pagina)
+    const footerYPos = doc.page.height - 40;
+    doc.moveTo(50, footerYPos - 8).lineTo(doc.page.width - 50, footerYPos - 8).strokeColor(lichtgrijs).lineWidth(0.5).stroke();
+    doc.fillColor(grijs).fontSize(8).font('Helvetica')
+       .text(`Gegenereerd op ${formatDatum(new Date().toISOString())} via STAGE.BE`, 50, footerYPos, { align: 'center', width: doc.page.width - 100 });
 
   } catch (err) {
     console.error('PDF generatie fout:', err);
