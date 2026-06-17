@@ -10,7 +10,7 @@
         <button class="nav-item"   @click="moveToStagevoorstel">Stagevoorstel</button>
         <button class="nav-item active">Logboeken</button>
         <button class="nav-item" @click="moveToEvaluatie" >Evaluatie</button>
-        <button class="nav-item" @click="router.push('/student/documenten')">Documenten</button>
+        <button class="nav-item" @click="$router.push('/student/documenten')">Documenten</button>
       </nav>
       <div class="sidebar-footer">
         <button v-if="heeftMeerdereRollen" class="nav-item wissel-rol-btn" @click="$router.push('/kies-rol')">Wissel rol</button>
