@@ -45,7 +45,7 @@
         <div v-else class="student-list">
           <div
             v-for="student in studenten"
-            @click="$router.push(`/docent/logboeken`)"
+            @click="$router.push(`/docent/logboeken/${student.id}`)"
             style="cursor: pointer;"
             :key="student.id"
             class="student-card"

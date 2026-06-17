@@ -20,10 +20,11 @@ function requireAuth(req, res, next) {
 
 function requireStagementor(req, res, next) {
   if (req.user.rol !== 'stagementor') {
-    return res.status(403).json({ error: 'Geen toegang' });
+  return res.status(403).json({ error: 'Geen toegang' });
   }
-  next();
+ next();
 }
+
 
 // Helper: haalt de stage op die bij deze mentor + student hoort
 async function getStageVoorMentor(supabase, studentId, mentorId) {
