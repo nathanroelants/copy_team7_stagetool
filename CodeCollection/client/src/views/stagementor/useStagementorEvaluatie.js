@@ -1,42 +1,13 @@
-import { ref, computed, onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 
-export function useMentorEvaluatie() {
+export function useStagementorEvaluatie(studentId) {
   const router = useRouter()
-  const route = useRouter().currentRoute.value
-  const studentId = route.params.studentId
   const user = JSON.parse(localStorage.getItem('user') || '{}')
-  const gebruikerNaam = `${user.voornaam || ''} ${user.achternaam || ''}`.trim() || user.email || 'Mentor'
+  const gebruikerNaam = `${user.voornaam || ''} ${user.achternaam || ''}`.trim() || user.email || 'Stagementor'
 
-  // Student informatie
-  const student = ref({})
-  const studentNaam = ref('')
-
-  // Huidige fase vanuit de backend
-  const evaluatieStatus = ref('geen') // 'geen' | 'tussentijds' | 'tussentijdse_afgelopen' | 'eindevaluatie' | 'stage_afgelopen'
-
-  // Actieve tab: begin op tussentijds, tenzij dat niet zichtbaar is
   const actieveTab = ref('tussentijds')
-
-  // Afgeleid: wat is zichtbaar en wat is bewerkbaar?
-  const tussentijdsZichtbaar = computed(() =>
-    ['tussentijds', 'tussentijdse_afgelopen', 'eindevaluatie', 'stage_afgelopen'].includes(evaluatieStatus.value)
-  )
-  const eindevaluatieZichtbaar = computed(() =>
-    ['eindevaluatie', 'stage_afgelopen'].includes(evaluatieStatus.value)
-  )
-  const tussentijdsBewerkbaar = computed(() =>
-    evaluatieStatus.value === 'tussentijds'
-  )
-  const eindevaluatieBewerkbaar = computed(() =>
-    evaluatieStatus.value === 'eindevaluatie'
-  )
-
-  // Huidige tab is bewerkbaar?
-  const huidigeBewerkbaar = computed(() =>
-    actieveTab.value === 'tussentijds' ? tussentijdsBewerkbaar.value : eindevaluatieBewerkbaar.value
-  )
-
+  const eindevaluatieOpen = ref(false)
   const openCompetentie = ref(null)
   const competenties = ref([])
   const evaluaties = ref([])
@@ -64,95 +35,61 @@ export function useMentorEvaluatie() {
     )
   }
 
-  function getStudentEvaluatie(competentieId) {
-    return evaluaties.value.find(
-      e => e.competentie_id === competentieId &&
-           e.beoordelaar_id !== user.id &&
-           e.type === actieveTab.value
-    )
-  }
-
   function getMentorEvaluatie(competentieId) {
     return evaluaties.value.find(
       e => e.competentie_id === competentieId &&
-           e.beoordelaar_id === user.id &&
-           e.type === actieveTab.value
+           e.beoordelaar_id !== user.id &&
+           e.type === actieveTab.value &&
+           e.zichtbaar_voor_student
     )
   }
 
-  async function laadStudentGegevens() {
-    try {
-      const token = localStorage.getItem('token')
-      const response = await fetch(`/api/mentor/${studentId}/student`, {
-        headers: { Authorization: `Bearer ${token}` },
+  function setScore(competentieId, waarde) {
+    const bestaande = getEvaluatie(competentieId)
+    if (bestaande) {
+      bestaande.score = waarde
+    } else {
+      evaluaties.value.push({
+        competentie_id: competentieId,
+        beoordelaar_id: user.id,
+        type: actieveTab.value,
+        score: waarde,
+        feedback: '',
+        zichtbaar_voor_student: false,
       })
-      const data = await response.json()
-      if (!response.ok) throw new Error(data.error || 'Fout bij laden studentgegevens')
-      student.value = data
-      studentNaam.value = `${data.voornaam || ''} ${data.achternaam || ''}`.trim() || data.email || 'Student'
-    } catch (err) {
-      fout.value = err.message || 'Kon studentgegevens niet laden.'
     }
   }
 
-  async function laadData() {
-    loading.value = true
-    fout.value = ''
-    try {
-      const token = localStorage.getItem('token')
-
-      // Haal studentgegevens op
-      await laadStudentGegevens()
-
-      // Haal competenties en evaluaties op
-      const [compRes, evalRes] = await Promise.all([
-        fetch(`/api/mentor/${studentId}/competenties`, { headers: { Authorization: `Bearer ${token}` } }),
-        fetch(`/api/mentor/${studentId}/evaluaties`, { headers: { Authorization: `Bearer ${token}` } }),
-      ])
-
-      const compData = await compRes.json()
-      const evalData = await evalRes.json()
-
-      if (!compRes.ok) throw new Error(compData.error || 'Fout bij laden competenties')
-      if (!evalRes.ok) throw new Error(evalData.error || 'Fout bij laden evaluaties')
-
-      competenties.value = compData
-      evaluatieStatus.value = evalData.evaluatie_status || 'geen'
-      evaluaties.value = evalData.evaluaties || []
-
-      // Zet actieve tab op een zichtbare tab
-      if (!tussentijdsZichtbaar.value && eindevaluatieZichtbaar.value) {
-        actieveTab.value = 'eindevaluatie'
-      } else {
-        actieveTab.value = 'tussentijds'
-      }
-
-      for (const e of evaluaties.value) {
-        if (e.beoordelaar_id === user.id) {
-          opgeslagen.value[`${e.competentie_id}_${e.type}`] = true
-        }
-      }
-    } catch (err) {
-      fout.value = err.message || 'Kon data niet laden.'
-    } finally {
-      loading.value = false
+  function setFeedback(competentieId, tekst) {
+    const bestaande = getEvaluatie(competentieId)
+    if (bestaande) {
+      bestaande.feedback = tekst
+    } else {
+      evaluaties.value.push({
+        competentie_id: competentieId,
+        beoordelaar_id: user.id,
+        type: actieveTab.value,
+        score: null,
+        feedback: tekst,
+        zichtbaar_voor_student: false,
+      })
     }
   }
 
   async function slaOp(competentieId) {
-    if (!huidigeBewerkbaar.value) return
-    const evaluatie = getMentorEvaluatie(competentieId)
+    const evaluatie = getEvaluatie(competentieId)
     if (!evaluatie || !evaluatie.feedback?.trim()) {
       foutMelding.value[competentieId] = 'Invullen feedback is verplicht!'
       return
     }
     foutMelding.value[competentieId] = ''
+
     bezig.value[competentieId] = true
     opgeslagen.value[competentieId] = false
 
     try {
       const token = localStorage.getItem('token')
-      const response = await fetch(`/api/mentor/${studentId}/evaluaties`, {
+      const response = await fetch(`/api/stagementor/evaluaties/${studentId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -167,11 +104,39 @@ export function useMentorEvaluatie() {
       })
       const data = await response.json()
       if (!response.ok) throw new Error(data.error || 'Fout bij opslaan')
-      opgeslagen.value[`${competentieId}_${actieveTab.value}`] = true
+      opgeslagen.value[competentieId] = true
     } catch (err) {
       alert(err.message || 'Kon niet opslaan.')
     } finally {
       bezig.value[competentieId] = false
+    }
+  }
+
+  async function laadData() {
+    loading.value = true
+    fout.value = ''
+    try {
+      const token = localStorage.getItem('token')
+      const [compRes, evalRes] = await Promise.all([
+        fetch('/api/stagementor/competenties', { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`/api/stagementor/evaluaties/${studentId}`, { headers: { Authorization: `Bearer ${token}` } }),
+      ])
+      const compData = await compRes.json()
+      const evalData = await evalRes.json()
+      if (!compRes.ok) throw new Error(compData.error || 'Fout bij laden competenties')
+      if (!evalRes.ok) throw new Error(evalData.error || 'Fout bij laden evaluaties')
+      competenties.value = compData
+      evaluaties.value = evalData
+
+      for (const e of evalData) {
+        if (e.beoordelaar_id === user.id) {
+          opgeslagen.value[e.competentie_id] = true
+        }
+      }
+    } catch (err) {
+      fout.value = err.message || 'Kon data niet laden.'
+    } finally {
+      loading.value = false
     }
   }
 
@@ -185,14 +150,8 @@ export function useMentorEvaluatie() {
 
   return {
     gebruikerNaam,
-    studentNaam,
     actieveTab,
-    evaluatieStatus,
-    tussentijdsZichtbaar,
-    eindevaluatieZichtbaar,
-    tussentijdsBewerkbaar,
-    eindevaluatieBewerkbaar,
-    huidigeBewerkbaar,
+    eindevaluatieOpen,
     openCompetentie,
     competenties,
     evaluaties,
@@ -204,10 +163,9 @@ export function useMentorEvaluatie() {
     scoreOpties,
     toggleCompetentie,
     getEvaluatie,
-    getStudentEvaluatie,
     getMentorEvaluatie,
-    setScore: () => {}, // Mentor kan geen scores instellen voor student
-    setFeedback: () => {}, // Mentor kan geen feedback instellen voor student
+    setScore,
+    setFeedback,
     slaOp,
     handleLogout,
   }

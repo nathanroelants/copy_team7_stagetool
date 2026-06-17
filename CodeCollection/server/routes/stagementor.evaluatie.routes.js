@@ -1,4 +1,3 @@
-// routes/mentorEvaluatie.js
 import express from 'express';
 import jwt from 'jsonwebtoken';
 
@@ -18,93 +17,16 @@ function requireAuth(req, res, next) {
   }
 }
 
-function requireMentor(req, res, next) {
+function requireStagementor(req, res, next) {
   if (req.user.rol !== 'stagementor') {
     return res.status(403).json({ error: 'Geen toegang' });
   }
   next();
 }
 
-// Helper: controleer of mentor gekoppeld is aan stage van student
-// Gebruikt stages.stagementor_id ipv een aparte koppeltabel
-async function getMentorStage(supabase, mentorId, studentId) {
-  const { data, error } = await supabase
-    .from('stages')
-    .select('id, evaluatie_status, student_id, stagementor_id')
-    .eq('stagementor_id', mentorId)
-    .eq('student_id', studentId)
-    .single();
-
-  if (error || !data) return null;
-  return data;
-}
-
-// GET /api/mentor/studenten
-// Haalt alle studenten op die gekoppeld zijn aan deze mentor
-router.get('/studenten', requireAuth, requireMentor, async (req, res) => {
+// GET /api/stagementor/competenties
+router.get('/competenties', requireAuth, requireStagementor, async (req, res) => {
   const supabase = req.app.get('supabase');
-  const mentorId = req.user.id;
-
-  const { data, error } = await supabase
-    .from('stages')
-    .select(`
-      student_id,
-      evaluatie_status,
-      status,
-      student:student_id (
-        id,
-        voornaam,
-        achternaam,
-        email
-      )
-    `)
-    .eq('stagementor_id', mentorId);
-
-  if (error) {
-    console.error('Fout bij ophalen studenten:', error);
-    return res.status(500).json({ error: 'Kon studenten niet ophalen' });
-  }
-
-  res.json(data);
-});
-
-// GET /api/mentor/student/:studentId
-// Haalt gegevens op van een specifieke student
-router.get('/student/:studentId', requireAuth, requireMentor, async (req, res) => {
-  const supabase = req.app.get('supabase');
-  const mentorId = req.user.id;
-  const studentId = req.params.studentId;
-
-  // Controleer koppeling via stages tabel
-  const stage = await getMentorStage(supabase, mentorId, studentId);
-  if (!stage) {
-    return res.status(403).json({ error: 'Geen toegang tot deze student' });
-  }
-
-  const { data, error } = await supabase
-    .from('gebruikers')
-    .select('id, voornaam, achternaam, email')
-    .eq('id', studentId)
-    .single();
-
-  if (error || !data) {
-    return res.status(404).json({ error: 'Student niet gevonden' });
-  }
-
-  res.json(data);
-});
-
-// GET /api/mentor/:studentId/competenties
-router.get('/:studentId/competenties', requireAuth, requireMentor, async (req, res) => {
-  const supabase = req.app.get('supabase');
-  const mentorId = req.user.id;
-  const studentId = req.params.studentId;
-
-  // Controleer koppeling via stages tabel
-  const stage = await getMentorStage(supabase, mentorId, studentId);
-  if (!stage) {
-    return res.status(403).json({ error: 'Geen toegang tot deze student' });
-  }
 
   const { data, error } = await supabase
     .from('competenties')
@@ -120,16 +42,20 @@ router.get('/:studentId/competenties', requireAuth, requireMentor, async (req, r
   res.json(data);
 });
 
-// GET /api/mentor/:studentId/evaluaties
-router.get('/:studentId/evaluaties', requireAuth, requireMentor, async (req, res) => {
+// GET /api/stagementor/evaluaties/:studentId
+router.get('/evaluaties/:studentId', requireAuth, requireStagementor, async (req, res) => {
   const supabase = req.app.get('supabase');
-  const mentorId = req.user.id;
-  const studentId = req.params.studentId;
+  const { studentId } = req.params;
 
-  // Controleer koppeling via stages tabel
-  const stage = await getMentorStage(supabase, mentorId, studentId);
-  if (!stage) {
-    return res.status(403).json({ error: 'Geen toegang tot deze student' });
+  const { data: stage, error: stageError } = await supabase
+    .from('stages')
+    .select('id')
+    .eq('student_id', studentId)
+    .eq('stagementor_id', req.user.id)
+    .single();
+
+  if (stageError || !stage) {
+    return res.status(404).json({ error: 'Geen stage gevonden voor deze student' });
   }
 
   const { data, error } = await supabase
@@ -142,45 +68,31 @@ router.get('/:studentId/evaluaties', requireAuth, requireMentor, async (req, res
     return res.status(500).json({ error: 'Kon evaluaties niet ophalen' });
   }
 
-  res.json({
-    evaluatie_status: stage.evaluatie_status,
-    evaluaties: data,
-  });
+  res.json(data);
 });
 
-// POST /api/mentor/:studentId/evaluaties
-router.post('/:studentId/evaluaties', requireAuth, requireMentor, async (req, res) => {
+// POST /api/stagementor/evaluaties/:studentId
+router.post('/evaluaties/:studentId', requireAuth, requireStagementor, async (req, res) => {
   const supabase = req.app.get('supabase');
   const mentorId = req.user.id;
-  const studentId = req.params.studentId;
+  const { studentId } = req.params;
   const { competentie_id, type, score, feedback } = req.body;
 
-  if (!competentie_id || !type || !feedback?.trim()) {
+  if (!competentie_id || !type || !feedback) {
     return res.status(400).json({ error: 'competentie_id, type en feedback zijn verplicht' });
   }
 
-  // Controleer koppeling via stages tabel
-  const stage = await getMentorStage(supabase, mentorId, studentId);
-  if (!stage) {
-    return res.status(403).json({ error: 'Geen toegang tot deze student' });
+  const { data: stage, error: stageError } = await supabase
+    .from('stages')
+    .select('id')
+    .eq('student_id', studentId)
+    .eq('stagementor_id', mentorId)
+    .single();
+
+  if (stageError || !stage) {
+    return res.status(404).json({ error: 'Geen stage gevonden voor deze student' });
   }
 
-  // Score validatie (0, 3 of 5)
-  const geldigeScores = [0, 3, 5];
-  if (score !== null && score !== undefined && !geldigeScores.includes(Number(score))) {
-    return res.status(400).json({ error: 'Ongeldige score. Kies 0, 3 of 5.' });
-  }
-
-  // Schrijftoegang bewaken op basis van evaluatie_status
-  const schrijfToegestaan =
-    (type === 'tussentijds' && stage.evaluatie_status === 'tussentijds') ||
-    (type === 'eindevaluatie' && stage.evaluatie_status === 'eindevaluatie');
-
-  if (!schrijfToegestaan) {
-    return res.status(403).json({ error: 'Opslaan is niet toegestaan in de huidige fase.' });
-  }
-
-  // Zoek bestaande evaluatie van deze mentor
   const { data: bestaande } = await supabase
     .from('evaluaties')
     .select('id')
@@ -209,7 +121,7 @@ router.post('/:studentId/evaluaties', requireAuth, requireMentor, async (req, re
         type,
         score,
         feedback,
-        zichtbaar_voor_student: true,
+        zichtbaar_voor_student: false,
       })
       .select()
       .single());
