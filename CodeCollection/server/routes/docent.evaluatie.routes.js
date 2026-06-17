@@ -30,13 +30,13 @@ router.get('/competenties', requireAuth, requireDocent, async (req, res) => {
 
   const { data, error } = await supabase
     .from('competenties')
-    .select('id, naam, beschrijving, volgorde')
+    .select('*')
     .eq('actief', true)
     .order('volgorde', { ascending: true });
 
   if (error) {
     console.error('Fout bij ophalen competenties:', error);
-    return res.status(500).json({ error: 'Kon competenties niet ophalen' });
+    return res.status(500).json({ error: 'DEBUG competenties: ' + (error.message || JSON.stringify(error)) });
   }
 
   res.json(data);
