@@ -53,14 +53,20 @@
             </button>
           </div>
 
-          <button
-            class="eind-toggle"
-            :class="{ open: eindevaluatieOpen }"
-            @click="toggleEindevaluatie"
-            :disabled="bezig"
-          >
-            {{ eindevaluatieOpen ? '✓ Eindevaluatie staat open' : 'Eindevaluatie openzetten' }}
-          </button>
+          <div class="status-selector">
+            <label for="evaluatie-status" class="status-label">Evaluatiestatus</label>
+            <select
+              id="evaluatie-status"
+              class="status-select"
+              :value="evaluatieStatus"
+              :disabled="bezig"
+              @change="wijzigEvaluatieStatus($event.target.value)"
+            >
+              <option v-for="optie in evaluatieStatusOpties" :key="optie.waarde" :value="optie.waarde">
+                {{ optie.label }}
+              </option>
+            </select>
+          </div>
         </div>
 
         <div v-if="loading" class="status-message">Evaluaties laden...</div>
@@ -177,7 +183,8 @@ const route = useRoute()
 const {
   gebruikerNaam,
   actieveTab,
-  eindevaluatieOpen,
+  evaluatieStatus,
+  evaluatieStatusOpties,
   competenties,
   evaluaties,
   loading,
@@ -194,7 +201,7 @@ const {
   setScore,
   setFeedback,
   slaOp,
-  toggleEindevaluatie,
+  wijzigEvaluatieStatus,
   handleLogout,
   heeftMeerdereRollen,
 } = useDocentEvaluatie(route.params.studentId)
@@ -365,6 +372,8 @@ html, body, #app {
   align-items: center;
   justify-content: space-between;
   margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+  gap: 1rem;
 }
 
 .tabs {
@@ -398,29 +407,35 @@ html, body, #app {
   color: white;
 }
 
-.eind-toggle {
+.status-selector {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.status-label {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #555;
+}
+
+.status-select {
   background: white;
-  color: #29a8e0;
+  color: #1a7ab5;
   border: 2px solid #29a8e0;
   border-radius: 6px;
-  padding: 0.55rem 1.25rem;
+  padding: 0.5rem 0.9rem;
   font-size: 0.88rem;
   font-weight: 700;
   cursor: pointer;
   transition: all 0.15s;
 }
 
-.eind-toggle:hover:not(:disabled) {
+.status-select:hover:not(:disabled) {
   background: #e0f0fb;
 }
 
-.eind-toggle.open {
-  background: #43a047;
-  color: white;
-  border-color: #43a047;
-}
-
-.eind-toggle:disabled {
+.status-select:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }

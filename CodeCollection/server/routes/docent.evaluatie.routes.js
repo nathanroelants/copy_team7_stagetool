@@ -3,6 +3,14 @@ import jwt from 'jsonwebtoken';
 
 const router = express.Router();
 
+const TOEGESTANE_EVALUATIE_STATUSSEN = [
+  'geen',
+  'tussentijds',
+  'tussentijdse_afgelopen',
+  'eindevaluatie',
+  'stage_afgelopen',
+];
+
 function requireAuth(req, res, next) {
   const authHeader = req.headers.authorization;
   if (!authHeader?.startsWith('Bearer ')) {
@@ -49,7 +57,7 @@ router.get('/evaluaties/:studentId', requireAuth, requireDocent, async (req, res
 
   const { data: stage, error: stageError } = await supabase
     .from('stages')
-    .select('id, student_id, stagementor_id')
+    .select('id, student_id, stagementor_id, evaluatie_status')
     .eq('student_id', studentId)
     .eq('docent_id', req.user.id)
     .single();
@@ -80,7 +88,7 @@ router.get('/evaluaties/:studentId', requireAuth, requireDocent, async (req, res
   }));
 
   res.json({
-    eindevaluatie_open: stage.eindevaluatie_open ?? false,
+    evaluatie_status: stage.evaluatie_status ?? 'geen',
     evaluaties,
   });
 });
@@ -150,11 +158,15 @@ router.post('/evaluaties/:studentId', requireAuth, requireDocent, async (req, re
   res.json(result);
 });
 
-// PATCH /api/docent/eindevaluatie/:studentId
-router.patch('/eindevaluatie/:studentId', requireAuth, requireDocent, async (req, res) => {
+// PATCH /api/docent/evaluatie-status/:studentId
+router.patch('/evaluatie-status/:studentId', requireAuth, requireDocent, async (req, res) => {
   const supabase = req.app.get('supabase');
   const { studentId } = req.params;
-  const { eindevaluatie_open } = req.body;
+  const { evaluatie_status } = req.body;
+
+  if (!TOEGESTANE_EVALUATIE_STATUSSEN.includes(evaluatie_status)) {
+    return res.status(400).json({ error: 'Ongeldige evaluatiestatus' });
+  }
 
   const { data: stage, error: stageError } = await supabase
     .from('stages')
@@ -169,14 +181,14 @@ router.patch('/eindevaluatie/:studentId', requireAuth, requireDocent, async (req
 
   const { data, error } = await supabase
     .from('stages')
-    .update({ eindevaluatie_open: !!eindevaluatie_open })
+    .update({ evaluatie_status })
     .eq('id', stage.id)
-    .select('id, eindevaluatie_open')
+    .select('id, evaluatie_status')
     .single();
 
   if (error) {
-    console.error('Fout bij bijwerken eindevaluatie:', error);
-    return res.status(500).json({ error: 'Kon eindevaluatie niet bijwerken' });
+    console.error('Fout bij bijwerken evaluatiestatus:', error);
+    return res.status(500).json({ error: 'Kon evaluatiestatus niet bijwerken' });
   }
 
   res.json(data);
