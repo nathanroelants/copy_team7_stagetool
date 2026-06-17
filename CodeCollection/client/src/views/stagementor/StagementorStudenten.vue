@@ -232,6 +232,7 @@ onMounted(laadStudenten)
 }
 
 .logout-btn:hover { background: #ffdada; }
+.wissel-rol-btn { background: white; color: #29a8e0; border: 1px solid #29a8e0; margin-bottom: 0.5rem; }
 
 /* ── Main ── */
 .main-content {
