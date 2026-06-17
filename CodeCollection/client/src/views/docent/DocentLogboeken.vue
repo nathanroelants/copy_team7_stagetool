@@ -12,11 +12,11 @@
         </button>
 
         <div class="nav-separator"></div>
-
+       
+        <button class="nav-item" :class="{ active: pagina === 'stageinfo' }"  @click="pagina = 'stageinfo'">Stageinfo</button>
         <button class="nav-item" :class="{ active: pagina === 'logboek' }"    @click="pagina = 'logboek'">Logboek</button>
-        <button class="nav-item" :class="{ active: pagina === 'stageinfo' }"  @click="pagina = 'stageinfo'">Stagevoorstel</button>
-        <button class="nav-item" :class="{ active: pagina === 'evaluatie' }"  @click="pagina = 'evaluatie'">Evaluatie</button>
-        <button class="nav-item" :class="{ active: pagina === 'documenten' }" @click="pagina = 'documenten'">Documenten</button>
+        <button class="nav-item" :class="{ active: pagina === 'evaluatie' }"  @click="router.push(`/docent/evaluatie/${studentId}`)">Evaluatie</button>
+        <button class="nav-item" :class="{ active: pagina === 'documenten' }" @click="router.push(`/docent/evaluatie/${studentId}`)">Documenten</button>
       </nav>
 
       <div class="sidebar-footer">
@@ -114,59 +114,6 @@
               <div><strong>Beschrijving:</strong> {{ stagevoorstel.beschrijving || '—' }}</div>
               <div><strong>Technische skills:</strong> {{ stagevoorstel.technische_skills || '—' }}</div>
               <div><strong>Tools:</strong> {{ stagevoorstel.tools || '—' }}</div>
-              <div><strong>Feedback:</strong> {{ stagevoorstel.feedback || '—' }}</div>
-              <div><strong>Indieningsdatum:</strong> {{ formatDatum(stagevoorstel.indieningsdatum) }}</div>
-              <div><strong>Ondertekend:</strong> {{ stagevoorstel.ondertekend ? 'Ja' : 'Nee' }}
-                <span v-if="stagevoorstel.ondertekend_door">(door {{ stagevoorstel.ondertekend_door }})</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Evaluatie -->
-          <div v-if="pagina === 'evaluatie'">
-            <div class="section-header">
-              <h2>Evaluaties</h2>
-            </div>
-
-            <div v-if="loadingEval" class="status-message">Laden...</div>
-            <div v-else-if="evaluaties.length === 0" class="status-message">Nog geen evaluaties.</div>
-
-            <div v-else>
-              <div v-for="ev in evaluaties" :key="ev.id" class="info-kaart">
-                <div><strong>Type:</strong> {{ ev.type || '—' }}</div>
-                <div><strong>Competentie:</strong> {{ ev.competenties?.naam || '—' }}</div>
-                <div><strong>Score:</strong> {{ ev.score ?? '—' }}</div>
-                <div><strong>Feedback:</strong> {{ ev.feedback || '—' }}</div>
-                <div><strong>Datum:</strong> {{ formatDatum(ev.aangemaakt_op) }}</div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Documenten -->
-          <div v-if="pagina === 'documenten'">
-            <div class="section-header">
-              <h2>Documenten</h2>
-            </div>
-
-            <div v-if="loadingDocs" class="status-message">Laden...</div>
-            <div v-else-if="documenten.length === 0" class="status-message">Geen documenten beschikbaar.</div>
-
-            <div v-else>
-              <div v-for="doc in documenten" :key="doc.type" class="document-rij">
-                <div class="doc-info">
-                  <div class="doc-naam">{{ doc.naam }}</div>
-                  <div class="doc-meta">
-                    {{ doc.meta }}
-                    <span v-if="doc.datum"> · {{ formatDatum(doc.datum) }}</span>
-                  </div>
-                </div>
-                <button
-                  v-if="doc.beschikbaar"
-                  class="knop-blauw"
-                  @click="openDocument(doc)"
-                >Bekijken</button>
-                <span v-else class="badge badge-grijs">Niet beschikbaar</span>
-              </div>
             </div>
           </div>
 
@@ -235,14 +182,10 @@ const stage = reactive({ start_datum: '', eind_datum: '', status: '', bedrijf: '
 
 const weken = ref([])
 const stagevoorstel = ref(null)
-const evaluaties = ref([])
-const documenten = ref([])
 
 const loadingInfo = ref(true)
 const loadingLogboek = ref(false)
 const loadingVoorstel = ref(false)
-const loadingEval = ref(false)
-const loadingDocs = ref(false)
 const foutInfo = ref('')
 const dagDetail = ref(null)
 
@@ -305,35 +248,9 @@ async function laadStagevoorstel() {
   }
 }
 
-async function laadEvaluaties() {
-  loadingEval.value = true
-  try {
-    const res = await fetch(`${API_BASE}/evaluaties`, { headers: authHeaders() })
-    evaluaties.value = await res.json()
-  } catch (err) {
-    console.error(err)
-  } finally {
-    loadingEval.value = false
-  }
-}
-
-async function laadDocumenten() {
-  loadingDocs.value = true
-  try {
-    const res = await fetch(`${API_BASE}/documenten`, { headers: authHeaders() })
-    documenten.value = await res.json()
-  } catch (err) {
-    console.error(err)
-  } finally {
-    loadingDocs.value = false
-  }
-}
-
 watch(pagina, (nova) => {
   if (nova === 'logboek' && weken.value.length === 0) laadLogboek()
   if (nova === 'stageinfo' && stagevoorstel.value === null) laadStagevoorstel()
-  if (nova === 'evaluatie' && evaluaties.value.length === 0) laadEvaluaties()
-  if (nova === 'documenten' && documenten.value.length === 0) laadDocumenten()
 }, { immediate: false })
 
 function statusKleur(status) {
@@ -347,11 +264,6 @@ function statusKleur(status) {
 function formatDatum(datum) {
   if (!datum) return '—'
   return new Date(datum).toLocaleDateString('nl-BE', { day: '2-digit', month: '2-digit', year: 'numeric' })
-}
-
-function openDocument(doc) {
-  if (doc.type === 'stagevoorstel') pagina.value = 'stageinfo'
-  if (doc.type === 'eindevaluatie') pagina.value = 'evaluatie'
 }
 
 const heeftMeerdereRollen = (JSON.parse(localStorage.getItem('user') || '{}').rollen?.length ?? 0) > 1
@@ -385,7 +297,7 @@ onMounted(async () => {
   flex-shrink: 0;
   position: sticky;
   top: 0;            
-  height: 100vh; 
+  height: 100vh;
 }
 
 .sidebar-brand {
@@ -606,34 +518,6 @@ onMounted(async () => {
   color: #333;
   margin-bottom: 1rem;
   overflow: hidden;
-}
-
-.document-rij {
-  background: white;
-  border-radius: 8px;
-  padding: 14px 18px;
-  margin-bottom: 10px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
-  font-size: 14px;
-}
-
-.doc-info {
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
-}
-
-.doc-naam {
-  font-weight: 700;
-  color: #111;
-}
-
-.doc-meta {
-  font-size: 0.8rem;
-  color: #666;
 }
 
 .badge {
