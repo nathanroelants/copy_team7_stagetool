@@ -422,13 +422,14 @@ onMounted(loadStage)
   display: flex;
   min-height: 100vh;
   font-family: Arial, Helvetica, sans-serif;
-  background: #f0f4f8;
+  background: #f5f7fa;
 }
 
 /* ── Sidebar ─────────────────────────────────────────────────── */
 .sidebar {
   width: 180px;
-  background: #29a8e0;
+  background: white;
+  border-right: 1px solid #e5e8ec;
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
@@ -460,22 +461,19 @@ onMounted(loadStage)
 .nav-item {
   width: 100%;
   text-align: left;
-  background: white;
+  background: transparent;
   border: none;
   border-radius: 6px;
   padding: 0.65rem 1rem;
   font-size: 0.9rem;
   font-weight: 600;
-  color: #222;
+  color: #29a8e0;
   cursor: pointer;
   transition: background 0.15s;
 }
 
-.nav-item:hover,
-.nav-item.active {
-  background: #e0f0fb;
-  color: #1a7ab5;
-}
+.nav-item:hover { background: #f0f7fc; }
+.nav-item.active { background: #29a8e0; color: white; }
 
 .sidebar-footer {
   padding: 1rem 0.75rem;
@@ -483,20 +481,18 @@ onMounted(loadStage)
 
 .logout-btn {
   width: 100%;
-  background: white;
+  background: #ffeaea;
+  color: #cc0000;
   border: none;
   border-radius: 6px;
   padding: 0.65rem 1rem;
   font-size: 0.9rem;
   font-weight: 600;
-  color: #222;
   cursor: pointer;
   transition: background 0.15s;
 }
 
-.logout-btn:hover {
-  background: #f0f0f0;
-}
+.logout-btn:hover { background: #ffdada; }
 
 /* ── Main ────────────────────────────────────────────────────── */
 .main-content {
@@ -549,8 +545,10 @@ h2 {
 .card {
   background: white;
   border-radius: 10px;
+  border-top: 3px solid #29a8e0;
   padding: 2rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
 }
 
 h3 {
@@ -639,14 +637,14 @@ h3:first-of-type {
 /* ── Form inputs ─────────────────────────────────────────────── */
 .form-group input,
 .form-group textarea {
-  background: #f0f0f0;
-  padding: 0.65rem 0.85rem;
-  border: 1px solid #e0e0e0;
+  background: white;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid #d5dae0;
   border-radius: 6px;
   font-size: 0.92rem;
   font-family: inherit;
   color: #222;
-  transition: border-color 0.15s;
+  transition: border-color 0.15s, box-shadow 0.15s;
 }
 
 .form-group input::placeholder,
@@ -658,6 +656,7 @@ h3:first-of-type {
 .form-group textarea:focus {
   outline: none;
   border-color: #29a8e0;
+  box-shadow: 0 0 0 3px rgba(41,168,224,0.12);
   background: white;
 }
 
@@ -721,11 +720,16 @@ h3:first-of-type {
 .btn-submit {
   background: #29a8e0;
   color: white;
+  box-shadow: 0 2px 4px rgba(41,168,224,0.25);
+  transition: background 0.15s, box-shadow 0.15s, transform 0.05s;
 }
 
 .btn-submit:hover:not(:disabled) {
-  opacity: 0.88;
+  background: #1e90c0;
+  box-shadow: 0 4px 8px rgba(41,168,224,0.35);
 }
+
+.btn-submit:active:not(:disabled) { transform: translateY(1px); }
 
 .btn-submit:disabled {
   opacity: 0.6;

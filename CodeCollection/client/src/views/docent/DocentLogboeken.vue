@@ -7,6 +7,8 @@
       </div>
 
       <nav class="sidebar-nav">
+        <button class="nav-item nav-back" @click="router.push('/docent')">← Mijn studenten</button>
+        <div class="nav-separator"></div>
         <button class="nav-item" :class="{ active: pagina === 'logboek' }" @click="pagina = 'logboek'">Logboek</button>
         <button class="nav-item disabled" disabled>Stagevoorstel</button>
         <button class="nav-item disabled" disabled>Evaluatie</button>
@@ -95,51 +97,75 @@
 </template>
 
 <script>
-import { ref, reactive } from 'vue'
+import { ref, reactive, watch } from 'vue'
+import { useRouter } from 'vue-router'
 
-export default {
-  name: 'DocentLogboek',
-  setup() {
-    const pagina = ref('logboek')
-
-    const docent = reactive({
-      naam: 'Prof. De Smedt',
-    })
-
-    const geselecteerdeStudent = ref('Nathan De Smedt')
-    const studenten = ['Nathan De Smedt', 'Emma Claes', 'Lars Bogaert']
-
-    const student = reactive({
-      naam: 'Nathan De Smedt',
-      leergroep: '3 Informatica',
-      startDatum: '01/09/2025',
-      eindDatum: '31/01/2026',
-      bedrijf: 'TechCorp BV',
-      mentor: 'Mevr. Janssen',
-    })
-
-    const weken = reactive([
+const studentenData = {
+  'Nathan De Smedt': {
+    naam: 'Nathan De Smedt',
+    leergroep: '3 Informatica',
+    startDatum: '01/09/2025',
+    eindDatum: '31/01/2026',
+    bedrijf: 'TechCorp BV',
+    mentor: 'Mevr. Janssen',
+    weken: [
       {
-        nummer: 1,
-        status: 'Ingediend',
+        nummer: 1, status: 'Ingediend',
         dagen: [
           { datum: '01/09/2025', taak: 'Introductie bedrijf', uren: 8, los: 'Kennismaking', reflectie: 'Goed ontvangen', leerpunten: 'Structuur bedrijf' },
           { datum: '02/09/2025', taak: 'Opzetten omgeving', uren: 8, los: 'Technische setup', reflectie: 'Veel geleerd', leerpunten: 'Git workflow' },
         ],
       },
-      {
-        nummer: 2,
-        status: 'Afgetekend',
-        dagen: [
-          { datum: '08/09/2025', taak: 'Frontend taak', uren: 8, los: 'Vue componenten', reflectie: 'Vlot gegaan', leerpunten: 'Props en events' },
-        ],
-      },
-      {
-        nummer: 3,
-        status: 'Niet ingediend',
-        dagen: [],
-      },
-    ])
+      { nummer: 2, status: 'Afgetekend', dagen: [{ datum: '08/09/2025', taak: 'Frontend taak', uren: 8, los: 'Vue componenten', reflectie: 'Vlot gegaan', leerpunten: 'Props en events' }] },
+      { nummer: 3, status: 'Niet ingediend', dagen: [] },
+    ],
+  },
+  'Emma Claes': {
+    naam: 'Emma Claes',
+    leergroep: '3 Communicatie',
+    startDatum: '01/09/2025',
+    eindDatum: '31/01/2026',
+    bedrijf: 'MediaLab',
+    mentor: 'Dhr. Peeters',
+    weken: [
+      { nummer: 1, status: 'Afgetekend', dagen: [{ datum: '01/09/2025', taak: 'Projectintroductie', uren: 8, los: 'Planning', reflectie: 'Goede start', leerpunten: 'Agile werken' }] },
+      { nummer: 2, status: 'Niet ingediend', dagen: [] },
+    ],
+  },
+  'Lars Bogaert': {
+    naam: 'Lars Bogaert',
+    leergroep: '3 Elektronica',
+    startDatum: '01/09/2025',
+    eindDatum: '31/01/2026',
+    bedrijf: 'ElectroPro',
+    mentor: 'Ing. Vermeersch',
+    weken: [
+      { nummer: 1, status: 'Ingediend', dagen: [{ datum: '01/09/2025', taak: 'Hardware installatie', uren: 8, los: 'Technische setup', reflectie: 'Interessant', leerpunten: 'PCB werking' }] },
+    ],
+  },
+}
+
+export default {
+  name: 'DocentLogboek',
+  setup() {
+    const router = useRouter()
+    const pagina = ref('logboek')
+
+    const docent = reactive({ naam: 'Prof. De Smedt' })
+
+    const geselecteerdeStudent = ref('Nathan De Smedt')
+    const studenten = Object.keys(studentenData)
+
+    const beginData = studentenData['Nathan De Smedt']
+    const student = reactive({ ...beginData })
+    const weken = reactive([...beginData.weken])
+
+    watch(geselecteerdeStudent, (nieuweNaam) => {
+      const data = studentenData[nieuweNaam]
+      if (!data) return
+      Object.assign(student, data)
+      weken.splice(0, weken.length, ...data.weken)
+    })
 
     function statusKleur(status) {
       if (status === 'Afgetekend') return 'badge-groen'
@@ -148,13 +174,13 @@ export default {
     }
 
     function uitloggen() {
-      if (confirm('Bent u zeker dat u wilt uitloggen?')) {
-        alert('U bent uitgelogd.')
-      }
+      localStorage.removeItem('token')
+      localStorage.removeItem('user')
+      router.push('/')
     }
 
     return {
-      pagina, docent, student, studenten, geselecteerdeStudent,
+      router, pagina, docent, student, studenten, geselecteerdeStudent,
       weken, statusKleur, uitloggen,
     }
   },
@@ -166,12 +192,13 @@ export default {
   display: flex;
   min-height: 100vh;
   font-family: Arial, Helvetica, sans-serif;
-  background: #f0f4f8;
+  background: #f5f7fa;
 }
 
 .sidebar {
   width: 180px;
-  background: #29a8e0;
+  background: white;
+  border-right: 1px solid #e5e8ec;
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
@@ -197,32 +224,42 @@ export default {
 .nav-item {
   width: 100%;
   text-align: left;
-  background: white;
+  background: transparent;
   border: none;
   border-radius: 6px;
   padding: 0.65rem 1rem;
   font-size: 0.9rem;
   font-weight: 600;
-  color: #222;
+  color: #29a8e0;
   cursor: pointer;
   margin-bottom: 0.5rem;
   transition: background 0.15s;
 }
 
-.nav-item:hover,
-.nav-item.active {
-  background: #f0f0f0;
+.nav-item:hover { background: #f0f7fc; }
+.nav-item.active { background: #29a8e0; color: white; }
+
+.nav-back {
+  background: #29a8e0;
+  color: white;
+  font-weight: 700;
+}
+
+.nav-back:hover { background: #1e90c0; }
+
+.nav-separator {
+  height: 1px;
+  background: #e5e8ec;
+  margin: 0.5rem 0 0.75rem;
 }
 
 .nav-item.disabled {
-  background: #e0e0e0;
-  color: #aaa;
+  background: transparent;
+  color: #bbb;
   cursor: not-allowed;
 }
 
-.nav-item.disabled:hover {
-  background: #e0e0e0;
-}
+.nav-item.disabled:hover { background: transparent; }
 
 .sidebar-footer {
   padding: 1rem 0.75rem;
@@ -230,20 +267,18 @@ export default {
 
 .logout-btn {
   width: 100%;
-  background: white;
+  background: #ffeaea;
+  color: #cc0000;
   border: none;
   border-radius: 6px;
   padding: 0.65rem 1rem;
   font-size: 0.9rem;
   font-weight: 600;
-  color: #222;
   cursor: pointer;
   transition: background 0.15s;
 }
 
-.logout-btn:hover {
-  background: #f0f0f0;
-}
+.logout-btn:hover { background: #ffdada; }
 
 .main-content {
   flex: 1;
@@ -360,9 +395,11 @@ export default {
 .week-kaart {
   background: white;
   border-radius: 10px;
+  border-top: 3px solid #29a8e0;
   padding: 1.25rem;
   margin-bottom: 1.25rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
 }
 
 .week-header {
@@ -395,8 +432,8 @@ export default {
 }
 
 .dag-tabel th {
-  background: #f0f4ff;
-  color: #111;
+  background: #29a8e0;
+  color: white;
   padding: 8px 12px;
   text-align: left;
   font-weight: 600;
@@ -404,8 +441,8 @@ export default {
 
 .dag-tabel td {
   padding: 8px 12px;
-  border-bottom: 1px solid #eee;
-  color: #333;
+  border-bottom: 1px solid #f0f0f0;
+  color: #1a1a1a;
 }
 
 .dag-tabel tr:last-child td {
@@ -414,9 +451,9 @@ export default {
 
 .badge {
   display: inline-block;
-  padding: 0.3rem 0.75rem;
+  padding: 0.25rem 0.7rem;
   border-radius: 5px;
-  font-size: 0.82rem;
+  font-size: 0.78rem;
   font-weight: 700;
   white-space: nowrap;
 }
