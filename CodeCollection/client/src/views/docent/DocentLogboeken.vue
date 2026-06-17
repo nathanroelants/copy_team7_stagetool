@@ -99,7 +99,8 @@
 <script>
 
 import { ref, reactive, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
+
 
 const studentenData = {
   'Nathan De Smedt': {
@@ -149,8 +150,9 @@ export default {
   name: 'DocentLogboek',
   setup() {
 
-    const studentId = router.params.studentId
-    const router = useRouter()
+ const router = useRouter()
+    const route = useRoute()
+    const studentId = route.params.studentId
     const pagina = ref('logboek')
 
     const docent = reactive({ naam: 'Prof. De Smedt' })
