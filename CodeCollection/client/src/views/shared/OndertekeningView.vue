@@ -43,10 +43,17 @@
                 <p class="student-sub">{{ student.opleiding }}</p>
               </div>
             </div>
+      
+            <div class="page-header-actions">
             <span :class="['badge', badgeKlasse(stage.status)]">
               {{ stage.status || '—' }}
             </span>
+            <button class="actie-btn btn-blauw" @click="downloadStagevoorstelPDF">
+              ⬇ Stagevoorstel downloaden
+            </button>
           </div>
+          </div>
+
 
           <!-- Cards grid -->
           <div class="cards-grid">
@@ -660,6 +667,26 @@ async function handleOndertekenen() {
   }
 }
 
+// ── Download stagevoorstel als PDF ──
+async function downloadStagevoorstelPDF() {
+  try {
+    const stageId = route.params.stageId
+    const res = await fetch(`/api/stagevoorstellen/${stageId}/download-pdf`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    if (!res.ok) throw new Error('Download mislukt.')
+    const blob = await res.blob()
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `stagevoorstel_${stageId}.pdf`
+    a.click()
+    URL.revokeObjectURL(url)
+  } catch (err) {
+    alert(err.message)
+  }
+}
+
 function handleLogout() {
   localStorage.removeItem('token')
   localStorage.removeItem('user')
@@ -1005,4 +1032,12 @@ onMounted(laadDetail)
   margin-top: 1rem; background: #e8f5e9; border: 1px solid #a5d6a7;
   border-radius: 8px; padding: 0.85rem 1rem; font-size: 0.92rem; font-weight: 600; color: #2e7d32;
 }
+
+.page-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
 </style>

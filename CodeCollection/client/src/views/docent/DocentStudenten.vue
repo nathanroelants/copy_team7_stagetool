@@ -87,7 +87,7 @@
                 <!-- stage ondertekenen -->
                 <div class="action-buttons" style="margin-top: 0.75rem;">
                   <router-link 
-                    :to="`/docent/studenten/${student.id}/ondertekenen`"
+                    :to="`/docent/studenten/${student.stage.id}/ondertekenen`"
                     class="btn-ondertekenen"
                     v-if="student.stagevoorstel_status === 'stagevoorstel geaccepteerd'"
                   >

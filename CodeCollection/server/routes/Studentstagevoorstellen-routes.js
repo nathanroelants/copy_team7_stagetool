@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 
 import multer from 'multer';
 const upload = multer({ storage: multer.memoryStorage() });
+import PDFDocument from 'pdfkit';
 
 const router = express.Router();
 console.log('Studentstagevoorstellen routes geladen');
@@ -235,30 +236,154 @@ router.post('/:stageId/overeenkomst', verifyToken, upload.single('overeenkomst')
   }
 });
 
-// ─── GET /:stageId/overeenkomst/download ─────────────────────────────────────
-router.get('/:stageId/overeenkomst/download', verifyToken, async (req, res) => {
+// ─── GET /:stageId/download-pdf ──────────────────────────────────────────────
+router.get('/:stageId/download-pdf', verifyToken, async (req, res) => {
   const supabase = req.app.get('supabase');
   const { stageId } = req.params;
 
-  const { data: meta } = await supabase
-    .from('stageovereenkomsten')
-    .select('bestandspad, bestandsnaam')
-    .eq('stage_id', stageId)
-    .single();
+  try {
+    const { data: stage, error: stageError } = await supabase
+      .from('stages')
+      .select(`id, status, start_datum, eind_datum, student_id, docent_id, stagementor_id, stagevoorstel_id, stagevoorstellen (*)`)
+      .eq('id', stageId)
+      .single();
 
-  if (!meta) return res.status(404).json({ error: 'Geen overeenkomst gevonden.' });
+    if (stageError || !stage) return res.status(404).json({ error: 'Stage niet gevonden' });
 
-  const { data, error } = await supabase.storage
-    .from('stagebestanden')
-    .download(meta.bestandspad);
+    const voorstel = stage.stagevoorstellen;
 
-  if (error) return res.status(500).json({ error: error.message });
+    const [{ data: student }, { data: mentor }, { data: docent }] = await Promise.all([
+      supabase.from('gebruikers').select('voornaam, achternaam, email, opleiding').eq('id', stage.student_id).single(),
+      supabase.from('gebruikers').select('voornaam, achternaam, email').eq('id', stage.stagementor_id).single(),
+      supabase.from('gebruikers').select('voornaam, achternaam, email').eq('id', stage.docent_id).single(),
+    ]);
 
-  const buffer = Buffer.from(await data.arrayBuffer());
-  res.setHeader('Content-Disposition', `attachment; filename="${meta.bestandsnaam}"`);
-  res.setHeader('Content-Type', 'application/octet-stream');
-  res.send(buffer);
+    const ondertekeningen = {
+      student:     voorstel?.student_ondertekend  ? voorstel.student_ondertekend_op  : null,
+      docent:      voorstel?.docent_ondertekend   ? voorstel.docent_ondertekend_op   : null,
+      stagementor: voorstel?.mentor_ondertekend   ? voorstel.mentor_ondertekend_op   : null,
+    };
+
+    const doc = new PDFDocument({ margin: 50, size: 'A4' });
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="stagevoorstel_${stageId}.pdf"`);
+    doc.pipe(res);
+
+    const blauw = '#29a8e0';
+    const donker = '#111111';
+    const grijs = '#555555';
+    const lichtgrijs = '#e4e4e4';
+
+    const formatDatum = (d) => d ? new Date(d).toLocaleDateString('nl-BE', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
+    const formatHandtekening = (ts) => ts ? new Date(ts).toLocaleDateString('nl-BE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Nog niet ondertekend';
+    const berekenWeken = (start, eind) => (!start || !eind) ? '?' : Math.round((new Date(eind) - new Date(start)) / (1000 * 60 * 60 * 24 * 7));
+    const parseTags = (raw) => raw ? raw.split(/[,\n]+/).map(s => s.trim()).filter(Boolean) : [];
+
+    // Header
+    doc.rect(0, 0, doc.page.width, 70).fill(blauw);
+    doc.fillColor('#ffffff').fontSize(22).font('Helvetica-Bold').text('STAGE.BE', 50, 22);
+    doc.fontSize(10).font('Helvetica').text('Stagevoorstel', 50, 48);
+    doc.fillColor(donker);
+
+    // Student info
+    let y = 90;
+    doc.fontSize(18).font('Helvetica-Bold').fillColor(donker).text(`${student?.voornaam || ''} ${student?.achternaam || ''}`, 50, y);
+    y += 22;
+    doc.fontSize(10).font('Helvetica').fillColor(grijs).text(student?.opleiding || '—', 50, y);
+    y += 14;
+    doc.fontSize(10).fillColor(grijs).text(student?.email || '—', 50, y);
+
+    // Status badge
+    doc.roundedRect(doc.page.width - 200, 90, 150, 24, 5).fill(blauw);
+    doc.fillColor('#ffffff').fontSize(9).font('Helvetica-Bold').text(stage.status || '—', doc.page.width - 200, 96, { width: 150, align: 'center' });
+    doc.fillColor(donker);
+
+    y += 24;
+    doc.moveTo(50, y).lineTo(doc.page.width - 50, y).strokeColor(lichtgrijs).lineWidth(1).stroke();
+    y += 16;
+
+    // Sectie helper
+    const sectie = (titel, inhoudFn) => {
+      if (y > doc.page.height - 120) { doc.addPage(); y = 50; }
+      doc.rect(50, y, doc.page.width - 100, 26).fill(lichtgrijs);
+      doc.fillColor(donker).fontSize(11).font('Helvetica-Bold').text(titel, 58, y + 7);
+      y += 34;
+      doc.font('Helvetica').fontSize(10).fillColor(donker);
+      inhoudFn();
+      y += 12;
+      doc.moveTo(50, y).lineTo(doc.page.width - 50, y).strokeColor(lichtgrijs).lineWidth(0.5).stroke();
+      y += 12;
+    };
+
+    const veld = (label, waarde) => {
+      if (y > doc.page.height - 80) { doc.addPage(); y = 50; }
+      doc.fillColor(grijs).fontSize(8).font('Helvetica-Bold').text(label.toUpperCase(), 58, y);
+      y += 12;
+      doc.fillColor(donker).fontSize(10).font('Helvetica').text(waarde || '—', 58, y, { width: doc.page.width - 116 });
+      y += doc.heightOfString(waarde || '—', { width: doc.page.width - 116 }) + 8;
+    };
+
+    sectie('Gegevens bedrijf', () => {
+      veld('Bedrijfsnaam', voorstel?.bedrijfsnaam);
+      veld('Stagementor', `${mentor?.voornaam || ''} ${mentor?.achternaam || ''}`.trim() || '—');
+      veld('E-mail stagementor', mentor?.email);
+    });
+
+    sectie('Stageperiode', () => {
+      veld('Begindatum', formatDatum(stage.start_datum));
+      veld('Einddatum', formatDatum(stage.eind_datum));
+      veld('Duur', `${berekenWeken(stage.start_datum, stage.eind_datum)} weken`);
+    });
+
+    sectie('Adres', () => {
+      veld('Straat', `${voorstel?.straat || '—'} ${voorstel?.huisnummer || ''}`.trim());
+      veld('Gemeente', voorstel?.gemeente);
+      veld('Land', voorstel?.land);
+    });
+
+    sectie('Beschrijving stageopdracht', () => {
+      if (y > doc.page.height - 80) { doc.addPage(); y = 50; }
+      const tekst = voorstel?.beschrijving || 'Geen beschrijving opgegeven.';
+      doc.fillColor(donker).fontSize(10).font('Helvetica').text(tekst, 58, y, { width: doc.page.width - 116, align: 'justify' });
+      y += doc.heightOfString(tekst, { width: doc.page.width - 116 }) + 4;
+    });
+
+    sectie('Competenties', () => {
+      veld('Technische skills', parseTags(voorstel?.technische_skills).join(', ') || '—');
+      veld('Tools', parseTags(voorstel?.tools).join(', ') || '—');
+    });
+
+    sectie('Ondertekeningsstatus', () => {
+      const partijen = [
+        { rol: 'Student',     naam: `${student?.voornaam || ''} ${student?.achternaam || ''}`.trim(), ts: ondertekeningen.student },
+        { rol: 'Docent',      naam: docent  ? `${docent.voornaam} ${docent.achternaam}`   : '—', ts: ondertekeningen.docent },
+        { rol: 'Stagementor', naam: mentor  ? `${mentor.voornaam} ${mentor.achternaam}`   : '—', ts: ondertekeningen.stagementor },
+      ];
+      for (const p of partijen) {
+        if (y > doc.page.height - 80) { doc.addPage(); y = 50; }
+        doc.circle(68, y + 8, 8).fill(p.ts ? '#4caf50' : '#aaaaaa');
+        doc.fillColor('#ffffff').fontSize(9).font('Helvetica-Bold').text(p.ts ? '+' : '-', 63, y + 3);
+        doc.fillColor(grijs).fontSize(8).font('Helvetica-Bold').text(p.rol.toUpperCase(), 86, y);
+        doc.fillColor(donker).fontSize(10).font('Helvetica-Bold').text(p.naam || '—', 86, y + 10);
+        doc.fillColor(grijs).fontSize(8).font('Helvetica').text(formatHandtekening(p.ts), 86, y + 22);
+        y += 40;
+      }
+    });
+
+    // Footer
+    const footerY = doc.page.height - 40;
+    doc.moveTo(50, footerY - 8).lineTo(doc.page.width - 50, footerY - 8).strokeColor(lichtgrijs).lineWidth(0.5).stroke();
+    doc.fillColor(grijs).fontSize(8).font('Helvetica')
+       .text(`Gegenereerd op ${formatDatum(new Date().toISOString())} via STAGE.BE`, 50, footerY, { align: 'center', width: doc.page.width - 100 });
+
+    doc.end();
+
+  } catch (err) {
+    console.error('PDF generatie fout:', err);
+    if (!res.headersSent) res.status(500).json({ error: 'PDF kon niet worden gegenereerd: ' + err.message });
+  }
 });
+
 
 // POST /api/stagevoorstellen
 router.post('/', verifyToken, async (req, res) => {

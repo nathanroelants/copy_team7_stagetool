@@ -79,6 +79,15 @@
           </span>
         </div>
       </div>
+      <div v-if="student.stagevoorstel_status === 'stagevoorstel geaccepteerd'" class="action-buttons">
+        <router-link
+          :to="`/mentor/stages/${student.stage_id}/ondertekenen`"
+          class="btn-ondertekenen"
+          @click.stop
+        >
+          ✍ Stage ondertekenen
+        </router-link>
+      </div>
     </div>
   </div>
 </div>
@@ -393,6 +402,26 @@ onMounted(laadStudenten)
   font-size: 0.78rem;
   font-weight: 700;
   white-space: nowrap;
+}
+
+.action-buttons {
+  margin-top: 0.75rem;
+}
+
+.btn-ondertekenen {
+  display: inline-block;
+  background: #29a8e0;
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  text-decoration: none;
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition: background 0.2s;
+}
+
+.btn-ondertekenen:hover {
+  background: #1a8cbe;
 }
 
 .badge-groen  { background: #4caf50; color: #fff; }
