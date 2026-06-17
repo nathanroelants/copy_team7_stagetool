@@ -1,165 +1,191 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 
-export function useStagementorEvaluatie(stageId) {
+export function useMentorEvaluatie() {
   const router = useRouter()
-
-  // User info
+  const route = useRouter().currentRoute.value
+  const studentId = route.params.studentId
   const user = JSON.parse(localStorage.getItem('user') || '{}')
-  const gebruikerNaam = `${user.voornaam || ''} ${user.naam || ''}`.trim() || user.email || 'Mentor'
+  const gebruikerNaam = `${user.voornaam || ''} ${user.achternaam || ''}`.trim() || user.email || 'Mentor'
 
-  // State
+  // Student informatie
+  const student = ref({})
+  const studentNaam = ref('')
+
+  // Huidige fase vanuit de backend
+  const evaluatieStatus = ref('geen') // 'geen' | 'tussentijds' | 'tussentijdse_afgelopen' | 'eindevaluatie' | 'stage_afgelopen'
+
+  // Actieve tab: begin op tussentijds, tenzij dat niet zichtbaar is
   const actieveTab = ref('tussentijds')
+
+  // Afgeleid: wat is zichtbaar en wat is bewerkbaar?
+  const tussentijdsZichtbaar = computed(() =>
+    ['tussentijds', 'tussentijdse_afgelopen', 'eindevaluatie', 'stage_afgelopen'].includes(evaluatieStatus.value)
+  )
+  const eindevaluatieZichtbaar = computed(() =>
+    ['eindevaluatie', 'stage_afgelopen'].includes(evaluatieStatus.value)
+  )
+  const tussentijdsBewerkbaar = computed(() =>
+    evaluatieStatus.value === 'tussentijds'
+  )
+  const eindevaluatieBewerkbaar = computed(() =>
+    evaluatieStatus.value === 'eindevaluatie'
+  )
+
+  // Huidige tab is bewerkbaar?
+  const huidigeBewerkbaar = computed(() =>
+    actieveTab.value === 'tussentijds' ? tussentijdsBewerkbaar.value : eindevaluatieBewerkbaar.value
+  )
+
+  const openCompetentie = ref(null)
   const competenties = ref([])
   const evaluaties = ref([])
-  const loading = ref(false)
+  const loading = ref(true)
   const fout = ref('')
   const bezig = ref({})
   const opgeslagen = ref({})
   const foutMelding = ref({})
-  const evaluatieStatus = ref('geen')
 
   const scoreOpties = [
-    { waarde: 1, label: 'Onvoldoende', beschrijving: 'Niet bereikt' },
-    { waarde: 2, label: 'Voldoende', beschrijving: 'Basis bereikt' },
-    { waarde: 3, label: 'Goed', beschrijving: 'Goed bereikt' },
-    { waarde: 4, label: 'Excellent', beschrijving: 'Excellent bereikt' },
+    { waarde: 5, label: 'Uitstekend', beschrijving: 'Volledig zelfstandig, geen bijsturing nodig.' },
+    { waarde: 3, label: 'Voldoende', beschrijving: 'Met regelmatige begeleiding.' },
+    { waarde: 0, label: 'Niet aanwezig', beschrijving: 'Weinig of geen toepassing aanwezig.' },
   ]
 
-  // Computed properties
-  const tussentijdsZichtbaar = computed(() => evaluatieStatus.value !== 'geen')
-  const eindevaluatieZichtbaar = computed(() => evaluatieStatus.value === 'eindevaluatie')
-  const tussentijdsBewerkbaar = computed(() => evaluatieStatus.value === 'tussentijds')
-  const eindevaluatieBewerkbaar = computed(() => evaluatieStatus.value === 'eindevaluatie')
-  const huidigeBewerkbaar = computed(() => {
-    if (actieveTab.value === 'tussentijds') return tussentijdsBewerkbaar.value
-    if (actieveTab.value === 'eindevaluatie') return eindevaluatieBewerkbaar.value
-    return false
-  })
+  function toggleCompetentie(id) {
+    openCompetentie.value = openCompetentie.value === id ? null : id
+  }
 
-  // API calls
-  const getAuthHeader = () => ({
-    'Authorization': `Bearer ${localStorage.getItem('token')}`
-  })
+  function getEvaluatie(competentieId) {
+    return evaluaties.value.find(
+      e => e.competentie_id === competentieId &&
+           e.beoordelaar_id === user.id &&
+           e.type === actieveTab.value
+    )
+  }
 
-  const loadCompetencies = async () => {
+  function getStudentEvaluatie(competentieId) {
+    return evaluaties.value.find(
+      e => e.competentie_id === competentieId &&
+           e.beoordelaar_id !== user.id &&
+           e.type === actieveTab.value
+    )
+  }
+
+  function getMentorEvaluatie(competentieId) {
+    return evaluaties.value.find(
+      e => e.competentie_id === competentieId &&
+           e.beoordelaar_id === user.id &&
+           e.type === actieveTab.value
+    )
+  }
+
+  async function laadStudentGegevens() {
+    try {
+      const token = localStorage.getItem('token')
+      const response = await fetch(`/api/mentor/${studentId}/student`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error || 'Fout bij laden studentgegevens')
+      student.value = data
+      studentNaam.value = `${data.voornaam || ''} ${data.achternaam || ''}`.trim() || data.email || 'Student'
+    } catch (err) {
+      fout.value = err.message || 'Kon studentgegevens niet laden.'
+    }
+  }
+
+  async function laadData() {
     loading.value = true
     fout.value = ''
     try {
-      const response = await fetch('/api/stagementor/competenties', {
-        headers: getAuthHeader()
-      })
-      if (!response.ok) throw new Error('Kon competenties niet laden')
-      competenties.value = await response.json()
-    } catch (error) {
-      fout.value = 'Kon competenties niet laden'
-      console.error(error)
+      const token = localStorage.getItem('token')
+
+      // Haal studentgegevens op
+      await laadStudentGegevens()
+
+      // Haal competenties en evaluaties op
+      const [compRes, evalRes] = await Promise.all([
+        fetch(`/api/mentor/${studentId}/competenties`, { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`/api/mentor/${studentId}/evaluaties`, { headers: { Authorization: `Bearer ${token}` } }),
+      ])
+
+      const compData = await compRes.json()
+      const evalData = await evalRes.json()
+
+      if (!compRes.ok) throw new Error(compData.error || 'Fout bij laden competenties')
+      if (!evalRes.ok) throw new Error(evalData.error || 'Fout bij laden evaluaties')
+
+      competenties.value = compData
+      evaluatieStatus.value = evalData.evaluatie_status || 'geen'
+      evaluaties.value = evalData.evaluaties || []
+
+      // Zet actieve tab op een zichtbare tab
+      if (!tussentijdsZichtbaar.value && eindevaluatieZichtbaar.value) {
+        actieveTab.value = 'eindevaluatie'
+      } else {
+        actieveTab.value = 'tussentijds'
+      }
+
+      for (const e of evaluaties.value) {
+        if (e.beoordelaar_id === user.id) {
+          opgeslagen.value[`${e.competentie_id}_${e.type}`] = true
+        }
+      }
+    } catch (err) {
+      fout.value = err.message || 'Kon data niet laden.'
     } finally {
       loading.value = false
     }
   }
 
-  const loadEvaluaties = async () => {
-    try {
-      const response = await fetch(`/api/stagementor/evaluaties/${stageId}`, {
-        headers: getAuthHeader()
-      })
-      if (!response.ok) throw new Error('Kon evaluaties niet laden')
-      const data = await response.json()
-      evaluaties.value = data.evaluaties || []
-      evaluatieStatus.value = data.evaluatie_status || 'geen'
-    } catch (error) {
-      fout.value = 'Kon evaluaties niet laden'
-      console.error(error)
+  async function slaOp(competentieId) {
+    if (!huidigeBewerkbaar.value) return
+    const evaluatie = getMentorEvaluatie(competentieId)
+    if (!evaluatie || !evaluatie.feedback?.trim()) {
+      foutMelding.value[competentieId] = 'Invullen feedback is verplicht!'
+      return
     }
-  }
-
-  const getEvaluatie = (competentieId) => {
-    return evaluaties.value.find(
-      e => e.competentie_id === competentieId &&
-        e.type === actieveTab.value
-    )
-  }
-
-  const setScore = (competentieId, score) => {
-    let evaluatie = getEvaluatie(competentieId)
-    if (!evaluatie) {
-      evaluatie = {
-        competentie_id: competentieId,
-        type: actieveTab.value,
-        score,
-        feedback: ''
-      }
-      evaluaties.value.push(evaluatie)
-    } else {
-      evaluatie.score = score
-    }
-  }
-
-  const setFeedback = (competentieId, feedback) => {
-    let evaluatie = getEvaluatie(competentieId)
-    if (!evaluatie) {
-      evaluatie = {
-        competentie_id: competentieId,
-        type: actieveTab.value,
-        score: null,
-        feedback
-      }
-      evaluaties.value.push(evaluatie)
-    } else {
-      evaluatie.feedback = feedback
-    }
-  }
-
-  const slaOp = async (competentieId) => {
-    const evaluatie = getEvaluatie(competentieId)
-    if (!evaluatie) return
-
-    bezig.value[competentieId] = true
     foutMelding.value[competentieId] = ''
+    bezig.value[competentieId] = true
+    opgeslagen.value[competentieId] = false
 
     try {
-      const response = await fetch(`/api/stagementor/evaluaties/${stageId}`, {
+      const token = localStorage.getItem('token')
+      const response = await fetch(`/api/mentor/${studentId}/evaluaties`, {
         method: 'POST',
         headers: {
-          ...getAuthHeader(),
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           competentie_id: competentieId,
           type: actieveTab.value,
           score: evaluatie.score,
-          feedback: evaluatie.feedback
-        })
+          feedback: evaluatie.feedback,
+        }),
       })
-
-      if (!response.ok) throw new Error('Kon evaluatie niet opslaan')
-
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error || 'Fout bij opslaan')
       opgeslagen.value[`${competentieId}_${actieveTab.value}`] = true
-      setTimeout(() => {
-        opgeslagen.value[`${competentieId}_${actieveTab.value}`] = false
-      }, 2000)
-    } catch (error) {
-      foutMelding.value[competentieId] = 'Fout bij opslaan'
-      console.error(error)
+    } catch (err) {
+      alert(err.message || 'Kon niet opslaan.')
     } finally {
       bezig.value[competentieId] = false
     }
   }
 
-  const handleLogout = () => {
+  function handleLogout() {
     localStorage.removeItem('token')
     localStorage.removeItem('user')
-    router.push('/login')
+    router.push('/')
   }
 
-  onMounted(() => {
-    loadCompetencies()
-    loadEvaluaties()
-  })
+  onMounted(laadData)
 
   return {
     gebruikerNaam,
+    studentNaam,
     actieveTab,
     evaluatieStatus,
     tussentijdsZichtbaar,
@@ -167,6 +193,7 @@ export function useStagementorEvaluatie(stageId) {
     tussentijdsBewerkbaar,
     eindevaluatieBewerkbaar,
     huidigeBewerkbaar,
+    openCompetentie,
     competenties,
     evaluaties,
     loading,
@@ -175,10 +202,13 @@ export function useStagementorEvaluatie(stageId) {
     opgeslagen,
     foutMelding,
     scoreOpties,
+    toggleCompetentie,
     getEvaluatie,
-    setScore,
-    setFeedback,
+    getStudentEvaluatie,
+    getMentorEvaluatie,
+    setScore: () => {}, // Mentor kan geen scores instellen voor student
+    setFeedback: () => {}, // Mentor kan geen feedback instellen voor student
     slaOp,
-    handleLogout
+    handleLogout,
   }
 }
