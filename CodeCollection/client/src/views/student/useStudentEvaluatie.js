@@ -47,6 +47,7 @@ export function useStudentEvaluatie() {
   function setScore(competentieId, waarde) {
     const bestaande = getEvaluatie(competentieId)
     if (bestaande) {
+      if (Number(bestaande.score) === Number(waarde)) return
       bestaande.score = waarde
     } else {
       evaluaties.value.push({
