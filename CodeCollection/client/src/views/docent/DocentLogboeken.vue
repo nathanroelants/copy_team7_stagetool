@@ -212,19 +212,18 @@ export default {
   transition: background 0.15s;
 }
 
-.nav-item:hover,
+.nav-item:hover:not(.active):not(.disabled) {
+  background: #e0f0fb;
+  color: #1a7ab5;
+}
+
 .nav-item.active {
-  background: #f0f0f0;
+  background: #e0f0fb;
+  color: #1a7ab5;
 }
 
 .nav-item.disabled {
-  background: #e0e0e0;
-  color: #aaa;
-  cursor: not-allowed;
-}
-
-.nav-item.disabled:hover {
-  background: #e0e0e0;
+  cursor: default;
 }
 
 .sidebar-footer {

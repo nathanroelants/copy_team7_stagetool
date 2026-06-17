@@ -65,6 +65,7 @@
             <div class="col-criteria">Criteria</div>
             <div class="col-eval">Zelfevaluatie (student)</div>
             <div class="col-eval">Evaluatie (stagementor)</div>
+            <div class="col-eval">Eindconclusie (docent)</div>
           </div>
 
           <div
@@ -109,6 +110,50 @@
               <p v-else class="leeg-tekst">Nog niet ingevuld</p>
             </div>
 
+            <div class="col-eval col-docent">
+              <div class="score-opties">
+                <button
+                  v-for="optie in scoreOpties"
+                  :key="optie.waarde"
+                  type="button"
+                  class="score-optie-btn"
+                  :class="{ gekozen: Number(getDocentEvaluatie(competentie.id)?.score) === optie.waarde }"
+                  :disabled="opgeslagen[competentie.id]"
+                  @click="setScore(competentie.id, optie.waarde)"
+                >
+                  {{ optie.waarde }} — {{ optie.label }}
+                </button>
+              </div>
+
+              <textarea
+                class="tekstvak"
+                placeholder="Eindconclusie / feedback van de docent..."
+                :value="getDocentEvaluatie(competentie.id)?.feedback || ''"
+                @input="setFeedback(competentie.id, $event.target.value)"
+                :disabled="opgeslagen[competentie.id]"
+              ></textarea>
+
+              <div class="opslaan-rij">
+                <button
+                  v-if="!opgeslagen[competentie.id]"
+                  class="opslaan-btn"
+                  @click="slaOp(competentie.id)"
+                  :disabled="bezigOpslaan[competentie.id]"
+                >
+                  {{ bezigOpslaan[competentie.id] ? 'Opslaan...' : 'Opslaan' }}
+                </button>
+                <button
+                  v-if="opgeslagen[competentie.id]"
+                  class="bewerken-btn"
+                  @click="opgeslagen[competentie.id] = false"
+                >
+                  Bewerken
+                </button>
+                <span v-if="opgeslagen[competentie.id]" class="opgeslagen-melding">✓ Definitief opgeslagen</span>
+                <span v-if="foutMelding[competentie.id]" class="fout-melding">{{ foutMelding[competentie.id] }}</span>
+              </div>
+            </div>
+
           </div>
         </div>
 
@@ -131,10 +176,17 @@ const {
   loading,
   fout,
   bezig,
+  bezigOpslaan,
+  opgeslagen,
+  foutMelding,
   scoreOpties,
   getRubriek,
   getStudentEvaluatie,
   getMentorEvaluatie,
+  getDocentEvaluatie,
+  setScore,
+  setFeedback,
+  slaOp,
   toggleEindevaluatie,
   handleLogout,
 } = useDocentEvaluatie(route.params.studentId)
@@ -374,7 +426,7 @@ html, body, #app {
 .rubriek-header,
 .rubriek-rij {
   display: grid;
-  grid-template-columns: 200px 1fr 1fr;
+  grid-template-columns: 180px 1fr 1fr 1.3fr;
   border-bottom: 1px solid #e0e0e0;
 }
 
@@ -470,5 +522,115 @@ html, body, #app {
   font-size: 0.85rem;
   color: #aaa;
   font-style: italic;
+}
+
+/* ── Docent eindconclusie-kolom ── */
+.col-docent {
+  background: #f7fbfe;
+}
+
+.score-opties {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.score-optie-btn {
+  text-align: left;
+  background: white;
+  border: 1px solid #cdd9e3;
+  border-radius: 6px;
+  padding: 0.4rem 0.6rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #333;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.score-optie-btn:hover:not(:disabled) {
+  border-color: #29a8e0;
+  background: #e0f0fb;
+}
+
+.score-optie-btn.gekozen {
+  background: #29a8e0;
+  border-color: #29a8e0;
+  color: white;
+}
+
+.score-optie-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.tekstvak {
+  width: 100%;
+  min-height: 70px;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-family: inherit;
+  color: #222;
+  resize: vertical;
+  background: white;
+}
+
+.tekstvak:focus {
+  outline: none;
+  border-color: #29a8e0;
+}
+
+.tekstvak:disabled {
+  background: #f0f0f0;
+  color: #999;
+  cursor: not-allowed;
+}
+
+.opslaan-rij {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.opslaan-btn {
+  background: #29a8e0;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 0.45rem 1.1rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.opslaan-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.bewerken-btn {
+  background: white;
+  color: #29a8e0;
+  border: 2px solid #29a8e0;
+  border-radius: 6px;
+  padding: 0.4rem 0.9rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.opgeslagen-melding {
+  font-size: 0.82rem;
+  color: #43a047;
+  font-weight: 700;
+}
+
+.fout-melding {
+  font-size: 0.82rem;
+  color: #e53935;
+  font-weight: 600;
 }
 </style>

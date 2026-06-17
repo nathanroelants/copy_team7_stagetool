@@ -74,7 +74,9 @@ router.get('/evaluaties/:studentId', requireAuth, requireDocent, async (req, res
       ? 'student'
       : e.beoordelaar_id === stage.stagementor_id
         ? 'stagementor'
-        : 'onbekend',
+        : e.beoordelaar_id === req.user.id
+          ? 'docent'
+          : 'onbekend',
   }));
 
   res.json({
@@ -83,6 +85,70 @@ router.get('/evaluaties/:studentId', requireAuth, requireDocent, async (req, res
   });
 });
 
+
+// POST /api/docent/evaluaties/:studentId
+router.post('/evaluaties/:studentId', requireAuth, requireDocent, async (req, res) => {
+  const supabase = req.app.get('supabase');
+  const docentId = req.user.id;
+  const { studentId } = req.params;
+  const { competentie_id, type, score, feedback } = req.body;
+
+  if (!competentie_id || !type || !feedback) {
+    return res.status(400).json({ error: 'competentie_id, type en feedback zijn verplicht' });
+  }
+
+  const { data: stage, error: stageError } = await supabase
+    .from('stages')
+    .select('id')
+    .eq('student_id', studentId)
+    .eq('docent_id', docentId)
+    .single();
+
+  if (stageError || !stage) {
+    return res.status(404).json({ error: 'Geen stage gevonden voor deze student' });
+  }
+
+  const { data: bestaande } = await supabase
+    .from('evaluaties')
+    .select('id')
+    .eq('stage_id', stage.id)
+    .eq('competentie_id', competentie_id)
+    .eq('beoordelaar_id', docentId)
+    .eq('type', type)
+    .single();
+
+  let result, error;
+
+  if (bestaande) {
+    ({ data: result, error } = await supabase
+      .from('evaluaties')
+      .update({ score, feedback, bijgewerkt_op: new Date() })
+      .eq('id', bestaande.id)
+      .select()
+      .single());
+  } else {
+    ({ data: result, error } = await supabase
+      .from('evaluaties')
+      .insert({
+        stage_id: stage.id,
+        competentie_id,
+        beoordelaar_id: docentId,
+        type,
+        score,
+        feedback,
+        zichtbaar_voor_student: false,
+      })
+      .select()
+      .single());
+  }
+
+  if (error) {
+    console.error('Fout bij opslaan evaluatie:', error);
+    return res.status(500).json({ error: 'Kon evaluatie niet opslaan' });
+  }
+
+  res.json(result);
+});
 
 // PATCH /api/docent/eindevaluatie/:studentId
 router.patch('/eindevaluatie/:studentId', requireAuth, requireDocent, async (req, res) => {
