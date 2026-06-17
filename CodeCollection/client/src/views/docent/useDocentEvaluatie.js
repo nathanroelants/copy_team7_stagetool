@@ -20,6 +20,10 @@ export function useDocentEvaluatie(studentId) {
     { waarde: 0, label: 'Niet aanwezig', beschrijving: 'Weinig of geen toepassing aanwezig.' },
   ]
 
+  function getRubriek(score) {
+    return scoreOpties.find(o => o.waarde === Number(score)) || null
+  }
+
   function getStudentEvaluatie(competentieId) {
     return evaluaties.value.find(
       e => e.competentie_id === competentieId &&
@@ -99,6 +103,7 @@ export function useDocentEvaluatie(studentId) {
     fout,
     bezig,
     scoreOpties,
+    getRubriek,
     getStudentEvaluatie,
     getMentorEvaluatie,
     toggleEindevaluatie,

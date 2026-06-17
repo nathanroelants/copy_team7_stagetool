@@ -79,7 +79,15 @@
 
             <div class="col-eval">
               <template v-if="getStudentEvaluatie(competentie.id)">
-                <div class="score-badge">{{ getStudentEvaluatie(competentie.id).score }} / 5</div>
+                <div class="score-rij">
+                  <div class="score-badge">{{ getStudentEvaluatie(competentie.id).score }} / 5</div>
+                  <span v-if="getRubriek(getStudentEvaluatie(competentie.id).score)" class="rubriek-label">
+                    {{ getRubriek(getStudentEvaluatie(competentie.id).score).label }}
+                  </span>
+                </div>
+                <p v-if="getRubriek(getStudentEvaluatie(competentie.id).score)" class="rubriek-beschrijving">
+                  {{ getRubriek(getStudentEvaluatie(competentie.id).score).beschrijving }}
+                </p>
                 <p class="feedback-tekst">{{ getStudentEvaluatie(competentie.id).feedback }}</p>
               </template>
               <p v-else class="leeg-tekst">Nog niet ingevuld</p>
@@ -87,7 +95,15 @@
 
             <div class="col-eval">
               <template v-if="getMentorEvaluatie(competentie.id)">
-                <div class="score-badge">{{ getMentorEvaluatie(competentie.id).score }} / 5</div>
+                <div class="score-rij">
+                  <div class="score-badge">{{ getMentorEvaluatie(competentie.id).score }} / 5</div>
+                  <span v-if="getRubriek(getMentorEvaluatie(competentie.id).score)" class="rubriek-label">
+                    {{ getRubriek(getMentorEvaluatie(competentie.id).score).label }}
+                  </span>
+                </div>
+                <p v-if="getRubriek(getMentorEvaluatie(competentie.id).score)" class="rubriek-beschrijving">
+                  {{ getRubriek(getMentorEvaluatie(competentie.id).score).beschrijving }}
+                </p>
                 <p class="feedback-tekst">{{ getMentorEvaluatie(competentie.id).feedback }}</p>
               </template>
               <p v-else class="leeg-tekst">Nog niet ingevuld</p>
@@ -116,6 +132,7 @@ const {
   fout,
   bezig,
   scoreOpties,
+  getRubriek,
   getStudentEvaluatie,
   getMentorEvaluatie,
   toggleEindevaluatie,
@@ -416,6 +433,12 @@ html, body, #app {
   border-right: none;
 }
 
+.score-rij {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
 .score-badge {
   font-size: 0.82rem;
   font-weight: 800;
@@ -424,6 +447,18 @@ html, body, #app {
   padding: 0.25rem 0.6rem;
   border-radius: 5px;
   width: fit-content;
+}
+
+.rubriek-label {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #1a7ab5;
+}
+
+.rubriek-beschrijving {
+  font-size: 0.82rem;
+  color: #666;
+  font-style: italic;
 }
 
 .feedback-tekst {
