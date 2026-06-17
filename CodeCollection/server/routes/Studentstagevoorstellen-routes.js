@@ -292,7 +292,7 @@ router.post('/', verifyToken, async (req, res) => {
         voornaam: voornaam_stagementor,
         achternaam: achternaam_stagementor,
         email: email_stagementor,
-        wachtwoord_hash: generatePassword(),
+        wachtwoord_hash: "not yet activated",
         rol: 'stagementor',
         actief: false
       }])

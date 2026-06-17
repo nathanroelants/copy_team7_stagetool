@@ -42,25 +42,34 @@
           </select>
         </div>
 
+
         <div v-if="loading" class="status-message">Laden...</div>
         <div v-else-if="fout" class="status-message error">{{ fout }}</div>
 
         <table v-else class="account-table">
-          <thead>
+         <thead>
             <tr>
               <th>Naam</th>
               <th>E-mail</th>
               <th>Rol</th>
               <th>Opleiding</th>
+              <th @click="toggleSortStatus" class="sortable-th">
+                Status <span class="sort-arrow">{{ sortIndicator }}</span>
+              </th>
               <th>Acties</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="g in gefilterd" :key="g.id">
+            <tr v-for="g in gefilterd" :key="g.id" :class="{ 'rij-inactief': !g.actief }">
               <td><strong>{{ g.voornaam }} {{ g.achternaam }}</strong></td>
               <td>{{ g.email }}</td>
               <td><span :class="['badge', `badge-${g.rol}`]">{{ rolLabel(g.rol) }}</span></td>
               <td>{{ formatOpleidingen(g.opleidingen) }}</td>
+              <td>
+                <span :class="['status-badge', g.actief ? 'status-actief' : 'status-inactief']">
+                  {{ g.actief ? 'Actief' : 'Inactief' }}
+                </span>
+              </td>
               <td class="acties">
                 <button @click="openModal(g)" class="btn-bewerken">Bewerken</button>
                 <button @click="verwijder(g)" class="btn-verwijderen">Verwijderen</button>
@@ -214,8 +223,23 @@ const gebruikerNaam = `${user.voornaam || ''} ${user.achternaam || user.naam || 
 const isMultiSelect = computed(() => form.value.rol !== 'student')
 
 const gefilterd = computed(() => {
-  if (!filterRol.value) return gebruikers.value
-  return gebruikers.value.filter(g => g.rol === filterRol.value)
+  let result = gebruikers.value
+
+  if (filterRol.value) {
+    result = result.filter(g => g.rol === filterRol.value)
+  }
+
+  if (sortStatus.value) {
+    result = [...result].sort((a, b) => {
+      const aActief = a.actief ? 1 : 0
+      const bActief = b.actief ? 1 : 0
+      return sortStatus.value === 'actief-eerst'
+        ? bActief - aActief
+        : aActief - bActief
+    })
+  }
+
+  return result
 })
 
 const gefilterdeOpleidingen = computed(() => {
@@ -239,6 +263,24 @@ function rolLabel(rol) {
 function formatOpleidingen(opleidingen) {
   if (!opleidingen || opleidingen.length === 0) return '—'
   return opleidingen.map(o => o.naam).join(', ')
+}
+
+const sortStatus = ref(null) // null | 'actief-eerst' | 'inactief-eerst'
+
+const sortIndicator = computed(() => {
+  if (sortStatus.value === 'actief-eerst') return '▲'
+  if (sortStatus.value === 'inactief-eerst') return '▼'
+  return '⇅'
+})
+
+function toggleSortStatus() {
+  if (sortStatus.value === null) {
+    sortStatus.value = 'actief-eerst'
+  } else if (sortStatus.value === 'actief-eerst') {
+    sortStatus.value = 'inactief-eerst'
+  } else {
+    sortStatus.value = null
+  }
 }
 
 function getOpleidingNaam(id) {
@@ -721,6 +763,30 @@ onMounted(() => {
   font-size: 0.9rem;
   outline: none;
 }
+.status-badge {
+  padding: 0.25rem 0.65rem;
+  border-radius: 5px;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.status-actief {
+  background: #e3f7e8;
+  color: #2e8b3d;
+}
+
+.status-inactief {
+  background: #fdecea;
+  color: #cc0000;
+}
+
+.rij-inactief {
+  opacity: 0.6;
+}
+
+.rij-inactief td strong {
+  text-decoration: line-through;
+}
 
 .dropdown-options {
   overflow-y: auto;
@@ -802,5 +868,19 @@ onMounted(() => {
   margin-top: 0.3rem;
   font-size: 0.75rem;
   color: #888;
+}
+.sortable-th {
+  cursor: pointer;
+  user-select: none;
+}
+
+.sortable-th:hover {
+  background: #1e90c0;
+}
+
+.sort-arrow {
+  font-size: 0.75rem;
+  margin-left: 0.2rem;
+  opacity: 0.85;
 }
 </style>
