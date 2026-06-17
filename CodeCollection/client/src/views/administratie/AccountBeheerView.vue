@@ -42,25 +42,34 @@
           </select>
         </div>
 
+
         <div v-if="loading" class="status-message">Laden...</div>
         <div v-else-if="fout" class="status-message error">{{ fout }}</div>
 
         <table v-else class="account-table">
-          <thead>
+         <thead>
             <tr>
               <th>Naam</th>
               <th>E-mail</th>
               <th>Rol</th>
               <th>Opleiding</th>
+              <th @click="toggleSortStatus" class="sortable-th">
+                Status <span class="sort-arrow">{{ sortIndicator }}</span>
+              </th>
               <th>Acties</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="g in gefilterd" :key="g.id">
+            <tr v-for="g in gefilterd" :key="g.id" :class="{ 'rij-inactief': !g.actief }">
               <td><strong>{{ g.voornaam }} {{ g.achternaam }}</strong></td>
               <td>{{ g.email }}</td>
               <td><span :class="['badge', `badge-${g.rol}`]">{{ rolLabel(g.rol) }}</span></td>
               <td>{{ formatOpleidingen(g.opleidingen) }}</td>
+              <td>
+                <span :class="['status-badge', g.actief ? 'status-actief' : 'status-inactief']">
+                  {{ g.actief ? 'Actief' : 'Inactief' }}
+                </span>
+              </td>
               <td class="acties">
                 <button @click="openModal(g)" class="btn-bewerken">Bewerken</button>
                 <button @click="verwijder(g)" class="btn-verwijderen">Verwijderen</button>
@@ -214,8 +223,23 @@ const gebruikerNaam = `${user.voornaam || ''} ${user.achternaam || user.naam || 
 const isMultiSelect = computed(() => form.value.rol !== 'student')
 
 const gefilterd = computed(() => {
-  if (!filterRol.value) return gebruikers.value
-  return gebruikers.value.filter(g => g.rol === filterRol.value)
+  let result = gebruikers.value
+
+  if (filterRol.value) {
+    result = result.filter(g => g.rol === filterRol.value)
+  }
+
+  if (sortStatus.value) {
+    result = [...result].sort((a, b) => {
+      const aActief = a.actief ? 1 : 0
+      const bActief = b.actief ? 1 : 0
+      return sortStatus.value === 'actief-eerst'
+        ? bActief - aActief
+        : aActief - bActief
+    })
+  }
+
+  return result
 })
 
 const gefilterdeOpleidingen = computed(() => {
@@ -239,6 +263,24 @@ function rolLabel(rol) {
 function formatOpleidingen(opleidingen) {
   if (!opleidingen || opleidingen.length === 0) return '—'
   return opleidingen.map(o => o.naam).join(', ')
+}
+
+const sortStatus = ref(null) // null | 'actief-eerst' | 'inactief-eerst'
+
+const sortIndicator = computed(() => {
+  if (sortStatus.value === 'actief-eerst') return '▲'
+  if (sortStatus.value === 'inactief-eerst') return '▼'
+  return '⇅'
+})
+
+function toggleSortStatus() {
+  if (sortStatus.value === null) {
+    sortStatus.value = 'actief-eerst'
+  } else if (sortStatus.value === 'actief-eerst') {
+    sortStatus.value = 'inactief-eerst'
+  } else {
+    sortStatus.value = null
+  }
 }
 
 function getOpleidingNaam(id) {
@@ -398,17 +440,18 @@ onMounted(() => {
   display: flex;
   min-height: 100vh;
   font-family: Arial, Helvetica, sans-serif;
-  background: #f0f4f8;
+  background: #f5f7fa;
 }
 
 .sidebar {
   width: 180px;
-  background: #29a8e0;
+  background: white;
+  border-right: 1px solid #e5e8ec;
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
   position: sticky;
-  top: 0;            
+  top: 0;
   height: 100vh;
 }
 
@@ -430,32 +473,37 @@ onMounted(() => {
 
 .nav-item {
   width: 100%;
-  background: white;
+  background: transparent;
   border: none;
   border-radius: 6px;
   padding: 0.75rem 1rem;
   font-size: 0.9rem;
   font-weight: 600;
-  color: #222;
+  color: #29a8e0;
   cursor: pointer;
   margin-bottom: 0.5rem;
-  text-align: center;
+  text-align: left;
+  transition: background 0.15s;
 }
 
-.nav-item.active { background: white; }
-.nav-item:not(.active) { background: #d9d9d9; }
+.nav-item:hover { background: #f0f7fc; }
+.nav-item.active { background: #29a8e0; color: white; }
 
 .sidebar-footer { padding: 1rem 0.75rem; }
 
 .logout-btn {
   width: 100%;
-  background: #d9d9d9;
+  background: #ffeaea;
+  color: #cc0000;
   border: none;
   border-radius: 6px;
   padding: 0.75rem 1rem;
   font-weight: 600;
   cursor: pointer;
+  transition: background 0.15s;
 }
+
+.logout-btn:hover { background: #ffdada; }
 
 .main-content { flex: 1; display: flex; flex-direction: column; }
 
@@ -494,24 +542,29 @@ onMounted(() => {
 .filter-row { margin-bottom: 1rem; }
 
 .filter-select {
-  padding: 0.5rem 0.75rem;
-  border: 1px solid #ccc;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid #d5dae0;
   border-radius: 6px;
   font-size: 0.9rem;
   min-width: 180px;
+  transition: border-color 0.15s, box-shadow 0.15s;
 }
+.filter-select:focus { border-color: #29a8e0; box-shadow: 0 0 0 3px rgba(41,168,224,0.12); outline: none; }
 
 .btn-primary {
   background: #29a8e0;
   color: white;
   border: none;
   padding: 0.55rem 1.1rem;
-  border-radius: 6px;
+  border-radius: 8px;
   font-weight: 600;
   cursor: pointer;
+  box-shadow: 0 2px 4px rgba(41, 168, 224, 0.25);
+  transition: background 0.15s, box-shadow 0.15s, transform 0.05s;
 }
 
-.btn-primary:hover { background: #1d8cc4; }
+.btn-primary:hover { background: #1e90c0; box-shadow: 0 4px 8px rgba(41, 168, 224, 0.35); }
+.btn-primary:active { transform: translateY(1px); }
 
 .status-message { padding: 1rem 0; }
 .status-message.error { color: #cc0000; }
@@ -521,7 +574,7 @@ onMounted(() => {
   border-collapse: separate;
   border-spacing: 0;
   background: white;
-  border-radius: 8px;
+  border-radius: 10px;
   overflow: hidden;
   box-shadow: 0 2px 6px rgba(0,0,0,0.04);
 }
@@ -538,7 +591,8 @@ onMounted(() => {
 .account-table td {
   padding: 0.6rem 0.9rem;
   font-size: 0.9rem;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid #f0f0f0;
+  color: #1a1a1a;
 }
 
 .account-table tbody tr:hover { background: #f8fafc; }
@@ -554,9 +608,9 @@ onMounted(() => {
   cursor: pointer;
 }
 
-.btn-bewerken { background: #e0e0e0; color: #333; }
-.btn-bewerken:hover { background: #cfcfcf; }
-.btn-verwijderen { background: #f44336; color: white; }
+.btn-bewerken { background: #e8eef3; color: #29a8e0; border-radius: 6px; transition: background 0.15s; }
+.btn-bewerken:hover { background: #d8e2eb; }
+.btn-verwijderen { background: #f44336; color: white; transition: background 0.15s; }
 .btn-verwijderen:hover { background: #d33; }
 
 .badge {
@@ -616,10 +670,18 @@ onMounted(() => {
 
 .form-group input,
 .form-group select {
-  padding: 0.55rem 0.7rem;
-  border: 1px solid #ccc;
-  border-radius: 5px;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid #d5dae0;
+  border-radius: 6px;
   font-size: 0.92rem;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+  border-color: #29a8e0;
+  box-shadow: 0 0 0 3px rgba(41,168,224,0.12);
+  outline: none;
 }
 
 /* Dropdown searchable */
@@ -701,6 +763,30 @@ onMounted(() => {
   font-size: 0.9rem;
   outline: none;
 }
+.status-badge {
+  padding: 0.25rem 0.65rem;
+  border-radius: 5px;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.status-actief {
+  background: #e3f7e8;
+  color: #2e8b3d;
+}
+
+.status-inactief {
+  background: #fdecea;
+  color: #cc0000;
+}
+
+.rij-inactief {
+  opacity: 0.6;
+}
+
+.rij-inactief td strong {
+  text-decoration: line-through;
+}
 
 .dropdown-options {
   overflow-y: auto;
@@ -757,14 +843,17 @@ onMounted(() => {
 }
 
 .btn-cancel {
-  background: #d9d9d9;
-  color: #333;
+  background: #e8eef3;
+  color: #29a8e0;
   border: none;
   padding: 0.55rem 1.1rem;
   border-radius: 6px;
   font-weight: 600;
   cursor: pointer;
+  transition: background 0.15s;
 }
+
+.btn-cancel:hover { background: #d8e2eb; }
 
 .error-msg {
   background: #fdecea;
@@ -779,5 +868,19 @@ onMounted(() => {
   margin-top: 0.3rem;
   font-size: 0.75rem;
   color: #888;
+}
+.sortable-th {
+  cursor: pointer;
+  user-select: none;
+}
+
+.sortable-th:hover {
+  background: #1e90c0;
+}
+
+.sort-arrow {
+  font-size: 0.75rem;
+  margin-left: 0.2rem;
+  opacity: 0.85;
 }
 </style>

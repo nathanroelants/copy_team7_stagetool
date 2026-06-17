@@ -83,6 +83,17 @@
                     {{ student.logboek_status || '—' }}
                   </span>
                 </div>
+
+                <!-- stage ondertekenen -->
+                <div class="action-buttons" style="margin-top: 0.75rem;">
+                  <router-link 
+                    :to="`/docent/studenten/${student.id}/ondertekenen`"
+                    class="btn-ondertekenen"
+                    v-if="student.stagevoorstel_status === 'stagevoorstel geaccepteerd'"
+                  >
+                    ✍ Stage ondertekenen
+                  </router-link>
+                </div>
               </div>
             </div>
           </div>
@@ -158,18 +169,19 @@ onMounted(laadStudenten)
   display: flex;
   min-height: 100vh;
   font-family: Arial, Helvetica, sans-serif;
-  background: #f0f4f8;
+  background: #f5f7fa;
 }
 
 /* ── Sidebar ── */
 .sidebar {
   width: 180px;
-  background: #29a8e0;
+  background: white;
+  border-right: 1px solid #e5e8ec;
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
   position: sticky;
-  top: 0;            
+  top: 0;
   height: 100vh;
 }
 
@@ -193,22 +205,20 @@ onMounted(laadStudenten)
 .nav-item {
   width: 100%;
   text-align: left;
-  background: white;
+  background: transparent;
   border: none;
   border-radius: 6px;
   padding: 0.65rem 1rem;
   font-size: 0.9rem;
   font-weight: 600;
-  color: #222;
+  color: #29a8e0;
   cursor: pointer;
   margin-bottom: 0.5rem;
   transition: background 0.15s;
 }
 
-.nav-item:hover,
-.nav-item.active {
-  background: #f0f0f0;
-}
+.nav-item:hover { background: #f0f7fc; }
+.nav-item.active { background: #29a8e0; color: white; }
 
 .sidebar-footer {
   padding: 1rem 0.75rem;
@@ -216,20 +226,18 @@ onMounted(laadStudenten)
 
 .logout-btn {
   width: 100%;
-  background: white;
+  background: #ffeaea;
+  color: #cc0000;
   border: none;
   border-radius: 6px;
   padding: 0.65rem 1rem;
   font-size: 0.9rem;
   font-weight: 600;
-  color: #222;
   cursor: pointer;
   transition: background 0.15s;
 }
 
-.logout-btn:hover {
-  background: #f0f0f0;
-}
+.logout-btn:hover { background: #ffdada; }
 
 /* ── Main ── */
 .main-content {
@@ -304,12 +312,15 @@ onMounted(laadStudenten)
 }
 
 .student-card {
-  background: #e4e4e4;
+  background: white;
   border-radius: 10px;
+  border-top: 3px solid #29a8e0;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.04);
   padding: 1rem 1.25rem;
   display: flex;
   gap: 1rem;
   align-items: flex-start;
+  overflow: hidden;
 }
 
 .avatar-circle {
@@ -382,9 +393,9 @@ onMounted(laadStudenten)
 
 .badge {
   display: inline-block;
-  padding: 0.3rem 0.75rem;
+  padding: 0.25rem 0.7rem;
   border-radius: 5px;
-  font-size: 0.82rem;
+  font-size: 0.78rem;
   font-weight: 700;
   white-space: nowrap;
 }
@@ -394,4 +405,33 @@ onMounted(laadStudenten)
 .badge-rood   { background: #f44336; color: #fff; }
 .badge-blauw  { background: #2196f3; color: #fff; }
 .badge-grijs  { background: #aaa;    color: #fff; }
+
+/* Signing button for docent */
+.action-buttons {
+  margin-top: 0.75rem;
+}
+
+.btn-ondertekenen {
+  display: inline-block;
+  background: #29a8e0;
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  text-decoration: none;
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  border: none;
+  cursor: pointer;
+}
+
+.btn-ondertekenen:hover {
+  background: #1a8cbe;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.btn-ondertekenen:active {
+  transform: translateY(0);
+}
 </style>

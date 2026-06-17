@@ -71,10 +71,10 @@
               >
                 <div class="week-header-left">
                   <span class="week-toggle">{{ week.open ? '▲' : '▼' }}</span>
-                  <span class="card-title">Week {{ week.nummer }} — {{ week.van }} – {{ week.tot }}</span>
+                  <span class="card-title">{{ weekTitel(week) }}</span>
                 </div>
                 <div class="week-header-right">
-                  <span class="uren-pill">{{ totaalUren(week) }}/{{ week.maxUren }}u</span>
+                  <span class="uren-pill">{{ urenLabel(week) }}</span>
                   <span class="badge" :class="statusKleur(week.status)">{{ week.status }}</span>
                 </div>
               </div>
@@ -131,15 +131,19 @@
                   </tbody>
                 </table>
 
-                <div class="week-footer">
-                  <button
-                    class="actie-btn btn-oranje"
-                    :disabled="week.status === 'ingediend' || week.status === 'Afgehandeld' || week.isBezig"
-                    @click="weekIndienen(wi)"
-                  >
-                    {{ week.isBezig ? 'Bezig…' : 'Week indienen' }}
-                  </button>
-                </div>
+               <div class="week-footer">
+  <span v-if="week.status === 'aangemaakt' && !week.magIndienen" class="indien-hint">
+  {{ indienHint(week) }}
+</span>
+  <button
+    v-if="week.status === 'aangemaakt'"
+    class="actie-btn btn-oranje"
+    :disabled="!week.magIndienen || week.isBezig"
+    @click="weekIndienen(wi)"
+  >
+    {{ week.isBezig ? 'Bezig…' : 'Week indienen' }}
+  </button>
+</div>
               </div>
 
             </div>
@@ -154,7 +158,7 @@
       <div class="modal">
         <h3>+ Nieuwe dag toevoegen</h3>
         <label>Datum</label>
-        <input type="date" v-model="dagForm.datum" />
+        <input type="date" v-model="dagForm.datum" :max="vandaagISO" />
         <label>Taak / activiteit</label>
         <input type="text" v-model="dagForm.taak" placeholder="bv. API-integratie klantportaal" />
         <label>Aantal uren</label>
@@ -196,7 +200,7 @@
 </template>
 
 <script>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 
 
@@ -271,7 +275,31 @@ export default {
       datum: '', taak: '', uren: 8, competentieIds: [], reflectie: '', leerpunten: '', isBezig: false,
     })
 
+    const vandaagISO = computed(() => {
+  const d = new Date()
+  const jaar = d.getFullYear()
+  const maand = String(d.getMonth() + 1).padStart(2, '0')
+  const dag = String(d.getDate()).padStart(2, '0')
+  return `${jaar}-${maand}-${dag}`
+})
+
     // ── Laden ────────────────────────────────────────────────────────────────
+    function weekTitel(week) {
+  if (week.voorStageperiode) return 'Voor stageperiode'
+  return `Week ${week.nummer} — ${week.van} – ${week.tot}`
+}
+
+function urenLabel(week) {
+  const totaal = totaalUren(week)
+  return week.maxUren != null ? `${totaal}/${week.maxUren}u` : `${totaal}u`
+}
+
+function indienHint(week) {
+  if (week.voorStageperiode) {
+    return `Indienen kan ten vroegste vanaf de start van je stage, op ${week.vroegsteIndienDatum}`
+  }
+  return `Indienen kan ten vroegste op zaterdag ${week.vroegsteIndienDatum}`
+}
     function handleLogout() {
       localStorage.removeItem('token')
       localStorage.removeItem('user')
@@ -317,7 +345,7 @@ export default {
 
     async function laadWeken() {
       const data = await apiGet(`/api/studentlogboeken/${stageId.value}/weken`)
-      weken.splice(0, weken.length, ...data)
+      weken.splice(0, weken.length, ...data.sort((a, b) => b.nummer - a.nummer))
     }
 
     // ── Dag opslaan ──────────────────────────────────────────────────────────
@@ -330,6 +358,7 @@ export default {
 
     async function slaDagOp() {
       if (!dagForm.datum) { modalFout.value = 'Selecteer een datum.'; return }
+       if (dagForm.datum > vandaagISO.value) { modalFout.value = 'Je kan geen datum in de toekomst selecteren.'; return }
       if (!dagForm.taak)  { modalFout.value = 'Vul een taak in.'; return }
       if (!dagForm.competentieIds.length) { modalFout.value = 'Selecteer minstens één leerdoel (LO).'; return }
 
@@ -384,7 +413,7 @@ export default {
     function statusKleur(s) {
       if (!s) return 'badge-grijs'
       const l = s.toLowerCase()
-      if (l === 'afgehandeld' || l === 'afgetekend') return 'badge-groen'
+      if (l === 'goedgekeurd' || l === 'afgetekend') return 'badge-groen'
       if (l === 'ingediend') return 'badge-geel'
       if (l === 'afgekeurd') return 'badge-rood'
       return 'badge-blauw'
@@ -397,13 +426,14 @@ export default {
       return `${dd}/${mm}/${jaar}`
     }
 
-    return {
-      toonDagModal, isLaden, fout, modalFout,
-      student, weken, dagForm,
-      alleCompetenties, competentiesLaden, competentiesFout,
-      initialen, totaalUren, statusKleur,
-      weekIndienen, openDagModal, slaDagOp, handleLogout, moveToStagevoorstel, moveToEvaluatie
-    }
+return {
+  toonDagModal, isLaden, fout, modalFout,
+  student, weken, dagForm,
+  alleCompetenties, competentiesLaden, competentiesFout,
+  initialen, totaalUren, statusKleur,
+  weekTitel, urenLabel, indienHint,
+  weekIndienen, openDagModal, slaDagOp, handleLogout, moveToStagevoorstel, moveToEvaluatie
+}
   },
 }
 </script>
@@ -429,18 +459,19 @@ html, body, #app {
 .dashboard-layout {
   display: flex;
   min-height: 100vh;
-  background: #f0f4f8;
+  background: #f5f7fa;
 }
 
 /* ── Sidebar ── */
 .sidebar {
   width: 180px;
-  background: #29a8e0;
+  background: white;
+  border-right: 1px solid #e5e8ec;
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
   position: sticky;
-  top: 0;            
+  top: 0;
   height: 100vh;
 }
 
@@ -467,26 +498,19 @@ html, body, #app {
 .nav-item {
   width: 100%;
   text-align: left;
-  background: white;
+  background: transparent;
   border: none;
   border-radius: 6px;
   padding: 0.65rem 1rem;
   font-size: 0.9rem;
   font-weight: 600;
-  color: #222;
+  color: #29a8e0;
   cursor: pointer;
   transition: background 0.15s;
 }
 
-.nav-item:hover,
-.nav-item.active {
-  background: #f0f0f0;
-}
-
-.nav-item.active {
-  background: #e0f0fb;
-  color: #1a7ab5;
-}
+.nav-item:hover { background: #f0f7fc; }
+.nav-item.active { background: #29a8e0; color: white; }
 
 .sidebar-footer {
   padding: 1rem 0.75rem;
@@ -494,18 +518,18 @@ html, body, #app {
 
 .logout-btn {
   width: 100%;
-  background: white;
+  background: #ffeaea;
+  color: #cc0000;
   border: none;
   border-radius: 6px;
   padding: 0.65rem 1rem;
   font-size: 0.9rem;
   font-weight: 600;
-  color: #222;
   cursor: pointer;
   transition: background 0.15s;
 }
 
-.logout-btn:hover { background: #f0f0f0; }
+.logout-btn:hover { background: #ffdada; }
 
 /* ── Main ── */
 .main-content {
@@ -637,8 +661,10 @@ html, body, #app {
 
 /* ── Card ── */
 .card {
-  background: #e4e4e4;
+  background: white;
   border-radius: 10px;
+  border-top: 3px solid #29a8e0;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.04);
   overflow: hidden;
 }
 
@@ -707,9 +733,9 @@ html, body, #app {
 /* ── Badges ── */
 .badge {
   display: inline-block;
-  padding: 0.3rem 0.75rem;
+  padding: 0.25rem 0.7rem;
   border-radius: 5px;
-  font-size: 0.82rem;
+  font-size: 0.78rem;
   font-weight: 700;
   white-space: nowrap;
 }
@@ -838,6 +864,12 @@ html, body, #app {
   margin-top: 1rem;
   padding-top: 0.75rem;
   border-top: 1px solid #f0f0f0;
+}
+.indien-hint {
+  margin-right: auto;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #888;
 }
 
 /* ── Action buttons ── */

@@ -43,13 +43,14 @@ router.get('/competenties', requireAuth, requireStudent, async (req, res) => {
 });
 
 // GET /api/student/evaluaties
+// Geeft ook evaluatie_status mee zodat de frontend de juiste modus kan tonen
 router.get('/evaluaties', requireAuth, requireStudent, async (req, res) => {
   const supabase = req.app.get('supabase');
   const studentId = req.user.id;
 
   const { data: stage, error: stageError } = await supabase
     .from('stages')
-    .select('id')
+    .select('id, evaluatie_status')
     .eq('student_id', studentId)
     .single();
 
@@ -67,14 +68,15 @@ router.get('/evaluaties', requireAuth, requireStudent, async (req, res) => {
     return res.status(500).json({ error: 'Kon evaluaties niet ophalen' });
   }
 
-  res.json(data);
+  // evaluatie_status meesturen zodat de frontend de juiste modus toont
+  res.json({ evaluatie_status: stage.evaluatie_status, evaluaties: data });
 });
 
 // POST /api/student/evaluaties
 router.post('/evaluaties', requireAuth, requireStudent, async (req, res) => {
   const supabase = req.app.get('supabase');
   const studentId = req.user.id;
-   const { competentie_id, type, score, feedback } = req.body;
+  const { competentie_id, type, score, feedback } = req.body;
 
   if (!competentie_id || !type || !feedback) {
     return res.status(400).json({ error: 'competentie_id, type en feedback zijn verplicht' });
@@ -82,12 +84,22 @@ router.post('/evaluaties', requireAuth, requireStudent, async (req, res) => {
 
   const { data: stage, error: stageError } = await supabase
     .from('stages')
-    .select('id')
+    .select('id, evaluatie_status')
     .eq('student_id', studentId)
     .single();
 
   if (stageError || !stage) {
     return res.status(404).json({ error: 'Geen stage gevonden voor deze student' });
+  }
+
+  // Schrijftoegang bewaken op basis van evaluatie_status
+  const status = stage.evaluatie_status;
+  const schrijfToegestaan =
+    (type === 'tussentijds' && status === 'tussentijds') ||
+    (type === 'eindevaluatie' && status === 'eindevaluatie');
+
+  if (!schrijfToegestaan) {
+    return res.status(403).json({ error: 'Opslaan is niet toegestaan in de huidige fase.' });
   }
 
   const { data: bestaande } = await supabase
@@ -116,7 +128,7 @@ router.post('/evaluaties', requireAuth, requireStudent, async (req, res) => {
         competentie_id,
         beoordelaar_id: studentId,
         type,
-         score, 
+        score,
         feedback,
         zichtbaar_voor_student: false,
       })

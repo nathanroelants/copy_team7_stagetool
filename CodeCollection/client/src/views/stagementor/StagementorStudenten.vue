@@ -38,56 +38,50 @@
         </div>
 
         <div v-else class="student-list">
-          <div
-            v-for="student in studenten"
-            :key="student.id"
-            class="student-card"
-            @click="$router.push(`/stagementorlogboeken`)"
-            style="cursor: pointer;"
-          >
-          <div
-            v-for="student in studenten"
-            :key="student.id"
-            class="student-card"
-          >
-            <div class="student-avatar">
-              <div class="avatar-circle">
-                {{ initialen(student.voornaam, student.achternaam) }}
-              </div>
-            </div>
+  <div
+    v-for="student in studenten"
+    :key="student.id"
+    class="student-card"
+   @click="$router.push(`/stagementorlogboeken/${student.id}`)"
+    style="cursor: pointer;"
+  >
+    <div class="student-avatar">
+      <div class="avatar-circle">
+        {{ initialen(student.voornaam, student.achternaam) }}
+      </div>
+    </div>
 
-            <div class="student-info">
-              <div class="student-name">{{ student.voornaam }} {{ student.achternaam }}</div>
-              <div class="student-opleiding">
-                {{ student.opleiding }} — {{ student.bedrijf }}
-              </div>
-              <div class="student-meta">
-                <span class="meta-item">
-                  {{ formatDatum(student.start_datum) }} → {{ formatDatum(student.eind_datum) }}
-                </span>
-                <span class="meta-item">
-                  <a :href="`mailto:${student.email}`" class="email-link">{{ student.email }}</a>
-                </span>
-              </div>
+    <div class="student-info">
+      <div class="student-name">{{ student.voornaam }} {{ student.achternaam }}</div>
+      <div class="student-opleiding">
+        {{ student.opleiding }} — {{ student.bedrijf }}
+      </div>
+      <div class="student-meta">
+        <span class="meta-item">
+          {{ formatDatum(student.start_datum) }} → {{ formatDatum(student.eind_datum) }}
+        </span>
+        <span class="meta-item">
+          <a :href="`mailto:${student.email}`" class="email-link" @click.stop>{{ student.email }}</a>
+        </span>
+      </div>
 
-              <div class="badge-row">
-                <div class="badge-group">
-                  <span class="badge-label">Stagevoorstel</span>
-                  <span :class="['badge', badgeKlasse(student.stagevoorstel_status)]">
-                    {{ student.stagevoorstel_status || '—' }}
-                  </span>
-                </div>
-                <div class="badge-group">
-                  <span class="badge-label">Logboek</span>
-                  <span :class="['badge', logboekBadgeKlasse(student.logboek_status)]">
-                    {{ student.logboek_status || '—' }}
-                  </span>
-                </div>
-              </div>
-            </div>
-              </div>
-          </div>
+      <div class="badge-row">
+        <div class="badge-group">
+          <span class="badge-label">Stagevoorstel</span>
+          <span :class="['badge', badgeKlasse(student.stagevoorstel_status)]">
+            {{ student.stagevoorstel_status || '—' }}
+          </span>
         </div>
+        <div class="badge-group">
+          <span class="badge-label">Logboek</span>
+          <span :class="['badge', logboekBadgeKlasse(student.logboek_status)]">
+            {{ student.logboek_status || '—' }}
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
       </section>
     </main>
   </div>
@@ -167,16 +161,20 @@ onMounted(laadStudenten)
   display: flex;
   min-height: 100vh;
   font-family: Arial, Helvetica, sans-serif;
-  background: #f0f4f8;
+  background: #f5f7fa;
 }
 
 /* ── Sidebar ── */
 .sidebar {
   width: 180px;
-  background: #29a8e0;
+  background: white;
+  border-right: 1px solid #e5e8ec;
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
+  position: sticky;
+  top: 0;            
+  height: 100vh; 
 }
 
 .sidebar-brand {
@@ -199,22 +197,20 @@ onMounted(laadStudenten)
 .nav-item {
   width: 100%;
   text-align: left;
-  background: white;
+  background: transparent;
   border: none;
   border-radius: 6px;
   padding: 0.65rem 1rem;
   font-size: 0.9rem;
   font-weight: 600;
-  color: #222;
+  color: #29a8e0;
   cursor: pointer;
   margin-bottom: 0.5rem;
   transition: background 0.15s;
 }
 
-.nav-item:hover,
-.nav-item.active {
-  background: #f0f0f0;
-}
+.nav-item:hover { background: #f0f7fc; }
+.nav-item.active { background: #29a8e0; color: white; }
 
 .sidebar-footer {
   padding: 1rem 0.75rem;
@@ -222,20 +218,18 @@ onMounted(laadStudenten)
 
 .logout-btn {
   width: 100%;
-  background: white;
+  background: #ffeaea;
+  color: #cc0000;
   border: none;
   border-radius: 6px;
   padding: 0.65rem 1rem;
   font-size: 0.9rem;
   font-weight: 600;
-  color: #222;
   cursor: pointer;
   transition: background 0.15s;
 }
 
-.logout-btn:hover {
-  background: #f0f0f0;
-}
+.logout-btn:hover { background: #ffdada; }
 
 /* ── Main ── */
 .main-content {
@@ -304,12 +298,15 @@ onMounted(laadStudenten)
 }
 
 .student-card {
-  background: #e4e4e4;
+  background: white;
   border-radius: 10px;
+  border-top: 3px solid #29a8e0;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.04);
   padding: 1rem 1.25rem;
   display: flex;
   gap: 1rem;
   align-items: flex-start;
+  overflow: hidden;
 }
 
 .avatar-circle {
@@ -391,9 +388,9 @@ onMounted(laadStudenten)
 
 .badge {
   display: inline-block;
-  padding: 0.3rem 0.75rem;
+  padding: 0.25rem 0.7rem;
   border-radius: 5px;
-  font-size: 0.82rem;
+  font-size: 0.78rem;
   font-weight: 700;
   white-space: nowrap;
 }

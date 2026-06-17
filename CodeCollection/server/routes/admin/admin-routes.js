@@ -158,6 +158,22 @@ router.put('/gebruikers/:id', verifyAdmin, async (req, res) => {
     } catch (err) {
       return res.status(500).json({ error: 'Fout bij hashen van wachtwoord' });
     }
+
+    // Bepaal de rol: gebruik de rol uit de request, anders de huidige rol uit de database
+    let huidigeRol = rol;
+    if (!huidigeRol) {
+      const { data: huidigeGebruiker } = await supabase
+        .from('gebruikers')
+        .select('rol')
+        .eq('id', id)
+        .single();
+      huidigeRol = huidigeGebruiker?.rol;
+    }
+
+    // Een stagementor die inactief was, wordt automatisch geactiveerd bij een wachtwoordwijziging
+    if (huidigeRol === 'stagementor') {
+      updateData.actief = true;
+    }
   }
 
   const { data: gebruiker, error } = await supabase
