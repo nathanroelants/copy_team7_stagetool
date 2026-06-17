@@ -329,6 +329,17 @@ router.get('/:stageId/download-pdf', verifyToken, async (req, res) => {
       veld('E-mail stagementor', mentor?.email);
     });
 
+    sectie('Gegevens student', () => {
+      veld('Naam', `${student?.voornaam || ''} ${student?.achternaam || ''}`.trim());
+      veld('E-mail', student?.email);
+      veld('Opleiding', student?.opleiding);
+    });
+
+    sectie('Gegevens docent', () => {
+      veld('Naam', docent ? `${docent.voornaam} ${docent.achternaam}` : '—');
+      veld('E-mail', docent?.email);
+    });
+
     sectie('Stageperiode', () => {
       veld('Begindatum', formatDatum(stage.start_datum));
       veld('Einddatum', formatDatum(stage.eind_datum));
