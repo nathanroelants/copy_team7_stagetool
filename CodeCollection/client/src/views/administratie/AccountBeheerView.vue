@@ -12,6 +12,9 @@
         <button class="nav-item" @click="router.push('/administratie/competentiebeheer')">
           Competentiebeheer
         </button>
+        <button v-if="heeftMeerdereRollen" class="nav-item wissel-rol-btn" @click="router.push('/kies-rol')">
+          Wissel rol
+        </button>
       </nav>
 
       <div class="sidebar-footer">
@@ -59,7 +62,14 @@
             <tr v-for="g in gefilterd" :key="g.id">
               <td><strong>{{ g.voornaam }} {{ g.achternaam }}</strong></td>
               <td>{{ g.email }}</td>
-              <td><span :class="['badge', `badge-${g.rol}`]">{{ rolLabel(g.rol) }}</span></td>
+              <td>
+                <span
+                  v-for="r in (g.rollen && g.rollen.length ? g.rollen : [g.rol])"
+                  :key="r"
+                  :class="['badge', `badge-${r}`]"
+                  style="margin-right:3px"
+                >{{ rolLabel(r) }}</span>
+              </td>
               <td>{{ formatOpleidingen(g.opleidingen) }}</td>
               <td class="acties">
                 <button @click="openModal(g)" class="btn-bewerken">Bewerken</button>
@@ -105,14 +115,19 @@
   </small>
 </div>
           <div class="form-group">
-            <label>Rol</label>
-            <select v-model="form.rol" required @change="onRolChange">
-              <option value="student">Student</option>
-              <option value="docent">Docent</option>
-              <option value="stagementor">Stagementor</option>
-              <option value="stagecomissie">Stagecomissie</option>
-              <option value="administratie">Administratie</option>
-            </select>
+            <label>Rollen <small class="hint">(minstens één verplicht)</small></label>
+            <div class="rollen-checkboxes">
+              <label v-for="r in alleRollen" :key="r.waarde" class="rol-checkbox-label">
+                <input
+                  type="checkbox"
+                  :value="r.waarde"
+                  v-model="form.rollen"
+                  class="rol-checkbox"
+                />
+                {{ r.label }}
+              </label>
+            </div>
+            <small v-if="rollenFout" class="hint" style="color:#cc0000">{{ rollenFout }}</small>
           </div>
 
           <div class="form-group">
@@ -204,18 +219,31 @@ const dropdownOpen = ref(false)
 const searchTerm = ref('')
 
 const initialForm = {
-  voornaam: '', achternaam: '', email: '', rol: 'student', opleiding_ids: [], wachtwoord: ''
+  voornaam: '', achternaam: '', email: '', rollen: ['student'], opleiding_ids: [], wachtwoord: ''
 }
 const form = ref({ ...initialForm })
 
 const user = JSON.parse(localStorage.getItem('user') || '{}')
 const gebruikerNaam = `${user.voornaam || ''} ${user.achternaam || user.naam || ''}`.trim() || 'Admin'
+const heeftMeerdereRollen = (user.rollen?.length ?? 0) > 1
 
-const isMultiSelect = computed(() => form.value.rol !== 'student')
+const alleRollen = [
+  { waarde: 'student',        label: 'Student' },
+  { waarde: 'docent',         label: 'Docent' },
+  { waarde: 'stagementor',    label: 'Stagementor' },
+  { waarde: 'stagecommissie', label: 'Stagecommissie' },
+  { waarde: 'administratie',  label: 'Administratie' },
+]
+
+const rollenFout = ref('')
+
+const isMultiSelect = computed(() => !form.value.rollen?.includes('student'))
 
 const gefilterd = computed(() => {
   if (!filterRol.value) return gebruikers.value
-  return gebruikers.value.filter(g => g.rol === filterRol.value)
+  return gebruikers.value.filter(g =>
+    (g.rollen && g.rollen.length ? g.rollen : [g.rol]).includes(filterRol.value)
+  )
 })
 
 const gefilterdeOpleidingen = computed(() => {
@@ -260,7 +288,7 @@ function toggleOpleiding(id) {
       form.value.opleiding_ids.push(id)
     }
   } else {
-    // Single-select: substitui sempre
+    // Student: slechts één opleiding
     form.value.opleiding_ids = [id]
     dropdownOpen.value = false
   }
@@ -268,13 +296,6 @@ function toggleOpleiding(id) {
 
 function removeOpleiding(id) {
   form.value.opleiding_ids = form.value.opleiding_ids.filter(x => x !== id)
-}
-
-function onRolChange() {
-  // Se mudou para student e tem várias, manter só a primeira
-  if (!isMultiSelect.value && form.value.opleiding_ids.length > 1) {
-    form.value.opleiding_ids = [form.value.opleiding_ids[0]]
-  }
 }
 
 async function laadGebruikers() {
@@ -319,12 +340,12 @@ function openModal(gebruiker = null) {
       voornaam: gebruiker.voornaam,
       achternaam: gebruiker.achternaam,
       email: gebruiker.email,
-      rol: gebruiker.rol,
+      rollen: gebruiker.rollen && gebruiker.rollen.length ? [...gebruiker.rollen] : [gebruiker.rol],
       opleiding_ids: (gebruiker.opleidingen || []).map(o => o.id)
     }
   } else {
     editingId.value = null
-    form.value = { ...initialForm, opleiding_ids: [] }
+    form.value = { ...initialForm, rollen: ['student'], opleiding_ids: [] }
   }
   modalOpen.value = true
 }
@@ -337,6 +358,13 @@ function closeModal() {
 
 async function saveAccount() {
   modalFout.value = ''
+  rollenFout.value = ''
+
+  if (!form.value.rollen || form.value.rollen.length === 0) {
+    rollenFout.value = 'Kies minstens één rol.'
+    return
+  }
+
   const token = localStorage.getItem('token')
   const url = editingId.value
     ? `/api/admin/gebruikers/${editingId.value}`
@@ -802,5 +830,35 @@ onMounted(() => {
   margin-top: 0.3rem;
   font-size: 0.75rem;
   color: #888;
+}
+
+.rollen-checkboxes {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0.5rem 0;
+}
+
+.rol-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+  font-weight: 500;
+  color: #333;
+}
+
+.rol-checkbox {
+  width: 16px;
+  height: 16px;
+  accent-color: #29a8e0;
+  cursor: pointer;
+}
+
+.wissel-rol-btn {
+  background: white;
+  color: #29a8e0;
+  border: 1px solid #29a8e0;
 }
 </style>

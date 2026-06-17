@@ -19,10 +19,11 @@ function requireAuth(req, res, next) {
 }
 
 function requireStagementor(req, res, next) {
-  if (req.user.rol !== 'stagementor') {
-  return res.status(403).json({ error: 'Geen toegang' });
+  const rollen = req.user.rollen || (req.user.rol ? [req.user.rol] : []);
+  if (!rollen.includes('stagementor')) {
+    return res.status(403).json({ error: 'Geen toegang' });
   }
- next();
+  next();
 }
 
 

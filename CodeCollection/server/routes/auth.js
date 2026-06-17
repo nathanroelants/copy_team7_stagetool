@@ -44,8 +44,17 @@ router.post('/login', async (req, res) => {
     return res.status(401).json({ error: 'Ongeldig wachtwoord' });
   }
 
+  // Rollen ophalen uit gebruiker_rollen
+  const { data: rollenData } = await supabase
+    .from('gebruiker_rollen')
+    .select('rol')
+    .eq('gebruiker_id', gebruiker.id);
+
+  const rollen = (rollenData || []).map(r => r.rol);
+  const eersteRol = rollen.length > 0 ? rollen[0] : gebruiker.rol;
+
   const token = jwt.sign(
-    { id: gebruiker.id, email: gebruiker.email, rol: gebruiker.rol },
+    { id: gebruiker.id, email: gebruiker.email, rol: eersteRol, rollen },
     process.env.JWT_SECRET,
     { expiresIn: '8h' }
   );
@@ -58,7 +67,8 @@ router.post('/login', async (req, res) => {
       voornaam: gebruiker.voornaam,
       achternaam: gebruiker.achternaam,
       email: gebruiker.email,
-      rol: gebruiker.rol
+      rol: eersteRol,
+      rollen
     }
   });
 });

@@ -18,7 +18,8 @@ function requireAuth(req, res, next) {
 }
 
 function requireStudent(req, res, next) {
-  if (req.user.rol !== 'student') {
+  const rollen = req.user.rollen || (req.user.rol ? [req.user.rol] : []);
+  if (!rollen.includes('student')) {
     return res.status(403).json({ error: 'Geen toegang' });
   }
   next();
