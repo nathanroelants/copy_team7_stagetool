@@ -158,7 +158,7 @@
       <div class="modal">
         <h3>+ Nieuwe dag toevoegen</h3>
         <label>Datum</label>
-        <input type="date" v-model="dagForm.datum" />
+        <input type="date" v-model="dagForm.datum" :max="vandaagISO" />
         <label>Taak / activiteit</label>
         <input type="text" v-model="dagForm.taak" placeholder="bv. API-integratie klantportaal" />
         <label>Aantal uren</label>
@@ -200,7 +200,7 @@
 </template>
 
 <script>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 
 
@@ -274,6 +274,14 @@ export default {
     const dagForm = reactive({
       datum: '', taak: '', uren: 8, competentieIds: [], reflectie: '', leerpunten: '', isBezig: false,
     })
+
+    const vandaagISO = computed(() => {
+  const d = new Date()
+  const jaar = d.getFullYear()
+  const maand = String(d.getMonth() + 1).padStart(2, '0')
+  const dag = String(d.getDate()).padStart(2, '0')
+  return `${jaar}-${maand}-${dag}`
+})
 
     // ── Laden ────────────────────────────────────────────────────────────────
     function weekTitel(week) {
@@ -350,6 +358,7 @@ function indienHint(week) {
 
     async function slaDagOp() {
       if (!dagForm.datum) { modalFout.value = 'Selecteer een datum.'; return }
+       if (dagForm.datum > vandaagISO.value) { modalFout.value = 'Je kan geen datum in de toekomst selecteren.'; return }
       if (!dagForm.taak)  { modalFout.value = 'Vul een taak in.'; return }
       if (!dagForm.competentieIds.length) { modalFout.value = 'Selecteer minstens één leerdoel (LO).'; return }
 

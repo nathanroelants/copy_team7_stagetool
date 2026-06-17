@@ -273,10 +273,16 @@ router.post('/:stageId/dag', requireAuth, requireStudent, async (req, res) => {
     return res.status(400).json({ error: 'Datum en taak zijn verplicht' });
   }
 
-  const gekozenDatum = new Date(datum);
-  if (isNaN(gekozenDatum.getTime())) {
-    return res.status(400).json({ error: 'Ongeldige datum' });
-  }
+const gekozenDatum = new Date(datum);
+if (isNaN(gekozenDatum.getTime())) {
+  return res.status(400).json({ error: 'Ongeldige datum' });
+}
+
+// Geen toekomstige datum toelaten: een logboekdag mag pas aangemaakt worden
+// op (of na) de dag zelf.
+if (naarUTCDatum(gekozenDatum) > vandaagUTC()) {
+  return res.status(400).json({ error: 'Je kan geen datum in de toekomst selecteren.' });
+}
 
   // Valideer en normaliseer de meegegeven competentie-ids
   const ids = Array.isArray(competentieIds)
