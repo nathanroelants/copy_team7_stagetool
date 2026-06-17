@@ -16,6 +16,7 @@ export function useDocentEvaluatie(studentId) {
   const bezigOpslaan = ref({})
   const opgeslagen = ref({})
   const foutMelding = ref({})
+  const heeftMeerdereRollen = (JSON.parse(localStorage.getItem('user') || '{}').rollen?.length ?? 0) > 1
 
   const scoreOpties = [
     { waarde: 5, label: 'Uitstekend', beschrijving: 'Volledig zelfstandig, geen bijsturing nodig.' },
@@ -202,5 +203,6 @@ export function useDocentEvaluatie(studentId) {
     slaOp,
     toggleEindevaluatie,
     handleLogout,
+    heeftMeerdereRollen,
   }
 }
