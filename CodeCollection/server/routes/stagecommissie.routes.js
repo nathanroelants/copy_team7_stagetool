@@ -314,7 +314,6 @@ if (
   const { error: mentorError } = await supabase
     .from('gebruikers')
     .update({
-      actief: true
     })
     .eq('id', stage.stagementor_id)
 

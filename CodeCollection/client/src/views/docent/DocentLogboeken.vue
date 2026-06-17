@@ -420,6 +420,8 @@ onMounted(async () => {
   transition: background 0.15s;
 }
 
+
+
 .nav-item:hover { background: #f0f7fc; }
 .nav-item.active { background: #29a8e0; color: white; }
 
@@ -436,6 +438,15 @@ onMounted(async () => {
   background: #e5e8ec;
   margin: 0.5rem 0 0.75rem;
 }
+
+.nav-item.disabled {
+  background: transparent;
+  color: #bbb;
+  cursor: not-allowed;
+}
+
+.nav-item.disabled:hover { background: transparent; }
+
 
 .sidebar-footer {
   padding: 1rem 0.75rem;

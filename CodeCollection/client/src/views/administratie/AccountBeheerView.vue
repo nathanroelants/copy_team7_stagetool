@@ -45,21 +45,25 @@
           </select>
         </div>
 
+
         <div v-if="loading" class="status-message">Laden...</div>
         <div v-else-if="fout" class="status-message error">{{ fout }}</div>
 
         <table v-else class="account-table">
-          <thead>
+         <thead>
             <tr>
               <th>Naam</th>
               <th>E-mail</th>
               <th>Rol</th>
               <th>Opleiding</th>
+              <th @click="toggleSortStatus" class="sortable-th">
+                Status <span class="sort-arrow">{{ sortIndicator }}</span>
+              </th>
               <th>Acties</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="g in gefilterd" :key="g.id">
+            <tr v-for="g in gefilterd" :key="g.id" :class="{ 'rij-inactief': !g.actief }">
               <td><strong>{{ g.voornaam }} {{ g.achternaam }}</strong></td>
               <td>{{ g.email }}</td>
               <td>
@@ -71,6 +75,11 @@
                 >{{ rolLabel(r) }}</span>
               </td>
               <td>{{ formatOpleidingen(g.opleidingen) }}</td>
+              <td>
+                <span :class="['status-badge', g.actief ? 'status-actief' : 'status-inactief']">
+                  {{ g.actief ? 'Actief' : 'Inactief' }}
+                </span>
+              </td>
               <td class="acties">
                 <button @click="openModal(g)" class="btn-bewerken">Bewerken</button>
                 <button @click="verwijder(g)" class="btn-verwijderen">Verwijderen</button>
@@ -267,6 +276,24 @@ function rolLabel(rol) {
 function formatOpleidingen(opleidingen) {
   if (!opleidingen || opleidingen.length === 0) return '—'
   return opleidingen.map(o => o.naam).join(', ')
+}
+
+const sortStatus = ref(null) // null | 'actief-eerst' | 'inactief-eerst'
+
+const sortIndicator = computed(() => {
+  if (sortStatus.value === 'actief-eerst') return '▲'
+  if (sortStatus.value === 'inactief-eerst') return '▼'
+  return '⇅'
+})
+
+function toggleSortStatus() {
+  if (sortStatus.value === null) {
+    sortStatus.value = 'actief-eerst'
+  } else if (sortStatus.value === 'actief-eerst') {
+    sortStatus.value = 'inactief-eerst'
+  } else {
+    sortStatus.value = null
+  }
 }
 
 function getOpleidingNaam(id) {
@@ -748,6 +775,30 @@ onMounted(() => {
   border-radius: 5px 5px 0 0;
   font-size: 0.9rem;
   outline: none;
+}
+.status-badge {
+  padding: 0.25rem 0.65rem;
+  border-radius: 5px;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.status-actief {
+  background: #e3f7e8;
+  color: #2e8b3d;
+}
+
+.status-inactief {
+  background: #fdecea;
+  color: #cc0000;
+}
+
+.rij-inactief {
+  opacity: 0.6;
+}
+
+.rij-inactief td strong {
+  text-decoration: line-through;
 }
 
 .dropdown-options {

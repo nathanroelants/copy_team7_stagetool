@@ -84,6 +84,17 @@
                     {{ student.logboek_status || '—' }}
                   </span>
                 </div>
+
+                <!-- stage ondertekenen -->
+                <div class="action-buttons" style="margin-top: 0.75rem;">
+                  <router-link 
+                    :to="`/docent/studenten/${student.id}/ondertekenen`"
+                    class="btn-ondertekenen"
+                    v-if="student.stagevoorstel_status === 'stagevoorstel geaccepteerd'"
+                  >
+                    ✍ Stage ondertekenen
+                  </router-link>
+                </div>
               </div>
             </div>
           </div>
@@ -397,4 +408,33 @@ onMounted(laadStudenten)
 .badge-rood   { background: #f44336; color: #fff; }
 .badge-blauw  { background: #2196f3; color: #fff; }
 .badge-grijs  { background: #aaa;    color: #fff; }
+
+/* Signing button for docent */
+.action-buttons {
+  margin-top: 0.75rem;
+}
+
+.btn-ondertekenen {
+  display: inline-block;
+  background: #29a8e0;
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  text-decoration: none;
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  border: none;
+  cursor: pointer;
+}
+
+.btn-ondertekenen:hover {
+  background: #1a8cbe;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.btn-ondertekenen:active {
+  transform: translateY(0);
+}
 </style>
