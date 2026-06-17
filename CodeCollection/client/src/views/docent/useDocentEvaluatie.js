@@ -29,7 +29,9 @@ export function useDocentEvaluatie(studentId) {
 
   function getBeschrijving(competentie, score) {
     if (!competentie || score === null || score === undefined) return null
-    return competentie[`${Number(score)}punten_beschrijving`] || null
+    const n = Number(score)
+    const tekst = competentie[`beschrijving_${n}`] ?? competentie[`${n}punten_beschrijving`]
+    return tekst && String(tekst).trim() ? tekst : null
   }
 
   function getStudentEvaluatie(competentieId) {
