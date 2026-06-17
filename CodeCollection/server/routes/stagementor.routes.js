@@ -198,6 +198,8 @@ router.get('/student/:studentId/logboek', requireAuth, requireStagementor, async
       )
     `)
     .eq('stage_id', stage.id)
+    .not('status', 'is', null)   // alleen regels die al een status hebben (= ingediend) tonen aan de mentor
+    .neq('status', 'aangemaakt')
     .order('week_nummer', { ascending: true })
     .order('datum_van', { ascending: true });
 
@@ -205,11 +207,15 @@ router.get('/student/:studentId/logboek', requireAuth, requireStagementor, async
 
   const weken = {};
   for (const r of regels || []) {
+    // dubbele check: nooit een regel tonen die niet ingediend is
+    if (!r.status === 'aangemaakt') continue;
+
     if (!weken[r.week_nummer]) {
-      let weekStatus = r.status || 'Ingediend';
+      let weekStatus = r.status;
       if (weekStatus === 'goedgekeurd') weekStatus = 'Goedgekeurd';
       else if (weekStatus === 'afgekeurd') weekStatus = 'Afgekeurd';
-      else if (r.afgetekend) weekStatus = 'Goedgekeurd';
+      else weekStatus = 'Ingediend';
+
       weken[r.week_nummer] = {
         nummer: r.week_nummer,
         status: weekStatus,

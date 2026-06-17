@@ -52,7 +52,7 @@
   <div v-for="week in weken" :key="week.nummer" class="week-kaart">
     <div class="week-header">
       <div class="week-titel">
-        Week {{ week.nummer }}
+        {{ week.nummer === 0 ? 'Voor stageperiode' : `Week ${week.nummer}` }}
         <span class="badge" :class="statusKleur(week.status)">{{ week.status }}</span>
       </div>
       <div class="week-acties">
@@ -287,7 +287,8 @@ async function laadLogboek() {
   loadingLogboek.value = true
   try {
     const res = await fetch(`${API_BASE}/logboek`, { headers: authHeaders() })
-    weken.value = await res.json()
+    const data = await res.json()
+    weken.value = data.sort((a, b) => b.nummer - a.nummer)
   } catch (err) {
     console.error(err)
   } finally {
@@ -418,6 +419,9 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
+  position: sticky;
+  top: 0;            
+  height: 100vh; 
 }
 
 .sidebar-brand {

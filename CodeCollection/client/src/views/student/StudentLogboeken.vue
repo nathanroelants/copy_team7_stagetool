@@ -71,10 +71,10 @@
               >
                 <div class="week-header-left">
                   <span class="week-toggle">{{ week.open ? '▲' : '▼' }}</span>
-                  <span class="card-title">Week {{ week.nummer }} — {{ week.van }} – {{ week.tot }}</span>
+                  <span class="card-title">{{ weekTitel(week) }}</span>
                 </div>
                 <div class="week-header-right">
-                  <span class="uren-pill">{{ totaalUren(week) }}/{{ week.maxUren }}u</span>
+                  <span class="uren-pill">{{ urenLabel(week) }}</span>
                   <span class="badge" :class="statusKleur(week.status)">{{ week.status }}</span>
                 </div>
               </div>
@@ -131,15 +131,19 @@
                   </tbody>
                 </table>
 
-                <div class="week-footer">
-                  <button
-                    class="actie-btn btn-oranje"
-                    :disabled="week.status === 'ingediend' || week.status === 'Afgehandeld' || week.isBezig"
-                    @click="weekIndienen(wi)"
-                  >
-                    {{ week.isBezig ? 'Bezig…' : 'Week indienen' }}
-                  </button>
-                </div>
+               <div class="week-footer">
+  <span v-if="week.status === 'aangemaakt' && !week.magIndienen" class="indien-hint">
+  {{ indienHint(week) }}
+</span>
+  <button
+    v-if="week.status === 'aangemaakt'"
+    class="actie-btn btn-oranje"
+    :disabled="!week.magIndienen || week.isBezig"
+    @click="weekIndienen(wi)"
+  >
+    {{ week.isBezig ? 'Bezig…' : 'Week indienen' }}
+  </button>
+</div>
               </div>
 
             </div>
@@ -154,7 +158,7 @@
       <div class="modal">
         <h3>+ Nieuwe dag toevoegen</h3>
         <label>Datum</label>
-        <input type="date" v-model="dagForm.datum" />
+        <input type="date" v-model="dagForm.datum" :max="vandaagISO" />
         <label>Taak / activiteit</label>
         <input type="text" v-model="dagForm.taak" placeholder="bv. API-integratie klantportaal" />
         <label>Aantal uren</label>
@@ -196,7 +200,7 @@
 </template>
 
 <script>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 
 
@@ -271,7 +275,31 @@ export default {
       datum: '', taak: '', uren: 8, competentieIds: [], reflectie: '', leerpunten: '', isBezig: false,
     })
 
+    const vandaagISO = computed(() => {
+  const d = new Date()
+  const jaar = d.getFullYear()
+  const maand = String(d.getMonth() + 1).padStart(2, '0')
+  const dag = String(d.getDate()).padStart(2, '0')
+  return `${jaar}-${maand}-${dag}`
+})
+
     // ── Laden ────────────────────────────────────────────────────────────────
+    function weekTitel(week) {
+  if (week.voorStageperiode) return 'Voor stageperiode'
+  return `Week ${week.nummer} — ${week.van} – ${week.tot}`
+}
+
+function urenLabel(week) {
+  const totaal = totaalUren(week)
+  return week.maxUren != null ? `${totaal}/${week.maxUren}u` : `${totaal}u`
+}
+
+function indienHint(week) {
+  if (week.voorStageperiode) {
+    return `Indienen kan ten vroegste vanaf de start van je stage, op ${week.vroegsteIndienDatum}`
+  }
+  return `Indienen kan ten vroegste op zaterdag ${week.vroegsteIndienDatum}`
+}
     function handleLogout() {
       localStorage.removeItem('token')
       localStorage.removeItem('user')
@@ -317,7 +345,7 @@ export default {
 
     async function laadWeken() {
       const data = await apiGet(`/api/studentlogboeken/${stageId.value}/weken`)
-      weken.splice(0, weken.length, ...data)
+      weken.splice(0, weken.length, ...data.sort((a, b) => b.nummer - a.nummer))
     }
 
     // ── Dag opslaan ──────────────────────────────────────────────────────────
@@ -330,6 +358,7 @@ export default {
 
     async function slaDagOp() {
       if (!dagForm.datum) { modalFout.value = 'Selecteer een datum.'; return }
+       if (dagForm.datum > vandaagISO.value) { modalFout.value = 'Je kan geen datum in de toekomst selecteren.'; return }
       if (!dagForm.taak)  { modalFout.value = 'Vul een taak in.'; return }
       if (!dagForm.competentieIds.length) { modalFout.value = 'Selecteer minstens één leerdoel (LO).'; return }
 
@@ -384,7 +413,7 @@ export default {
     function statusKleur(s) {
       if (!s) return 'badge-grijs'
       const l = s.toLowerCase()
-      if (l === 'afgehandeld' || l === 'afgetekend') return 'badge-groen'
+      if (l === 'goedgekeurd' || l === 'afgetekend') return 'badge-groen'
       if (l === 'ingediend') return 'badge-geel'
       if (l === 'afgekeurd') return 'badge-rood'
       return 'badge-blauw'
@@ -397,13 +426,14 @@ export default {
       return `${dd}/${mm}/${jaar}`
     }
 
-    return {
-      toonDagModal, isLaden, fout, modalFout,
-      student, weken, dagForm,
-      alleCompetenties, competentiesLaden, competentiesFout,
-      initialen, totaalUren, statusKleur,
-      weekIndienen, openDagModal, slaDagOp, handleLogout, moveToStagevoorstel, moveToEvaluatie
-    }
+return {
+  toonDagModal, isLaden, fout, modalFout,
+  student, weken, dagForm,
+  alleCompetenties, competentiesLaden, competentiesFout,
+  initialen, totaalUren, statusKleur,
+  weekTitel, urenLabel, indienHint,
+  weekIndienen, openDagModal, slaDagOp, handleLogout, moveToStagevoorstel, moveToEvaluatie
+}
   },
 }
 </script>
@@ -838,6 +868,12 @@ html, body, #app {
   margin-top: 1rem;
   padding-top: 0.75rem;
   border-top: 1px solid #f0f0f0;
+}
+.indien-hint {
+  margin-right: auto;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #888;
 }
 
 /* ── Action buttons ── */
