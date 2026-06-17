@@ -236,37 +236,107 @@ router.post('/:stageId/overeenkomst', verifyToken, upload.single('overeenkomst')
   }
 });
 
+
 // ─── GET /:stageId/download-pdf ──────────────────────────────────────────────
 router.get('/:stageId/download-pdf', verifyToken, async (req, res) => {
   const supabase = req.app.get('supabase');
   const { stageId } = req.params;
 
   try {
+    // Eerst de stage ophalen met alle data
     const { data: stage, error: stageError } = await supabase
       .from('stages')
-      .select(`id, status, start_datum, eind_datum, student_id, docent_id, stagementor_id, stagevoorstel_id, stagevoorstellen (*)`)
+      .select(`
+        id, 
+        status, 
+        start_datum, 
+        eind_datum, 
+        student_id, 
+        docent_id, 
+        stagementor_id, 
+        stagevoorstel_id
+      `)
       .eq('id', stageId)
       .single();
 
-    if (stageError || !stage) return res.status(404).json({ error: 'Stage niet gevonden' });
+    if (stageError || !stage) {
+      console.error('Stage niet gevonden:', stageError);
+      return res.status(404).json({ error: 'Stage niet gevonden' });
+    }
 
-    const voorstel = stage.stagevoorstellen;
+    console.log('Stage gevonden:', stage);
+    console.log('Stagevoorstel ID:', stage.stagevoorstel_id);
 
-    const [{ data: student }, { data: mentor }, { data: docent }] = await Promise.all([
-      supabase.from('gebruikers').select('voornaam, achternaam, email, opleiding').eq('id', stage.student_id).single(),
-      supabase.from('gebruikers').select('voornaam, achternaam, email').eq('id', stage.stagementor_id).single(),
-      supabase.from('gebruikers').select('voornaam, achternaam, email').eq('id', stage.docent_id).single(),
-    ]);
+    // Haal het stagevoorstel apart op
+    const { data: voorstel, error: voorstelError } = await supabase
+      .from('stagevoorstellen')
+      .select('*')
+      .eq('id', stage.stagevoorstel_id)
+      .single();
 
+    if (voorstelError) {
+      console.error('Voorstel fetch error:', voorstelError);
+    } else {
+      console.log('Voorstel gevonden:', voorstel);
+    }
+
+    // Haal studentgegevens op
+    const { data: student, error: studentError } = await supabase
+      .from('gebruikers')
+      .select('voornaam, achternaam, email, opleiding')
+      .eq('id', stage.student_id)
+      .single();
+
+    if (studentError) {
+      console.error('Student fetch error:', studentError);
+    } else {
+      console.log('Student gevonden:', student);
+    }
+
+    // Haal mentorgegevens op
+    const { data: mentor, error: mentorError } = await supabase
+      .from('gebruikers')
+      .select('voornaam, achternaam, email')
+      .eq('id', stage.stagementor_id)
+      .single();
+
+    if (mentorError) {
+      console.error('Mentor fetch error:', mentorError);
+    } else {
+      console.log('Mentor gevonden:', mentor);
+    }
+
+    // Haal docentgegevens op (kan null zijn)
+    let docent = null;
+    if (stage.docent_id) {
+      const { data: docentData, error: docentError } = await supabase
+        .from('gebruikers')
+        .select('voornaam, achternaam, email')
+        .eq('id', stage.docent_id)
+        .single();
+
+      if (!docentError) {
+        docent = docentData;
+        console.log('Docent gevonden:', docent);
+      }
+    }
+    
+    // Ondertekeningen check
     const ondertekeningen = {
       student:     voorstel?.student_ondertekend  ? voorstel.student_ondertekend_op  : null,
       docent:      voorstel?.docent_ondertekend   ? voorstel.docent_ondertekend_op   : null,
       stagementor: voorstel?.mentor_ondertekend   ? voorstel.mentor_ondertekend_op   : null,
     };
 
+    // Als er geen voorstel is, gebruik lege waarden
+    const voorstelData = voorstel || {};
+
     const doc = new PDFDocument({ margin: 50, size: 'A4' });
+    
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="stagevoorstel_${stageId}.pdf"`);
+    res.setHeader('Cache-Control', 'no-cache');
+    
     doc.pipe(res);
 
     const blauw = '#29a8e0';
@@ -287,11 +357,15 @@ router.get('/:stageId/download-pdf', verifyToken, async (req, res) => {
 
     // Student info
     let y = 90;
-    doc.fontSize(18).font('Helvetica-Bold').fillColor(donker).text(`${student?.voornaam || ''} ${student?.achternaam || ''}`, 50, y);
+    const studentNaam = `${student?.voornaam || ''} ${student?.achternaam || ''}`.trim() || 'Onbekende student';
+    const studentOpleiding = student?.opleiding || 'Geen opleiding opgegeven';
+    const studentEmail = student?.email || 'Geen e-mail opgegeven';
+    
+    doc.fontSize(18).font('Helvetica-Bold').fillColor(donker).text(studentNaam, 50, y);
     y += 22;
-    doc.fontSize(10).font('Helvetica').fillColor(grijs).text(student?.opleiding || '—', 50, y);
+    doc.fontSize(10).font('Helvetica').fillColor(grijs).text(studentOpleiding, 50, y);
     y += 14;
-    doc.fontSize(10).fillColor(grijs).text(student?.email || '—', 50, y);
+    doc.fontSize(10).fillColor(grijs).text(studentEmail, 50, y);
 
     // Status badge
     doc.roundedRect(doc.page.width - 200, 90, 150, 24, 5).fill(blauw);
@@ -319,25 +393,26 @@ router.get('/:stageId/download-pdf', verifyToken, async (req, res) => {
       if (y > doc.page.height - 80) { doc.addPage(); y = 50; }
       doc.fillColor(grijs).fontSize(8).font('Helvetica-Bold').text(label.toUpperCase(), 58, y);
       y += 12;
-      doc.fillColor(donker).fontSize(10).font('Helvetica').text(waarde || '—', 58, y, { width: doc.page.width - 116 });
-      y += doc.heightOfString(waarde || '—', { width: doc.page.width - 116 }) + 8;
+      const displayValue = waarde || '—';
+      doc.fillColor(donker).fontSize(10).font('Helvetica').text(displayValue, 58, y, { width: doc.page.width - 116 });
+      y += doc.heightOfString(displayValue, { width: doc.page.width - 116 }) + 8;
     };
 
     sectie('Gegevens bedrijf', () => {
-      veld('Bedrijfsnaam', voorstel?.bedrijfsnaam);
+      veld('Bedrijfsnaam', voorstelData.bedrijfsnaam);
       veld('Stagementor', `${mentor?.voornaam || ''} ${mentor?.achternaam || ''}`.trim() || '—');
       veld('E-mail stagementor', mentor?.email);
     });
 
     sectie('Gegevens student', () => {
-      veld('Naam', `${student?.voornaam || ''} ${student?.achternaam || ''}`.trim());
-      veld('E-mail', student?.email);
-      veld('Opleiding', student?.opleiding);
+      veld('Naam', `${student?.voornaam || ''} ${student?.achternaam || ''}`.trim() || '—');
+      veld('E-mail', student?.email || '—');
+      veld('Opleiding', student?.opleiding || '—');
     });
 
     sectie('Gegevens docent', () => {
       veld('Naam', docent ? `${docent.voornaam} ${docent.achternaam}` : '—');
-      veld('E-mail', docent?.email);
+      veld('E-mail', docent?.email || '—');
     });
 
     sectie('Stageperiode', () => {
@@ -347,26 +422,26 @@ router.get('/:stageId/download-pdf', verifyToken, async (req, res) => {
     });
 
     sectie('Adres', () => {
-      veld('Straat', `${voorstel?.straat || '—'} ${voorstel?.huisnummer || ''}`.trim());
-      veld('Gemeente', voorstel?.gemeente);
-      veld('Land', voorstel?.land);
+      veld('Straat', `${voorstelData.straat || '—'} ${voorstelData.huisnummer || ''}`.trim());
+      veld('Gemeente', voorstelData.gemeente || '—');
+      veld('Land', voorstelData.land || '—');
     });
 
     sectie('Beschrijving stageopdracht', () => {
       if (y > doc.page.height - 80) { doc.addPage(); y = 50; }
-      const tekst = voorstel?.beschrijving || 'Geen beschrijving opgegeven.';
+      const tekst = voorstelData.beschrijving || 'Geen beschrijving opgegeven.';
       doc.fillColor(donker).fontSize(10).font('Helvetica').text(tekst, 58, y, { width: doc.page.width - 116, align: 'justify' });
       y += doc.heightOfString(tekst, { width: doc.page.width - 116 }) + 4;
     });
 
     sectie('Competenties', () => {
-      veld('Technische skills', parseTags(voorstel?.technische_skills).join(', ') || '—');
-      veld('Tools', parseTags(voorstel?.tools).join(', ') || '—');
+      veld('Technische skills', parseTags(voorstelData.technische_skills).join(', ') || '—');
+      veld('Tools', parseTags(voorstelData.tools).join(', ') || '—');
     });
 
     sectie('Ondertekeningsstatus', () => {
       const partijen = [
-        { rol: 'Student',     naam: `${student?.voornaam || ''} ${student?.achternaam || ''}`.trim(), ts: ondertekeningen.student },
+        { rol: 'Student',     naam: `${student?.voornaam || ''} ${student?.achternaam || ''}`.trim() || '—', ts: ondertekeningen.student },
         { rol: 'Docent',      naam: docent  ? `${docent.voornaam} ${docent.achternaam}`   : '—', ts: ondertekeningen.docent },
         { rol: 'Stagementor', naam: mentor  ? `${mentor.voornaam} ${mentor.achternaam}`   : '—', ts: ondertekeningen.stagementor },
       ];
@@ -391,10 +466,11 @@ router.get('/:stageId/download-pdf', verifyToken, async (req, res) => {
 
   } catch (err) {
     console.error('PDF generatie fout:', err);
-    if (!res.headersSent) res.status(500).json({ error: 'PDF kon niet worden gegenereerd: ' + err.message });
+    if (!res.headersSent) {
+      res.status(500).json({ error: 'PDF kon niet worden gegenereerd: ' + err.message });
+    }
   }
 });
-
 
 // POST /api/stagevoorstellen
 router.post('/', verifyToken, async (req, res) => {

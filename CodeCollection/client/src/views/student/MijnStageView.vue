@@ -244,7 +244,7 @@
               </div>
 
               <!-- Voeg dit toe NA de laatste info-grid (werkadres), VOOR de feedback/actions divs -->
-              <div v-if="stage.status === 'stagevoorstel geaccepteerd'" class="actions" style="margin-top: 1.5rem;">
+              <div v-if="stage.status === 'stagevoorstel geaccepteerd'" class="actions" style="margin-top: 1.5rem; justify-content: flex-start;">
                 <router-link
                 :to="`/student/stages/${stage.id}/ondertekenen`"
                 class="btn-submit"
