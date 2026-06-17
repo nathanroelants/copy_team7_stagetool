@@ -145,4 +145,55 @@ router.post('/evaluaties', requireAuth, requireStudent, async (req, res) => {
   res.json(result);
 });
 
+// GET /api/student/documenten
+router.get('/documenten', requireAuth, requireStudent, async (req, res) => {
+  const supabase = req.app.get('supabase');
+  const studentId = req.user.id;
+
+  const { data: stage, error: stageError } = await supabase
+    .from('stages')
+    .select('id, stagevoorstel_id')
+    .eq('student_id', studentId)
+    .single();
+
+  if (stageError || !stage) {
+    return res.status(404).json({ error: 'Geen stage gevonden' });
+  }
+
+  const docs = [];
+
+  const { data: voorstel } = await supabase
+    .from('stagevoorstellen')
+    .select('id, bedrijfsnaam, indieningsdatum, ondertekend')
+    .eq('id', stage.stagevoorstel_id)
+    .maybeSingle();
+
+  if (voorstel) {
+    docs.push({
+      type: 'stagevoorstel',
+      naam: `Stagevoorstel - ${voorstel.bedrijfsnaam || 'onbekend bedrijf'}`,
+      datum: voorstel.indieningsdatum,
+      beschikbaar: true,
+      meta: voorstel.ondertekend ? 'Ondertekend' : 'Niet ondertekend'
+    });
+  }
+
+  const { data: eindEval } = await supabase
+    .from('evaluaties')
+    .select('id, score, aangemaakt_op')
+    .eq('stage_id', stage.id)
+    .eq('type', 'eind')
+    .maybeSingle();
+
+  docs.push({
+    type: 'eindevaluatie',
+    naam: 'Eindevaluatie',
+    datum: eindEval?.aangemaakt_op ?? null,
+    beschikbaar: !!eindEval,
+    meta: eindEval ? `Score: ${eindEval.score ?? '—'}` : 'Nog niet beschikbaar'
+  });
+
+  res.json(docs);
+});
+
 export default router;
