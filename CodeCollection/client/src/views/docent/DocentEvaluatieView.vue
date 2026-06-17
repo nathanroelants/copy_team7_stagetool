@@ -7,7 +7,7 @@
       </div>
 
       <nav class="sidebar-nav">
-        <button class="nav-item" @click="router.push('/docent/logboeken')">Logboek</button>
+        <button class="nav-item" @click="router.push(`/docent/logboeken/${route.params.studentId}`)">Logboek</button>
         <button class="nav-item disabled" disabled>Stagevoorstel</button>
         <button class="nav-item active">Evaluatie</button>
         <button class="nav-item disabled" disabled>Documenten</button>
@@ -208,7 +208,7 @@ html, body, #app {
   transition: background 0.15s;
 }
 
-.nav-item:hover {
+.nav-item:hover:not(.active):not(.disabled) {
   background: #e0f0fb;
   color: #1a7ab5;
 }
@@ -219,8 +219,7 @@ html, body, #app {
 }
 
 .nav-item.disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
+  cursor: default;
 }
 
 .sidebar-footer {

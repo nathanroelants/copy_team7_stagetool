@@ -46,8 +46,8 @@ export function useDocentEvaluatie(studentId) {
     try {
       const token = localStorage.getItem('token')
       const [compRes, evalRes] = await Promise.all([
-        fetch('/api/docent/competenties', { headers: { Authorization: `Bearer ${token}` } }),
-        fetch(`/api/docent/evaluaties/${studentId}`, { headers: { Authorization: `Bearer ${token}` } }),
+        fetch('/api/docent/competenties', { cache: 'no-store', headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`/api/docent/evaluaties/${studentId}`, { cache: 'no-store', headers: { Authorization: `Bearer ${token}` } }),
       ])
       const compData = await compRes.json()
       const evalData = await evalRes.json()
