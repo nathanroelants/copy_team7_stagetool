@@ -20,6 +20,7 @@
       </nav>
 
       <div class="sidebar-footer">
+        <button v-if="heeftMeerdereRollen" class="nav-item wissel-rol-btn" @click="router.push('/kies-rol')">Wissel rol</button>
         <button class="logout-btn" @click="uitloggen">Uitloggen</button>
       </div>
     </aside>
@@ -394,6 +395,8 @@ function openDocument(doc) {
   if (doc.type === 'eindevaluatie') pagina.value = 'evaluatie'
 }
 
+const heeftMeerdereRollen = (JSON.parse(localStorage.getItem('user') || '{}').rollen?.length ?? 0) > 1
+
 function uitloggen() {
   localStorage.removeItem('token')
   localStorage.removeItem('user')
@@ -494,6 +497,7 @@ onMounted(async () => {
 }
 
 .logout-btn:hover { background: #ffdada; }
+.wissel-rol-btn { background: white; color: #29a8e0; border: 1px solid #29a8e0; margin-bottom: 0.5rem; }
 
 .main-content {
   flex: 1;

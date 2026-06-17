@@ -120,7 +120,12 @@ async function handleLogin() {
     localStorage.setItem('token', data.token)
     localStorage.setItem('user', JSON.stringify(data.user))
 
-    redirectByRol(data.user.rol)
+    const rollen = data.user.rollen || [data.user.rol]
+    if (rollen.length > 1) {
+      router.push('/kies-rol')
+    } else {
+      redirectByRol(rollen[0])
+    }
 
   } catch (err) {
     errorMessage.value = err.message || 'Login mislukt. Probeer opnieuw.'

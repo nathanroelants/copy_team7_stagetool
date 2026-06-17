@@ -23,7 +23,8 @@ function requireAuth(req, res, next) {
 }
 
 function requireDocent(req, res, next) {
-  if (req.user.rol !== 'stagecommissie') {
+  const rollen = req.user.rollen || (req.user.rol ? [req.user.rol] : []);
+  if (!rollen.includes('stagecommissie')) {
     return res.status(403).json({ error: 'Geen toegang' });
   }
   next();

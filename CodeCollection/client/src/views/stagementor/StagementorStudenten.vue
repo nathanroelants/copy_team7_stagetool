@@ -12,6 +12,7 @@
       </nav>
 
       <div class="sidebar-footer">
+        <button v-if="heeftMeerdereRollen" class="nav-item wissel-rol-btn" @click="router.push('/kies-rol')">Wissel rol</button>
         <button class="logout-btn" @click="handleLogout">Uitloggen</button>
       </div>
     </aside>
@@ -99,6 +100,7 @@ const fout = ref('')
 
 const user = JSON.parse(localStorage.getItem('user') || '{}')
 const gebruikerNaam = `${user.voornaam || ''} ${user.naam || ''}`.trim() || user.email || 'Stagementor'
+const heeftMeerdereRollen = (user.rollen?.length ?? 0) > 1
 
 function badgeKlasse(status) {
   if (!status) return 'badge-grijs'
@@ -230,6 +232,7 @@ onMounted(laadStudenten)
 }
 
 .logout-btn:hover { background: #ffdada; }
+.wissel-rol-btn { background: white; color: #29a8e0; border: 1px solid #29a8e0; margin-bottom: 0.5rem; }
 
 /* ── Main ── */
 .main-content {

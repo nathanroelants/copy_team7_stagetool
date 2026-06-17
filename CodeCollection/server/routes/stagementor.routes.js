@@ -19,11 +19,13 @@ function requireAuth(req, res, next) {
 }
 
 function requireStagementor(req, res, next) {
-  if (req.user.rol !== 'stagementor') {
+  const rollen = req.user.rollen || (req.user.rol ? [req.user.rol] : []);
+  if (!rollen.includes('stagementor')) {
     return res.status(403).json({ error: 'Geen toegang' });
   }
   next();
 }
+
 
 // Helper: haalt de stage op die bij deze mentor + student hoort
 async function getStageVoorMentor(supabase, studentId, mentorId) {
