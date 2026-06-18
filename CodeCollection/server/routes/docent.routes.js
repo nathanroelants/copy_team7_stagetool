@@ -1,5 +1,6 @@
 import express from 'express';
 import jwt from 'jsonwebtoken';
+import PDFDocument from 'pdfkit';
 
 const router = express.Router();
 console.log('Docent routes geladen');
@@ -333,4 +334,191 @@ router.get('/student/:studentId/documenten', requireAuth, requireDocent, async (
   res.json(docs);
 });
 
+// ── POST /api/docent/student/:studentId/eindevaluatie/genereer ──────────────
+router.post('/student/:studentId/eindevaluatie/genereer', requireAuth, requireDocent, async (req, res) => {
+  const supabase = req.app.get('supabase');
+  const studentId = req.params.studentId;
+  const docentId = req.user.id;
+
+  const stage = await getStageVoorDocent(supabase, studentId, docentId);
+  if (!stage) return res.status(404).json({ error: 'Stage niet gevonden' });
+
+  try {
+    const { data: student } = await supabase
+      .from('gebruikers')
+      .select('voornaam, achternaam, email')
+      .eq('id', studentId)
+      .single();
+
+    const { data: opleiding } = await supabase
+      .from('opleidingen')
+      .select('naam')
+      .eq('gebruiker_id', studentId)
+      .maybeSingle();
+
+    const { data: voorstel } = await supabase
+      .from('stagevoorstellen')
+      .select('bedrijfsnaam')
+      .eq('id', stage.stagevoorstel_id)
+      .maybeSingle();
+
+    const { data: docent } = await supabase
+      .from('gebruikers')
+      .select('voornaam, achternaam')
+      .eq('id', docentId)
+      .single();
+
+    const { data: stagementor } = await supabase
+      .from('gebruikers')
+      .select('voornaam, achternaam')
+      .eq('id', stage.stagementor_id)
+      .maybeSingle();
+
+    const { data: evaluaties } = await supabase
+      .from('evaluaties')
+      .select(`
+        id, type, score, feedback, aangemaakt_op,
+        competenties ( naam ),
+        beoordelaar:gebruikers!beoordelaar_id ( voornaam, achternaam )
+      `)
+      .eq('stage_id', stage.id)
+      .order('type', { ascending: true })
+      .order('aangemaakt_op', { ascending: true });
+
+    const pdfBuffer = await genereerEindevaluatiePdf({
+      student, opleiding, voorstel, docent, stagementor, stage, evaluaties: evaluaties || []
+    });
+
+    const path = `Eindevaluatie/eindevaluatie_stage_${stage.id}.pdf`;
+    const { error: uploadError } = await supabase.storage
+      .from('stagebestanden')
+      .upload(path, pdfBuffer, {
+        contentType: 'application/pdf',
+        upsert: true
+      });
+
+    if (uploadError) {
+      console.error('Upload fout:', uploadError);
+      return res.status(500).json({ error: 'Fout bij opslaan PDF: ' + uploadError.message });
+    }
+
+    res.json({ success: true, path });
+  } catch (err) {
+    console.error('Fout bij genereren PDF:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── GET /api/docent/student/:studentId/eindevaluatie/download ────────────────
+router.get('/student/:studentId/eindevaluatie/download', requireAuth, requireDocent, async (req, res) => {
+  const supabase = req.app.get('supabase');
+  const studentId = req.params.studentId;
+  const docentId = req.user.id;
+
+  const stage = await getStageVoorDocent(supabase, studentId, docentId);
+  if (!stage) return res.status(404).json({ error: 'Stage niet gevonden' });
+
+  const path = `Eindevaluatie/eindevaluatie_stage_${stage.id}.pdf`;
+  const { data, error } = await supabase.storage
+    .from('stagebestanden')
+    .createSignedUrl(path, 3600);
+
+  if (error || !data?.signedUrl) {
+    return res.status(404).json({ error: 'PDF nog niet beschikbaar. Genereer eerst de eindevaluatie.' });
+  }
+
+  res.json({ url: data.signedUrl });
+});
+
+// Helper voor PDF generatie
+async function genereerEindevaluatiePdf({ student, opleiding, voorstel, docent, stagementor, stage, evaluaties }) {
+  return new Promise((resolve, reject) => {
+    try {
+      const doc = new PDFDocument({ size: 'A4', margin: 50 });
+      const chunks = [];
+
+      doc.on('data', chunk => chunks.push(chunk));
+      doc.on('end', () => resolve(Buffer.concat(chunks)));
+      doc.on('error', reject);
+
+      doc.fontSize(20).fillColor('#29a8e0').text('STAGE.BE — Eindevaluatie', { align: 'center' });
+      doc.fontSize(10).fillColor('#666').text('Erasmushogeschool Brussel', { align: 'center' });
+      doc.moveDown(2);
+
+      doc.fontSize(13).fillColor('#111').text('Studentgegevens', { underline: true });
+      doc.moveDown(0.5);
+      doc.fontSize(11).fillColor('#222');
+      doc.text(`Naam: ${student?.voornaam ?? ''} ${student?.achternaam ?? ''}`);
+      doc.text(`E-mail: ${student?.email ?? '—'}`);
+      doc.text(`Opleiding: ${opleiding?.naam ?? '—'}`);
+      doc.moveDown();
+
+      doc.fontSize(13).fillColor('#111').text('Stagegegevens', { underline: true });
+      doc.moveDown(0.5);
+      doc.fontSize(11).fillColor('#222');
+      doc.text(`Bedrijf: ${voorstel?.bedrijfsnaam ?? '—'}`);
+      doc.text(`Periode: ${formatDate(stage.start_datum)} — ${formatDate(stage.eind_datum)}`);
+      doc.text(`Docent: ${docent?.voornaam ?? ''} ${docent?.achternaam ?? ''}`);
+      doc.text(`Stagementor: ${stagementor?.voornaam ?? '—'} ${stagementor?.achternaam ?? ''}`);
+      doc.moveDown();
+
+      const eindEvals = evaluaties.filter(e => (e.type || '').toLowerCase() === 'eind');
+      const tussenEvals = evaluaties.filter(e => (e.type || '').toLowerCase() === 'tussentijds');
+
+      if (tussenEvals.length > 0) {
+        doc.fontSize(13).fillColor('#111').text('Tussentijdse evaluaties', { underline: true });
+        doc.moveDown(0.5);
+        renderEvaluatieTabel(doc, tussenEvals);
+        doc.moveDown();
+      }
+
+      if (eindEvals.length > 0) {
+        doc.fontSize(13).fillColor('#111').text('Eindevaluaties', { underline: true });
+        doc.moveDown(0.5);
+        renderEvaluatieTabel(doc, eindEvals);
+        doc.moveDown();
+
+        const totaal = eindEvals.reduce((s, e) => s + Number(e.score || 0), 0);
+        const gemiddelde = (totaal / eindEvals.length).toFixed(2);
+        doc.fontSize(12).fillColor('#111').text(`Gemiddelde eindscore: ${gemiddelde} / 5`, { align: 'right' });
+        doc.moveDown();
+      } else {
+        doc.fontSize(11).fillColor('#888').text('Geen eindevaluaties beschikbaar.');
+        doc.moveDown();
+      }
+
+      doc.moveDown(2);
+      doc.fontSize(9).fillColor('#888').text(
+        `Gegenereerd op ${new Date().toLocaleDateString('nl-BE', { day: '2-digit', month: '2-digit', year: 'numeric' })}`,
+        { align: 'center' }
+      );
+
+      doc.end();
+    } catch (err) {
+      reject(err);
+    }
+  });
+}
+
+function renderEvaluatieTabel(doc, evaluaties) {
+  doc.fontSize(10).fillColor('#222');
+  evaluaties.forEach(ev => {
+    const comp = ev.competenties?.naam ?? '—';
+    const score = ev.score != null ? ev.score : '—';
+    const beoord = ev.beoordelaar
+      ? `${ev.beoordelaar.voornaam} ${ev.beoordelaar.achternaam}`.trim()
+      : '—';
+    const feedback = ev.feedback || '—';
+
+    doc.font('Helvetica-Bold').text(`${comp}  —  Score: ${score}/5`);
+    doc.font('Helvetica').fontSize(9).fillColor('#555').text(`Beoordeeld door: ${beoord}`);
+    doc.fontSize(10).fillColor('#222').text(feedback, { width: 500 });
+    doc.moveDown(0.6);
+  });
+}
+
+function formatDate(d) {
+  if (!d) return '—';
+  return new Date(d).toLocaleDateString('nl-BE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
 export default router;

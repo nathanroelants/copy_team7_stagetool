@@ -973,6 +973,37 @@ router.delete('/:id', verifyToken, async (req, res) => {
   res.json({ success: true });
 });
 
+// ─── GET /api/stagevoorstellen/:stageId/eindevaluatie/download ───────────────
+router.get('/:stageId/eindevaluatie/download', verifyToken, async (req, res) => {
+  const supabase = req.app.get('supabase');
+  const { stageId } = req.params;
+
+  // Verifica que esta stage pertence ao student logado
+  const { data: stage, error } = await supabase
+    .from('stages')
+    .select('id, student_id')
+    .eq('id', stageId)
+    .single();
+
+  if (error || !stage) {
+    return res.status(404).json({ error: 'Stage niet gevonden' });
+  }
+
+  if (stage.student_id !== req.user.id) {
+    return res.status(403).json({ error: 'Geen toegang' });
+  }
+
+  const path = `Eindevaluatie/eindevaluatie_stage_${stage.id}.pdf`;
+  const { data, error: storageError } = await supabase.storage
+    .from('stagebestanden')
+    .createSignedUrl(path, 3600);
+
+  if (storageError || !data?.signedUrl) {
+    return res.status(404).json({ error: 'PDF nog niet beschikbaar. De docent moet eerst de eindevaluatie genereren.' });
+  }
+
+  res.json({ url: data.signedUrl });
+});
 
 
 export default router;
