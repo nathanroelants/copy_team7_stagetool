@@ -89,7 +89,7 @@
                 :class="{ geselecteerd: Number(getEvaluatie(competentie.id)?.score) === optie.waarde }"
                 @click="huidigeBewerkbaar && !opgeslagen[`${competentie.id}_${actieveTab}`] && setScore(competentie.id, optie.waarde)"
               >
-                <p class="optie-beschrijving">{{ optie.beschrijving }}</p>
+                <p class="optie-beschrijving">{{ getBeschrijving(competentie, optie.waarde) || optie.beschrijving }}</p>
                 <input
                   type="radio"
                   :name="'score-' + competentie.id"
@@ -160,6 +160,7 @@ const {
   opgeslagen,
   foutMelding,
   scoreOpties,
+  getBeschrijving,
   toggleCompetentie,
   getEvaluatie,
   getMentorEvaluatie,
