@@ -44,13 +44,14 @@
         </div>
 
         <div v-else class="student-list">
-          <div
-            v-for="student in studenten"
-            @click="$router.push(`/docent/logboeken/${student.id}`)"
-            style="cursor: pointer;"
-            :key="student.id"
-            class="student-card"
-          >
+<div
+  v-for="student in studenten"
+  :key="student.id"
+  class="student-card"
+  :class="{ disabled: !student.docent_ondertekend }"
+  @click="openStudent(student)"
+  style="cursor: pointer;"
+>
             <div class="student-avatar">
               <div class="avatar-circle">
                 {{ initialen(student.voornaam, student.achternaam) }}
@@ -84,18 +85,22 @@
                     {{ student.logboek_status || '—' }}
                   </span>
                 </div>
-
-                <!-- stage ondertekenen -->
-                <div class="action-buttons" style="margin-top: 0.75rem;">
-                  <router-link 
-                    :to="`/docent/studenten/${student.stage_id}/ondertekenen`"
-                    class="btn-ondertekenen"
-                    v-if="student.stagevoorstel_status === 'stagevoorstel geaccepteerd'"
-                  >
-                    ✍ Stage ondertekenen
-                  </router-link>
-                </div>
               </div>
+                        <div
+            v-if="
+              student.stagevoorstel_status === 'stagevoorstel geaccepteerd' &&
+              !student.docent_ondertekend
+            "
+            class="action-buttons"
+          >
+        <router-link
+          :to="`/docent/studenten/${student.stage_id}/ondertekenen`"
+          class="btn-ondertekenen"
+          @click.stop
+        >
+          Stageovereenkomst ondertekenen
+        </router-link>
+      </div>
             </div>
           </div>
         </div>
@@ -160,6 +165,11 @@ function handleLogout() {
   localStorage.removeItem('token')
   localStorage.removeItem('user')
   router.push('/')
+}
+function openStudent(student) {
+  if (!student.docent_ondertekend) return
+
+  router.push(`/docent/logboeken/${student.id}`)
 }
 
 onMounted(laadStudenten)
@@ -437,4 +447,27 @@ onMounted(laadStudenten)
 .btn-ondertekenen:active {
   transform: translateY(0);
 }
+
+.student-card.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.student-card.disabled:hover {
+  cursor:none;
+}
+
+
+
+.btn-ondertekenen:hover {
+  background: #092ad2;
+}
+
+.student-card.disabled .btn-ondertekenen:hover {
+  opacity: 0.6;
+}
+.student-card.disabled .btn-ondertekenen {
+  background: #1100ff;
+  opacity: 1;
+}
+
 </style>
