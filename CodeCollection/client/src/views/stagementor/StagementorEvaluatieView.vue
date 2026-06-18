@@ -140,8 +140,7 @@
                 </div>
               </div>
             </div>
-          </div>
-        </template>
+           </template>
 
       </section>
     </main>
