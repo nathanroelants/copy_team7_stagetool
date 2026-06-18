@@ -408,7 +408,7 @@ const ondertekeningen = ref({ student: null, docent: null, stagementor: null })
 const { loading: ondertekeningLoading, fout: foutOndertekening, onderteken } = UseOndertekening(props.rol)
 
 const user = JSON.parse(localStorage.getItem('user') || '{}')
-const gebruikerNaam = `${user.voornaam || ''} ${user.naam || ''}`.trim() || user.email || 'Gebruiker'
+const gebruikerNaam = `${user.voornaam || ''} ${user.achternaam || ''}`.trim() || user.email || 'Gebruiker'
 const token = localStorage.getItem('token')
 
 // ── NIEUW: overeenkomst state ──
