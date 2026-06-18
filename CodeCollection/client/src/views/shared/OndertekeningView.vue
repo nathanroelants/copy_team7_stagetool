@@ -671,10 +671,21 @@ async function handleOndertekenen() {
 async function downloadStagevoorstelPDF() {
   try {
     const stageId = route.params.stageId
+    console.log('stageId:', stageId)
+    console.log('token:', token)
+    
     const res = await fetch(`/api/stagevoorstellen/${stageId}/download-pdf`, {
       headers: { Authorization: `Bearer ${token}` },
     })
-    if (!res.ok) throw new Error('Download mislukt.')
+    
+    console.log('status:', res.status)
+    console.log('content-type:', res.headers.get('content-type'))
+    
+    if (!res.ok) {
+      const fout = await res.text()
+      console.error('Fout response:', fout)
+      throw new Error('Download mislukt: ' + fout)
+    }
     const blob = await res.blob()
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -683,6 +694,7 @@ async function downloadStagevoorstelPDF() {
     a.click()
     URL.revokeObjectURL(url)
   } catch (err) {
+    console.error('PDF fout:', err)
     alert(err.message)
   }
 }

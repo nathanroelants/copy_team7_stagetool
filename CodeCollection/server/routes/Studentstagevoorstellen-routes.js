@@ -76,7 +76,7 @@ router.get('/:stageId/detail', verifyToken, async (req, res) => {
 
   const { data: student } = await supabase
     .from('gebruikers')
-    .select('voornaam, achternaam, email, opleiding')
+    .select('voornaam, achternaam, email, opleiding_id')
     .eq('id', stage.student_id)
     .single();
 
@@ -149,7 +149,6 @@ router.get('/:stageId/overeenkomst/download', verifyToken, async (req, res) => {
   res.send(buffer);
 });
 
-// ─── POST /:stageId/overeenkomst (upload) ────────────────────────────────────
 // ─── POST /:stageId/overeenkomst (upload) ────────────────────────────────────
 router.post('/:stageId/overeenkomst', verifyToken, upload.single('overeenkomst'), async (req, res) => {
   const supabase = req.app.get('supabase');
@@ -315,7 +314,7 @@ router.get('/:stageId/download-pdf', verifyToken, async (req, res) => {
     // Haal studentgegevens op
     const { data: student, error: studentError } = await supabase
       .from('gebruikers')
-      .select('voornaam, achternaam, email, opleiding')
+      .select('voornaam, achternaam, email, opleiding_id')
       .eq('id', stage.student_id)
       .single();
 
@@ -390,7 +389,7 @@ router.get('/:stageId/download-pdf', verifyToken, async (req, res) => {
     // Student info
     let y = 90;
     const studentNaam = `${student?.voornaam || ''} ${student?.achternaam || ''}`.trim() || 'Onbekende student';
-    const studentOpleiding = student?.opleiding || 'Geen opleiding opgegeven';
+    const studentOpleiding = student?.opleiding_id || 'Geen opleiding opgegeven';
     const studentEmail = student?.email || 'Geen e-mail opgegeven';
     
     doc.fontSize(18).font('Helvetica-Bold').fillColor(donker).text(studentNaam, 50, y);
@@ -439,7 +438,7 @@ router.get('/:stageId/download-pdf', verifyToken, async (req, res) => {
     sectie('Gegevens student', () => {
       veld('Naam', `${student?.voornaam || ''} ${student?.achternaam || ''}`.trim() || '—');
       veld('E-mail', student?.email || '—');
-      veld('Opleiding', student?.opleiding || '—');
+      veld('Opleiding', student?.opleiding_id || '—');
     });
 
     sectie('Gegevens docent', () => {
@@ -503,6 +502,8 @@ router.get('/:stageId/download-pdf', verifyToken, async (req, res) => {
     doc.moveTo(50, footerYPos - 8).lineTo(doc.page.width - 50, footerYPos - 8).strokeColor(lichtgrijs).lineWidth(0.5).stroke();
     doc.fillColor(grijs).fontSize(8).font('Helvetica')
        .text(`Gegenereerd op ${formatDatum(new Date().toISOString())} via STAGE.BE`, 50, footerYPos, { align: 'center', width: doc.page.width - 100 });
+
+       doc.end();
 
   } catch (err) {
     console.error('PDF generatie fout:', err);
