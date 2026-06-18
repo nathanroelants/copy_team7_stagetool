@@ -1,10 +1,10 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 
-export function useStagementorEvaluatie() {
+export function useStudentEvaluatie() {
   const router = useRouter()
   const user = JSON.parse(localStorage.getItem('user') || '{}')
-  const gebruikerNaam = `${user.voornaam || ''} ${user.achternaam || ''}`.trim() || user.email || 'Stagementor'
+  const gebruikerNaam = `${user.voornaam || ''} ${user.achternaam || ''}`.trim() || user.email || 'Student'
 
   // Huidige fase vanuit de backend
   const evaluatieStatus = ref('geen') // 'geen' | 'tussentijds' | 'tussentijdse_afgelopen' | 'eindevaluatie' | 'stage_afgelopen'
@@ -53,17 +53,17 @@ export function useStagementorEvaluatie() {
   function getEvaluatie(competentieId) {
     return evaluaties.value.find(
       e => e.competentie_id === competentieId &&
-           e.beoordelaar_id === user.id &&
-           e.type === actieveTab.value
+        e.beoordelaar_id === user.id &&
+        e.type === actieveTab.value
     )
   }
 
   function getMentorEvaluatie(competentieId) {
     return evaluaties.value.find(
       e => e.competentie_id === competentieId &&
-           e.beoordelaar_id !== user.id &&
-           e.type === actieveTab.value &&
-           e.zichtbaar_voor_student
+        e.beoordelaar_id !== user.id &&
+        e.type === actieveTab.value &&
+        e.zichtbaar_voor_student
     )
   }
 
@@ -115,7 +115,7 @@ export function useStagementorEvaluatie() {
 
     try {
       const token = localStorage.getItem('token')
-      const response = await fetch('/api/stagementor/evaluaties', {
+      const response = await fetch('/api/student/evaluaties', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -144,8 +144,8 @@ export function useStagementorEvaluatie() {
     try {
       const token = localStorage.getItem('token')
       const [compRes, evalRes] = await Promise.all([
-        fetch('/api/stagementor/competenties', { headers: { Authorization: `Bearer ${token}` } }),
-        fetch('/api/stagementor/evaluaties', { headers: { Authorization: `Bearer ${token}` } }),
+        fetch('/api/student/competenties', { headers: { Authorization: `Bearer ${token}` } }),
+        fetch('/api/student/evaluaties', { headers: { Authorization: `Bearer ${token}` } }),
       ])
       const compData = await compRes.json()
       const evalData = await evalRes.json()

@@ -5,6 +5,7 @@
     <aside class="sidebar">
       <div class="sidebar-brand">
         <span class="brand-text">STAGE.BE</span>
+
       </div>
 
       <nav class="sidebar-nav">
@@ -12,6 +13,7 @@
       </nav>
 
       <div class="sidebar-footer">
+        <button v-if="heeftMeerdereRollen" class="nav-item wissel-rol-btn" @click="router.push('/kies-rol')">Wissel rol</button>
         <button class="logout-btn" @click="handleLogout">Uitloggen</button>
       </div>
     </aside>
@@ -22,31 +24,26 @@
       <!-- Top bar -->
       <header class="topbar">
         <div class="topbar-user">{{ gebruikerNaam }}</div>
-        <NotificationBell :stagecommissieId="stagecommissieId" />
         <img src="../../assets/erasmus-logo.png" alt="Erasmus Hogeschool Brussel" class="topbar-logo" />
       </header>
 
       <!-- Student list -->
       <section class="content-area">
         <div class="section-header">
-          <h2>Mijn studenten</h2>
-          <p class="subtitle" v-if="!loading && !fout">
-            {{ studenten.length }} studenten zijn momenteel toegewezen aan jou dit semester
-          </p>
+          <h2>Actieve studenten</h2>
         </div>
 
         <div v-if="loading" class="status-message">Studenten laden...</div>
         <div v-else-if="fout" class="status-message error"> {{ fout }}</div>
 
-        <div v-else-if="studenten.length === 0" class="status-message">
-          Geen studenten toegewezen dit semester.
-        </div>
 
         <div v-else class="student-list">
           <div
             v-for="student in studenten"
             :key="student.id"
             class="student-card"
+            @click="$router.push(`/stagecommissie/studenten/${student.id}/voorstel`)"
+            style="cursor: pointer;"
           >
             <div class="student-avatar">
               <div class="avatar-circle">
@@ -61,10 +58,10 @@
               </div>
               <div class="student-meta">
                 <span class="meta-item">
-                  📅 {{ formatDatum(student.start_datum) }} → {{ formatDatum(student.eind_datum) }}
+                  {{ formatDatum(student.start_datum) }} → {{ formatDatum(student.eind_datum) }}
                 </span>
                 <span class="meta-item" v-if="student.mentor_naam">
-                  🏢 Stagementor: {{ student.mentor_naam }}
+                  Stagementor: {{ student.mentor_naam }}
                 </span>
               </div>
 
@@ -73,12 +70,6 @@
                   <span class="badge-label">Stagevoorstel</span>
                   <span :class="['badge', badgeKlasse(student.stagevoorstel_status)]">
                     {{ student.stagevoorstel_status || '—' }}
-                  </span>
-                </div>
-                <div class="badge-group">
-                  <span class="badge-label">Logboek</span>
-                  <span :class="['badge', badgeKlasse(student.logboek_status)]">
-                    {{ student.logboek_status || '—' }}
                   </span>
                 </div>
               </div>
@@ -93,7 +84,6 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import NotificationBell from '../../components/NotificationBell.vue'
 
 const router = useRouter()
 
@@ -102,17 +92,17 @@ const loading = ref(true)
 const fout = ref('')
 
 const user = JSON.parse(localStorage.getItem('user') || '{}')
-const gebruikerNaam = `${user.voornaam || ''} ${user.naam || ''}`.trim() || user.email || 'Stagecommissie'
-const stagecommissieId = user._id || user.id || ''
+const gebruikerNaam = `${user.voornaam || ''} ${user.naam || ''}`.trim() || user.email || 'Docent'
+const heeftMeerdereRollen = (user.rollen?.length ?? 0) > 1
 
 // Badge kleurklasse op basis van statustekst
 function badgeKlasse(status) {
   if (!status) return 'badge-grijs'
   const s = status.toLowerCase()
-  if (s.includes('goedgekeurd') || s.includes('afgerond') || s.includes('afgetekend')) return 'badge-groen'
-  if (s.includes('open') || s.includes('afwachting')) return 'badge-geel'
-  if (s.includes('niet') || s.includes('afgekeurd') || s.includes('ingediend') === false) return 'badge-rood'
-  if (s.includes('ingediend')) return 'badge-blauw'
+  if (s.includes('goedgekeurd') || s.includes('geaccepteerd') || s.includes('afgetekend')) return 'badge-groen'
+  if (s.includes('ingediend')) return 'badge-geel'
+  if (s.includes('geweigerd')|| s.includes('aanpassingen')) return 'badge-rood'
+  if (s.includes('lopend')) return 'badge-blauw'
   return 'badge-grijs'
 }
 
@@ -158,18 +148,19 @@ onMounted(laadStudenten)
   display: flex;
   min-height: 100vh;
   font-family: Arial, Helvetica, sans-serif;
-  background: #f0f4f8;
+  background: #f5f7fa;
 }
 
 /* ── Sidebar ── */
 .sidebar {
   width: 180px;
-  background: #29a8e0;
+  background: white;
+  border-right: 1px solid #e5e8ec;
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
   position: sticky;
-  top: 0;            
+  top: 0;
   height: 100vh;
 }
 
@@ -193,22 +184,20 @@ onMounted(laadStudenten)
 .nav-item {
   width: 100%;
   text-align: left;
-  background: white;
+  background: transparent;
   border: none;
   border-radius: 6px;
   padding: 0.65rem 1rem;
   font-size: 0.9rem;
   font-weight: 600;
-  color: #222;
+  color: #29a8e0;
   cursor: pointer;
   margin-bottom: 0.5rem;
   transition: background 0.15s;
 }
 
-.nav-item:hover,
-.nav-item.active {
-  background: #f0f0f0;
-}
+.nav-item:hover { background: #f0f7fc; }
+.nav-item.active { background: #29a8e0; color: white; }
 
 .sidebar-footer {
   padding: 1rem 0.75rem;
@@ -216,20 +205,19 @@ onMounted(laadStudenten)
 
 .logout-btn {
   width: 100%;
-  background: white;
+  background: #ffeaea;
+  color: #cc0000;
   border: none;
   border-radius: 6px;
   padding: 0.65rem 1rem;
   font-size: 0.9rem;
   font-weight: 600;
-  color: #222;
   cursor: pointer;
   transition: background 0.15s;
 }
 
-.logout-btn:hover {
-  background: #f0f0f0;
-}
+.logout-btn:hover { background: #ffdada; }
+.wissel-rol-btn { background: white; color: #29a8e0; border: 1px solid #29a8e0; margin-bottom: 0.5rem; }
 
 /* ── Main ── */
 .main-content {
@@ -247,7 +235,6 @@ onMounted(laadStudenten)
   align-items: center;
   justify-content: space-between;
   border-bottom: 1px solid #e0e0e0;
-  gap: 1rem;
 }
 
 .topbar-user {
@@ -305,12 +292,15 @@ onMounted(laadStudenten)
 }
 
 .student-card {
-  background: #e4e4e4;
+  background: white;
   border-radius: 10px;
+  border-top: 3px solid #29a8e0;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.04);
   padding: 1rem 1.25rem;
   display: flex;
   gap: 1rem;
   align-items: flex-start;
+  overflow: hidden;
 }
 
 .avatar-circle {
@@ -383,9 +373,9 @@ onMounted(laadStudenten)
 
 .badge {
   display: inline-block;
-  padding: 0.3rem 0.75rem;
+  padding: 0.25rem 0.7rem;
   border-radius: 5px;
-  font-size: 0.82rem;
+  font-size: 0.78rem;
   font-weight: 700;
   white-space: nowrap;
 }
