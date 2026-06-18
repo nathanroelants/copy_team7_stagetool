@@ -53,17 +53,17 @@ export function useStudentEvaluatie() {
   function getEvaluatie(competentieId) {
     return evaluaties.value.find(
       e => e.competentie_id === competentieId &&
-           e.beoordelaar_id === user.id &&
-           e.type === actieveTab.value
+        e.beoordelaar_id === user.id &&
+        e.type === actieveTab.value
     )
   }
 
   function getMentorEvaluatie(competentieId) {
     return evaluaties.value.find(
       e => e.competentie_id === competentieId &&
-           e.beoordelaar_id !== user.id &&
-           e.type === actieveTab.value &&
-           e.zichtbaar_voor_student
+        e.beoordelaar_id !== user.id &&
+        e.type === actieveTab.value &&
+        e.zichtbaar_voor_student
     )
   }
 

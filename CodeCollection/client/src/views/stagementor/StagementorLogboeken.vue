@@ -14,8 +14,7 @@
         <div class="nav-separator"></div>
 
         <button class="nav-item" :class="{ active: pagina === 'logboek' }"    @click="pagina = 'logboek'">Logboek</button>
-        <button class="nav-item" :class="{ active: pagina === 'stageinfo' }"  @click="pagina = 'stageinfo'">Stagevoorstel</button>
-        <button class="nav-item" @click="$router.push('/stagementor/evaluatie/1')">Evaluatie</button>
+        <button class="nav-item" @click="$router.push('/stagementor/evaluatie/' + studentId)">Evaluatie</button>
         <button class="nav-item" :class="{ active: pagina === 'documenten' }" @click="pagina = 'documenten'">Documenten</button>
       </nav>
 
@@ -232,7 +231,9 @@ const router = useRouter()
 const route = useRoute()
 
 const studentId = route.params.studentId
-const pagina = ref('logboek')
+
+const geldigeTabs = ['logboek', 'stageinfo', 'documenten']
+const pagina = ref(geldigeTabs.includes(route.query.tab) ? route.query.tab : 'logboek')
 
 const mentor = reactive({ naam: '' })
 const student = reactive({ id: null, voornaam: '', achternaam: '', email: '', opleiding: '' })
@@ -405,7 +406,11 @@ function uitloggen() {
 
 onMounted(async () => {
   await laadInfo()
-  if (!foutInfo.value) await laadLogboek()
+  if (foutInfo.value) return
+
+  if (pagina.value === 'stageinfo') await laadStagevoorstel()
+  else if (pagina.value === 'documenten') await laadDocumenten()
+  else await laadLogboek()
 })
 </script>
 
@@ -741,13 +746,11 @@ onMounted(async () => {
   max-width: 200px;
 }
 .col-leerdoelen {
-  width: 160px;
+  width: 180px;
   display: flex;
   flex-wrap: wrap;
   gap: 0.3rem;
   padding: 8px 12px;
-  overflow: hidden;
-  white-space: nowrap;
 }
 .col-acties { width: 120px; text-align: right; }
 
