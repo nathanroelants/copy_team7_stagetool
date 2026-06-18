@@ -82,16 +82,10 @@
               :key="competentie.id"
               class="rubriek-rij"
             >
-              <p class="optie-beschrijving">{{ getBeschrijving(competentie, optie.waarde) || optie.beschrijving }}</p>
-              <input
-                type="radio"
-                :name="'score-' + competentie.id"
-                :value="optie.waarde"
-                :checked="Number(getEvaluatie(competentie.id)?.score) === optie.waarde"
-                :disabled="opgeslagen[competentie.id]"
-                @change="setScore(competentie.id, optie.waarde)"
-              />
-            </div>
+              <div class="col-criteria">
+                <span class="lo-badge">LO{{ index + 1 }}</span>
+                <span class="lo-naam">{{ competentie.naam }}</span>
+              </div>
 
               <div
                 class="col-score"
@@ -100,7 +94,7 @@
                 :class="{ geselecteerd: Number(getEvaluatie(competentie.id)?.score) === optie.waarde }"
                 @click="huidigeBewerkbaar && !opgeslagen[`${competentie.id}_${actieveTab}`] && setScore(competentie.id, optie.waarde)"
               >
-                <p class="optie-beschrijving">{{ optie.beschrijving }}</p>
+                <p class="optie-beschrijving">{{ getBeschrijving(competentie, optie.waarde) || optie.beschrijving }}</p>
                 <input
                   type="radio"
                   :name="'score-' + competentie.id"
@@ -140,7 +134,8 @@
                 </div>
               </div>
             </div>
-           </template>
+          </div>
+        </template>
 
       </section>
     </main>
@@ -172,7 +167,7 @@ const {
   opgeslagen,
   foutMelding,
   scoreOpties,
-  getBeschrijving,
+   getBeschrijving,
   toggleCompetentie,
   getEvaluatie,
   getMentorEvaluatie,

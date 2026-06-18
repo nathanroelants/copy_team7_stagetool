@@ -40,7 +40,7 @@ router.get('/competenties', requireAuth, requireStudent, async (req, res) => {
     return res.status(500).json({ error: 'Kon competenties niet ophalen' });
   }
 
-  const competenties = (data || []).map(c => {
+    const competenties = (data || []).map(c => {
     const vind = (n) => {
       const key = Object.keys(c).find(
         k => k.includes('beschrijving') && k.includes(String(n))
@@ -163,12 +163,12 @@ router.post('/evaluaties', requireAuth, requireStudent, async (req, res) => {
 // GET /api/student/documenten
 router.get('/documenten', requireAuth, requireStudent, async (req, res) => {
   const supabase = req.app.get('supabase');
-  const stagementorId = req.user.id;
+  const studentId = req.user.id;
 
   const { data: stage, error: stageError } = await supabase
     .from('stages')
     .select('id, stagevoorstel_id')
-    .eq('stagementor_id', stagementorId)
+    .eq('student_id', studentId)
     .single();
 
   if (stageError || !stage) {
