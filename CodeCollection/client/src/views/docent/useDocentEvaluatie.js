@@ -7,7 +7,7 @@ export function useDocentEvaluatie(studentId) {
   const gebruikerNaam = `${user.voornaam || ''} ${user.achternaam || ''}`.trim() || user.email || 'Docent'
 
   const actieveTab = ref('tussentijds')
-  const eindevaluatieOpen = ref(false)
+  const evaluatieStatus = ref('geen')
   const competenties = ref([])
   const evaluaties = ref([])
   const loading = ref(true)
@@ -16,11 +16,20 @@ export function useDocentEvaluatie(studentId) {
   const bezigOpslaan = ref({})
   const opgeslagen = ref({})
   const foutMelding = ref({})
+  const heeftMeerdereRollen = (JSON.parse(localStorage.getItem('user') || '{}').rollen?.length ?? 0) > 1
 
   const scoreOpties = [
     { waarde: 5, label: 'Uitstekend', beschrijving: 'Volledig zelfstandig, geen bijsturing nodig.' },
     { waarde: 3, label: 'Voldoende', beschrijving: 'Met regelmatige begeleiding.' },
     { waarde: 0, label: 'Niet aanwezig', beschrijving: 'Weinig of geen toepassing aanwezig.' },
+  ]
+
+  const evaluatieStatusOpties = [
+    { waarde: 'geen', label: 'Beide evaluaties dicht' },
+    { waarde: 'tussentijds', label: 'Tussentijdse evaluatie open' },
+    { waarde: 'tussentijdse_afgelopen', label: 'Tussentijdse evaluatie dicht' },
+    { waarde: 'eindevaluatie', label: 'Eindevaluatie open' },
+    { waarde: 'stage_afgelopen', label: 'Eindevaluatie dicht' },
   ]
 
   function getRubriek(score) {
@@ -143,7 +152,7 @@ export function useDocentEvaluatie(studentId) {
       if (!evalRes.ok) throw new Error(evalData.error || 'Fout bij laden evaluaties')
       competenties.value = compData
       evaluaties.value = evalData.evaluaties || []
-      eindevaluatieOpen.value = evalData.eindevaluatie_open || false
+      evaluatieStatus.value = evalData.evaluatie_status || 'geen'
 
       for (const e of evaluaties.value) {
         if (e.rol === 'docent') {
@@ -157,23 +166,24 @@ export function useDocentEvaluatie(studentId) {
     }
   }
 
-  async function toggleEindevaluatie() {
+  async function wijzigEvaluatieStatus(nieuweStatus) {
+    if (nieuweStatus === evaluatieStatus.value) return
     bezig.value = true
     try {
       const token = localStorage.getItem('token')
-      const response = await fetch(`/api/docent/eindevaluatie/${studentId}`, {
+      const response = await fetch(`/api/docent/evaluatie-status/${studentId}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ eindevaluatie_open: !eindevaluatieOpen.value }),
+        body: JSON.stringify({ evaluatie_status: nieuweStatus }),
       })
       const data = await response.json()
       if (!response.ok) throw new Error(data.error || 'Fout bij bijwerken')
-      eindevaluatieOpen.value = data.eindevaluatie_open
+      evaluatieStatus.value = data.evaluatie_status
     } catch (err) {
-      alert(err.message || 'Kon eindevaluatie niet bijwerken.')
+      alert(err.message || 'Kon evaluatiestatus niet bijwerken.')
     } finally {
       bezig.value = false
     }
@@ -190,7 +200,8 @@ export function useDocentEvaluatie(studentId) {
   return {
     gebruikerNaam,
     actieveTab,
-    eindevaluatieOpen,
+    evaluatieStatus,
+    evaluatieStatusOpties,
     competenties,
     evaluaties,
     loading,
@@ -208,7 +219,8 @@ export function useDocentEvaluatie(studentId) {
     setScore,
     setFeedback,
     slaOp,
-    toggleEindevaluatie,
+    wijzigEvaluatieStatus,
     handleLogout,
+    heeftMeerdereRollen,
   }
 }

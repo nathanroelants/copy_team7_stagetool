@@ -2,28 +2,35 @@
   <div class="dashboard-layout">
 
     <aside class="sidebar">
-      <div class="sidebar-brand">
-        <span class="brand-text">STAGE.BE</span>
-      </div>
+  <div class="sidebar-brand">
+    <span class="brand-text">STAGE.BE</span>
+  </div>
 
-      <nav class="sidebar-nav">
-        <button class="nav-item" @click="router.push(`/docent/logboeken/${route.params.studentId}`)">Logboek</button>
-        <button class="nav-item disabled" disabled>Stagevoorstel</button>
-        <button class="nav-item active">Evaluatie</button>
-        <button class="nav-item disabled" disabled>Documenten</button>
-      </nav>
+  <nav class="sidebar-nav">
+    <button class="nav-item nav-back" @click="router.push('/docent')">
+      ← Mijn studenten
+    </button>
 
-      <div class="sidebar-footer">
-        <button class="logout-btn" @click="handleLogout">Uitloggen</button>
-      </div>
-    </aside>
+    <div class="nav-separator"></div>
+
+    <button class="nav-item" @click="router.push(`/docent/logboeken/${route.params.studentId}`)">Stageinfo</button>
+    <button class="nav-item" @click="router.push(`/docent/logboeken/${route.params.studentId}`)">Logboek</button>
+    <button class="nav-item active">Evaluatie</button>
+    <button class="nav-item disabled" disabled>Documenten</button>
+  </nav>
+
+  <div class="sidebar-footer">
+    <button v-if="heeftMeerdereRollen" class="nav-item wissel-rol-btn" @click="router.push('/kies-rol')">Wissel rol</button>
+    <button class="logout-btn" @click="handleLogout">Uitloggen</button>
+  </div>
+</aside>
 
     <main class="main-content">
 
       <header class="topbar">
         <div class="topbar-links">
           <div class="topbar-user">{{ gebruikerNaam }}</div>
-          <div class="topbar-role">Docent — alleen-lezen</div>
+         
         </div>
         <img src="../../assets/erasmus-logo.png" alt="Erasmus Hogeschool Brussel" class="topbar-logo" />
       </header>
@@ -46,14 +53,20 @@
             </button>
           </div>
 
-          <button
-            class="eind-toggle"
-            :class="{ open: eindevaluatieOpen }"
-            @click="toggleEindevaluatie"
-            :disabled="bezig"
-          >
-            {{ eindevaluatieOpen ? '✓ Eindevaluatie staat open' : 'Eindevaluatie openzetten' }}
-          </button>
+          <div class="status-selector">
+            <label for="evaluatie-status" class="status-label">Evaluatiestatus</label>
+            <select
+              id="evaluatie-status"
+              class="status-select"
+              :value="evaluatieStatus"
+              :disabled="bezig"
+              @change="wijzigEvaluatieStatus($event.target.value)"
+            >
+              <option v-for="optie in evaluatieStatusOpties" :key="optie.waarde" :value="optie.waarde">
+                {{ optie.label }}
+              </option>
+            </select>
+          </div>
         </div>
 
         <div v-if="loading" class="status-message">Evaluaties laden...</div>
@@ -173,7 +186,8 @@ const route = useRoute()
 const {
   gebruikerNaam,
   actieveTab,
-  eindevaluatieOpen,
+  evaluatieStatus,
+  evaluatieStatusOpties,
   competenties,
   evaluaties,
   loading,
@@ -191,8 +205,9 @@ const {
   setScore,
   setFeedback,
   slaOp,
-  toggleEindevaluatie,
+  wijzigEvaluatieStatus,
   handleLogout,
+  heeftMeerdereRollen,
 } = useDocentEvaluatie(route.params.studentId)
 </script>
 
@@ -221,7 +236,8 @@ html, body, #app {
 
 .sidebar {
   width: 180px;
-  background: #29a8e0;
+  background: white;
+  border-right: 1px solid #e5e8ec;
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
@@ -245,38 +261,47 @@ html, body, #app {
 .sidebar-nav {
   flex: 1;
   padding: 1rem 0.75rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
 }
 
 .nav-item {
   width: 100%;
   text-align: left;
-  background: white;
+  background: transparent;
   border: none;
   border-radius: 6px;
   padding: 0.65rem 1rem;
   font-size: 0.9rem;
   font-weight: 600;
-  color: #222;
+  color: #29a8e0;
   cursor: pointer;
+  margin-bottom: 0.5rem;
   transition: background 0.15s;
 }
 
-.nav-item:hover:not(.active):not(.disabled) {
-  background: #e0f0fb;
-  color: #1a7ab5;
+.nav-item:hover { background: #f0f7fc; }
+.nav-item.active { background: #29a8e0; color: white; }
+
+.nav-back {
+  background: #29a8e0;
+  color: white;
+  font-weight: 700;
 }
 
-.nav-item.active {
-  background: #e0f0fb;
-  color: #1a7ab5;
+.nav-back:hover { background: #1e90c0; }
+
+.nav-separator {
+  height: 1px;
+  background: #e5e8ec;
+  margin: 0.5rem 0 0.75rem;
 }
 
 .nav-item.disabled {
-  cursor: default;
+  background: transparent;
+  color: #bbb;
+  cursor: not-allowed;
 }
+
+.nav-item.disabled:hover { background: transparent; }
 
 .sidebar-footer {
   padding: 1rem 0.75rem;
@@ -284,18 +309,19 @@ html, body, #app {
 
 .logout-btn {
   width: 100%;
-  background: white;
+  background: #ffeaea;
+  color: #cc0000;
   border: none;
   border-radius: 6px;
   padding: 0.65rem 1rem;
   font-size: 0.9rem;
   font-weight: 600;
-  color: #222;
   cursor: pointer;
   transition: background 0.15s;
 }
 
-.logout-btn:hover { background: #f0f0f0; }
+.logout-btn:hover { background: #ffdada; }
+
 
 .main-content {
   flex: 1;
@@ -350,6 +376,8 @@ html, body, #app {
   align-items: center;
   justify-content: space-between;
   margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+  gap: 1rem;
 }
 
 .tabs {
@@ -383,29 +411,35 @@ html, body, #app {
   color: white;
 }
 
-.eind-toggle {
+.status-selector {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.status-label {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #555;
+}
+
+.status-select {
   background: white;
-  color: #29a8e0;
+  color: #1a7ab5;
   border: 2px solid #29a8e0;
   border-radius: 6px;
-  padding: 0.55rem 1.25rem;
+  padding: 0.5rem 0.9rem;
   font-size: 0.88rem;
   font-weight: 700;
   cursor: pointer;
   transition: all 0.15s;
 }
 
-.eind-toggle:hover:not(:disabled) {
+.status-select:hover:not(:disabled) {
   background: #e0f0fb;
 }
 
-.eind-toggle.open {
-  background: #43a047;
-  color: white;
-  border-color: #43a047;
-}
-
-.eind-toggle:disabled {
+.status-select:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
@@ -655,4 +689,5 @@ html, body, #app {
   color: #e53935;
   font-weight: 600;
 }
+.wissel-rol-btn { background: white; color: #29a8e0; border: 1px solid #29a8e0; margin-bottom: 0.5rem; }
 </style>
