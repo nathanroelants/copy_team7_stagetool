@@ -19,7 +19,7 @@ function requireAuth(req, res, next) {
 
 function requireStudent(req, res, next) {
   const rollen = req.user.rollen || (req.user.rol ? [req.user.rol] : []);
-  if (!rollen.includes('student')) {
+  if (!rollen.includes('stagementor')) {
     return res.status(403).json({ error: 'Geen toegang' });
   }
   next();
@@ -62,12 +62,12 @@ router.get('/competenties', requireAuth, requireStudent, async (req, res) => {
 // Geeft ook evaluatie_status mee zodat de frontend de juiste modus kan tonen
 router.get('/evaluaties', requireAuth, requireStudent, async (req, res) => {
   const supabase = req.app.get('supabase');
-  const studentId = req.user.id;
+  const stagementorId = req.user.id;
 
   const { data: stage, error: stageError } = await supabase
     .from('stages')
     .select('id, evaluatie_status')
-    .eq('student_id', studentId)
+    .eq('stagementor_id', stagementorId)
     .single();
 
   if (stageError || !stage) {
@@ -91,7 +91,7 @@ router.get('/evaluaties', requireAuth, requireStudent, async (req, res) => {
 // POST /api/student/evaluaties
 router.post('/evaluaties', requireAuth, requireStudent, async (req, res) => {
   const supabase = req.app.get('supabase');
-  const studentId = req.user.id;
+  const stagementorId = req.user.id;
   const { competentie_id, type, score, feedback } = req.body;
 
   if (!competentie_id || !type || !feedback) {
@@ -101,7 +101,7 @@ router.post('/evaluaties', requireAuth, requireStudent, async (req, res) => {
   const { data: stage, error: stageError } = await supabase
     .from('stages')
     .select('id, evaluatie_status')
-    .eq('student_id', studentId)
+    .eq('stagementor_id', stagementorId)
     .single();
 
   if (stageError || !stage) {
@@ -123,7 +123,7 @@ router.post('/evaluaties', requireAuth, requireStudent, async (req, res) => {
     .select('id')
     .eq('stage_id', stage.id)
     .eq('competentie_id', competentie_id)
-    .eq('beoordelaar_id', studentId)
+    .eq('beoordelaar_id', stagementorId)
     .eq('type', type)
     .single();
 
@@ -142,7 +142,7 @@ router.post('/evaluaties', requireAuth, requireStudent, async (req, res) => {
       .insert({
         stage_id: stage.id,
         competentie_id,
-        beoordelaar_id: studentId,
+        beoordelaar_id: stagementorId,
         type,
         score,
         feedback,
@@ -163,12 +163,12 @@ router.post('/evaluaties', requireAuth, requireStudent, async (req, res) => {
 // GET /api/student/documenten
 router.get('/documenten', requireAuth, requireStudent, async (req, res) => {
   const supabase = req.app.get('supabase');
-  const studentId = req.user.id;
+  const stagementorId = req.user.id;
 
   const { data: stage, error: stageError } = await supabase
     .from('stages')
     .select('id, stagevoorstel_id')
-    .eq('student_id', studentId)
+    .eq('stagementor_id', stagementorId)
     .single();
 
   if (stageError || !stage) {
