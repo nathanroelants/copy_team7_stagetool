@@ -17,15 +17,16 @@ function requireAuth(req, res, next) {
   }
 }
 
-function requireStagementor(req, res, next) {
-  if (req.user.rol !== 'stagementor') {
+function requireStudent(req, res, next) {
+  const rollen = req.user.rollen || (req.user.rol ? [req.user.rol] : []);
+  if (!rollen.includes('student')) {
     return res.status(403).json({ error: 'Geen toegang' });
   }
   next();
 }
 
-// GET /api/stagementor/competenties
-router.get('/competenties', requireAuth, requireStagementor, async (req, res) => {
+// GET /api/student/competenties
+router.get('/competenties', requireAuth, requireStudent, async (req, res) => {
   const supabase = req.app.get('supabase');
 
   const { data, error } = await supabase
@@ -57,16 +58,16 @@ router.get('/competenties', requireAuth, requireStagementor, async (req, res) =>
   res.json(competenties);
 });
 
-// GET /api/stagementor/evaluaties/:studentId
-router.get('/evaluaties/:studentId', requireAuth, requireStagementor, async (req, res) => {
+// GET /api/student/evaluaties
+// Geeft ook evaluatie_status mee zodat de frontend de juiste modus kan tonen
+router.get('/evaluaties', requireAuth, requireStudent, async (req, res) => {
   const supabase = req.app.get('supabase');
-  const { studentId } = req.params;
+  const studentId = req.user.id;
 
   const { data: stage, error: stageError } = await supabase
     .from('stages')
-    .select('id')
+    .select('id, evaluatie_status')
     .eq('student_id', studentId)
-    .eq('stagementor_id', req.user.id)
     .single();
 
   if (stageError || !stage) {
@@ -83,14 +84,14 @@ router.get('/evaluaties/:studentId', requireAuth, requireStagementor, async (req
     return res.status(500).json({ error: 'Kon evaluaties niet ophalen' });
   }
 
-  res.json(data);
+  // evaluatie_status meesturen zodat de frontend de juiste modus toont
+  res.json({ evaluatie_status: stage.evaluatie_status, evaluaties: data });
 });
 
-// POST /api/stagementor/evaluaties/:studentId
-router.post('/evaluaties/:studentId', requireAuth, requireStagementor, async (req, res) => {
+// POST /api/student/evaluaties
+router.post('/evaluaties', requireAuth, requireStudent, async (req, res) => {
   const supabase = req.app.get('supabase');
-  const mentorId = req.user.id;
-  const { studentId } = req.params;
+  const studentId = req.user.id;
   const { competentie_id, type, score, feedback } = req.body;
 
   if (!competentie_id || !type || !feedback) {
@@ -99,13 +100,22 @@ router.post('/evaluaties/:studentId', requireAuth, requireStagementor, async (re
 
   const { data: stage, error: stageError } = await supabase
     .from('stages')
-    .select('id')
+    .select('id, evaluatie_status')
     .eq('student_id', studentId)
-    .eq('stagementor_id', mentorId)
     .single();
 
   if (stageError || !stage) {
     return res.status(404).json({ error: 'Geen stage gevonden voor deze student' });
+  }
+
+  // Schrijftoegang bewaken op basis van evaluatie_status
+  const status = stage.evaluatie_status;
+  const schrijfToegestaan =
+    (type === 'tussentijds' && status === 'tussentijds') ||
+    (type === 'eindevaluatie' && status === 'eindevaluatie');
+
+  if (!schrijfToegestaan) {
+    return res.status(403).json({ error: 'Opslaan is niet toegestaan in de huidige fase.' });
   }
 
   const { data: bestaande } = await supabase
@@ -113,7 +123,7 @@ router.post('/evaluaties/:studentId', requireAuth, requireStagementor, async (re
     .select('id')
     .eq('stage_id', stage.id)
     .eq('competentie_id', competentie_id)
-    .eq('beoordelaar_id', mentorId)
+    .eq('beoordelaar_id', studentId)
     .eq('type', type)
     .single();
 
@@ -132,7 +142,7 @@ router.post('/evaluaties/:studentId', requireAuth, requireStagementor, async (re
       .insert({
         stage_id: stage.id,
         competentie_id,
-        beoordelaar_id: mentorId,
+        beoordelaar_id: studentId,
         type,
         score,
         feedback,
@@ -148,6 +158,57 @@ router.post('/evaluaties/:studentId', requireAuth, requireStagementor, async (re
   }
 
   res.json(result);
+});
+
+// GET /api/student/documenten
+router.get('/documenten', requireAuth, requireStudent, async (req, res) => {
+  const supabase = req.app.get('supabase');
+  const studentId = req.user.id;
+
+  const { data: stage, error: stageError } = await supabase
+    .from('stages')
+    .select('id, stagevoorstel_id')
+    .eq('student_id', studentId)
+    .single();
+
+  if (stageError || !stage) {
+    return res.status(404).json({ error: 'Geen stage gevonden' });
+  }
+
+  const docs = [];
+
+  const { data: voorstel } = await supabase
+    .from('stagevoorstellen')
+    .select('id, bedrijfsnaam, indieningsdatum, ondertekend')
+    .eq('id', stage.stagevoorstel_id)
+    .maybeSingle();
+
+  if (voorstel) {
+    docs.push({
+      type: 'stagevoorstel',
+      naam: `Stagevoorstel - ${voorstel.bedrijfsnaam || 'onbekend bedrijf'}`,
+      datum: voorstel.indieningsdatum,
+      beschikbaar: true,
+      meta: voorstel.ondertekend ? 'Ondertekend' : 'Niet ondertekend'
+    });
+  }
+
+  const { data: eindEval } = await supabase
+    .from('evaluaties')
+    .select('id, score, aangemaakt_op')
+    .eq('stage_id', stage.id)
+    .eq('type', 'eind')
+    .maybeSingle();
+
+  docs.push({
+    type: 'eindevaluatie',
+    naam: 'Eindevaluatie',
+    datum: eindEval?.aangemaakt_op ?? null,
+    beschikbaar: !!eindEval,
+    meta: eindEval ? `Score: ${eindEval.score ?? '—'}` : 'Nog niet beschikbaar'
+  });
+
+  res.json(docs);
 });
 
 export default router;
