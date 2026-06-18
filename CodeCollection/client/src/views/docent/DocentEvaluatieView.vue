@@ -86,8 +86,8 @@
                     {{ getRubriek(getStudentEvaluatie(competentie.id).score).label }}
                   </span>
                 </div>
-                <p v-if="getRubriek(getStudentEvaluatie(competentie.id).score)" class="rubriek-beschrijving">
-                  {{ getRubriek(getStudentEvaluatie(competentie.id).score).beschrijving }}
+                <p v-if="getBeschrijving(competentie, getStudentEvaluatie(competentie.id).score)" class="rubriek-beschrijving">
+                  {{ getBeschrijving(competentie, getStudentEvaluatie(competentie.id).score) }}
                 </p>
                 <p class="feedback-tekst">{{ getStudentEvaluatie(competentie.id).feedback }}</p>
               </template>
@@ -102,8 +102,8 @@
                     {{ getRubriek(getMentorEvaluatie(competentie.id).score).label }}
                   </span>
                 </div>
-                <p v-if="getRubriek(getMentorEvaluatie(competentie.id).score)" class="rubriek-beschrijving">
-                  {{ getRubriek(getMentorEvaluatie(competentie.id).score).beschrijving }}
+                <p v-if="getBeschrijving(competentie, getMentorEvaluatie(competentie.id).score)" class="rubriek-beschrijving">
+                  {{ getBeschrijving(competentie, getMentorEvaluatie(competentie.id).score) }}
                 </p>
                 <p class="feedback-tekst">{{ getMentorEvaluatie(competentie.id).feedback }}</p>
               </template>
@@ -121,7 +121,10 @@
                   :disabled="opgeslagen[competentie.id]"
                   @click="setScore(competentie.id, optie.waarde)"
                 >
-                  {{ optie.waarde }} — {{ optie.label }}
+                  <span class="optie-titel">{{ optie.waarde }} — {{ optie.label }}</span>
+                  <span v-if="getBeschrijving(competentie, optie.waarde)" class="optie-beschrijving">
+                    {{ getBeschrijving(competentie, optie.waarde) }}
+                  </span>
                 </button>
               </div>
 
@@ -181,6 +184,7 @@ const {
   foutMelding,
   scoreOpties,
   getRubriek,
+  getBeschrijving,
   getStudentEvaluatie,
   getMentorEvaluatie,
   getDocentEvaluatie,
@@ -536,16 +540,34 @@ html, body, #app {
 }
 
 .score-optie-btn {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
   text-align: left;
   background: white;
   border: 1px solid #cdd9e3;
   border-radius: 6px;
-  padding: 0.4rem 0.6rem;
+  padding: 0.45rem 0.6rem;
   font-size: 0.82rem;
   font-weight: 600;
   color: #333;
   cursor: pointer;
   transition: all 0.15s;
+}
+
+.optie-titel {
+  font-weight: 700;
+}
+
+.optie-beschrijving {
+  font-weight: 400;
+  font-size: 0.78rem;
+  color: #666;
+  line-height: 1.35;
+}
+
+.score-optie-btn.gekozen .optie-beschrijving {
+  color: #eaf6ff;
 }
 
 .score-optie-btn:hover:not(:disabled) {

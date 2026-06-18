@@ -27,6 +27,13 @@ export function useDocentEvaluatie(studentId) {
     return scoreOpties.find(o => o.waarde === Number(score)) || null
   }
 
+  function getBeschrijving(competentie, score) {
+    if (!competentie || score === null || score === undefined) return null
+    const n = Number(score)
+    const tekst = competentie[`beschrijving_${n}`] ?? competentie[`${n}punten_beschrijving`]
+    return tekst && String(tekst).trim() ? tekst : null
+  }
+
   function getStudentEvaluatie(competentieId) {
     return evaluaties.value.find(
       e => e.competentie_id === competentieId &&
@@ -194,6 +201,7 @@ export function useDocentEvaluatie(studentId) {
     foutMelding,
     scoreOpties,
     getRubriek,
+    getBeschrijving,
     getStudentEvaluatie,
     getMentorEvaluatie,
     getDocentEvaluatie,
