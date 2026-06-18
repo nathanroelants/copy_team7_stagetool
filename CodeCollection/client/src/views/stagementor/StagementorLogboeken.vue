@@ -746,11 +746,13 @@ onMounted(async () => {
   max-width: 200px;
 }
 .col-leerdoelen {
-  width: 180px;
+  width: 160px;
   display: flex;
   flex-wrap: wrap;
   gap: 0.3rem;
   padding: 8px 12px;
+  overflow: hidden;
+  white-space: nowrap;
 }
 .col-acties { width: 120px; text-align: right; }
 
