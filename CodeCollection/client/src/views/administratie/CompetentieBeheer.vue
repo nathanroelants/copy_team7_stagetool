@@ -88,33 +88,61 @@
     </main>
 
     <!-- Modal -->
-    <div v-if="modalOpen" class="modal-overlay" @click.self="closeModal">
-      <div class="modal">
-        <h3>{{ editingId ? 'Competentie bewerken' : 'Nieuwe competentie' }}</h3>
+   <div v-if="modalOpen" class="modal-overlay" @click.self="closeModal">
+  <div class="modal">
+    <h3>{{ editingId ? 'Competentie bewerken' : 'Nieuwe competentie' }}</h3>
 
-        <form @submit.prevent="saveCompetentie">
-          <div class="form-group">
-            <label>Naam</label>
-            <input v-model="form.naam" type="text" required />
-          </div>
-          <div class="form-group">
-            <label>Beschrijving</label>
-            <textarea v-model="form.beschrijving" rows="3"></textarea>
-          </div>
-          <div class="form-group">
-            <label>Percentage</label>
-            <input v-model.number="form.percentage" type="number" min="0" max="100" required />
-          </div>
-          <div class="form-group">
-            <label>Volgorde</label>
-            <input v-model.number="form.volgorde" type="number" min="1" required />
-          </div>
-          <div class="form-group checkbox-group">
-            <label>
-              <input v-model="form.actief" type="checkbox" /> Actief
-            </label>
-          </div>
+    <form @submit.prevent="saveCompetentie">
+      <div class="form-group">
+        <label>Naam</label>
+        <input v-model="form.naam" type="text" required />
+      </div>
+      <div class="form-group">
+        <label>Beschrijving</label>
+        <textarea v-model="form.beschrijving" rows="3"></textarea>
+      </div>
 
+      <div class="form-group">
+        <label>Beschrijving voor 5 punten</label>
+        <textarea
+          v-model="form.punten_5_beschrijving"
+          rows="2"
+          placeholder="Wat verwacht je voor de maximale score?"
+        ></textarea>
+      </div>
+
+      <div class="form-group">
+        <label>Beschrijving voor 3 punten</label>
+        <textarea
+          v-model="form.punten_3_beschrijving"
+          rows="2"
+          placeholder="Wat verwacht je voor een gemiddelde score?"
+        ></textarea>
+      </div>
+
+      <div class="form-group">
+        <label>Beschrijving voor 0 punten</label>
+        <textarea
+          v-model="form.punten_0_beschrijving"
+          rows="2"
+          placeholder="Wat geldt als onvoldoende?"
+        ></textarea>
+      </div>
+
+      <div class="form-group">
+        <label>Percentage</label>
+        <input v-model.number="form.percentage" type="number" min="0" max="100" required />
+      </div>
+      <div class="form-group">
+        <label>Volgorde</label>
+        <input v-model.number="form.volgorde" type="number" min="1" required />
+      </div>
+      <div class="form-group checkbox-group">
+        <label>
+          <input v-model="form.actief" type="checkbox" /> Actief
+        </label>
+      </div>
+      
           <div v-if="modalFout" class="error-msg">{{ modalFout }}</div>
 
           <div class="modal-actions">
@@ -191,7 +219,10 @@ function openModal(comp, opleidingId) {
       percentage: comp.percentage,
       volgorde: comp.volgorde,
       actief: comp.actief,
-      opleiding_id: opleidingId
+      opleiding_id: opleidingId,
+      punten_5_beschrijving: comp['5punten_beschrijving'] || '',
+      punten_3_beschrijving: comp['3punten_beschrijving'] || '',
+      punten_0_beschrijving: comp['0punten_beschrijving'] || ''
     }
   } else {
     editingId.value = null

@@ -20,7 +20,6 @@ function verifyAdmin(req, res, next) {
   }
 }
 
-// Helper: valida que a soma das percentagens da opleiding é exatamente 100
 async function validatePercentageTotal(supabase, opleidingId, excludeId = null, newPercentage = 0) {
   let query = supabase
     .from('competenties')
@@ -37,7 +36,6 @@ async function validatePercentageTotal(supabase, opleidingId, excludeId = null, 
   return { valid: newTotal === 100, total: newTotal };
 }
 
-// GET /api/admin/opleidingen — todas opleidingen com competenties aninhadas
 router.get('/opleidingen', verifyAdmin, async (req, res) => {
   const supabase = req.app.get('supabase');
 
@@ -45,23 +43,25 @@ router.get('/opleidingen', verifyAdmin, async (req, res) => {
     .from('opleidingen')
     .select(`
       id, naam,
-      competenties (id, naam, beschrijving, percentage, volgorde, actief, opleiding_id)
+      competenties (id, naam, beschrijving, percentage, volgorde, actief, opleiding_id, "5punten_beschrijving", "3punten_beschrijving", "0punten_beschrijving")
     `)
     .order('id', { ascending: true });
 
   if (error) return res.status(500).json({ error: error.message });
 
-  // Ordena competenties por volgorde dentro de cada opleiding
   data.forEach(o => {
     if (o.competenties) o.competenties.sort((a, b) => a.volgorde - b.volgorde);
   });
 
   res.json(data);
 });
-// POST /api/admin/competenties — criar
+
 router.post('/competenties', verifyAdmin, async (req, res) => {
   const supabase = req.app.get('supabase');
-  const { naam, beschrijving, percentage, volgorde, actief, opleiding_id } = req.body;
+  const {
+    naam, beschrijving, percentage, volgorde, actief, opleiding_id,
+    punten_5_beschrijving, punten_3_beschrijving, punten_0_beschrijving
+  } = req.body;
 
   if (!naam || percentage == null || volgorde == null || actief == null || !opleiding_id) {
     return res.status(400).json({ error: 'Verplichte velden ontbreken' });
@@ -70,7 +70,12 @@ router.post('/competenties', verifyAdmin, async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('competenties')
-      .insert([{ naam, beschrijving, percentage, volgorde, actief, opleiding_id }])
+      .insert([{
+        naam, beschrijving, percentage, volgorde, actief, opleiding_id,
+        '5punten_beschrijving': punten_5_beschrijving,
+        '3punten_beschrijving': punten_3_beschrijving,
+        '0punten_beschrijving': punten_0_beschrijving
+      }])
       .select()
       .single();
 
@@ -81,11 +86,13 @@ router.post('/competenties', verifyAdmin, async (req, res) => {
   }
 });
 
-// PUT /api/admin/competenties/:id — editar
 router.put('/competenties/:id', verifyAdmin, async (req, res) => {
   const supabase = req.app.get('supabase');
   const id = req.params.id;
-  const { naam, beschrijving, percentage, volgorde, actief, opleiding_id } = req.body;
+  const {
+    naam, beschrijving, percentage, volgorde, actief, opleiding_id,
+    punten_5_beschrijving, punten_3_beschrijving, punten_0_beschrijving
+  } = req.body;
 
   if (!naam || percentage == null || volgorde == null || actief == null || !opleiding_id) {
     return res.status(400).json({ error: 'Verplichte velden ontbreken' });
@@ -94,7 +101,12 @@ router.put('/competenties/:id', verifyAdmin, async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('competenties')
-      .update({ naam, beschrijving, percentage, volgorde, actief, opleiding_id })
+      .update({
+        naam, beschrijving, percentage, volgorde, actief, opleiding_id,
+        '5punten_beschrijving': punten_5_beschrijving,
+        '3punten_beschrijving': punten_3_beschrijving,
+        '0punten_beschrijving': punten_0_beschrijving
+      })
       .eq('id', id)
       .select()
       .single();
@@ -104,10 +116,8 @@ router.put('/competenties/:id', verifyAdmin, async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
-  
 });
 
-// DELETE /api/admin/competenties/:id — apagar
 router.delete('/competenties/:id', verifyAdmin, async (req, res) => {
   const supabase = req.app.get('supabase');
   const id = req.params.id;
