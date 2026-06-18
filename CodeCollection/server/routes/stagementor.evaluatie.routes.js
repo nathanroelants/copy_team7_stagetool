@@ -17,7 +17,7 @@ function requireAuth(req, res, next) {
   }
 }
 
-function requireStudent(req, res, next) {
+function requireStagementor(req, res, next) {
   const rollen = req.user.rollen || (req.user.rol ? [req.user.rol] : []);
   if (!rollen.includes('stagementor')) {
     return res.status(403).json({ error: 'Geen toegang' });
@@ -26,7 +26,7 @@ function requireStudent(req, res, next) {
 }
 
 // GET /api/student/competenties
-router.get('/competenties', requireAuth, requireStudent, async (req, res) => {
+router.get('/competenties', requireAuth, requireStagementor, async (req, res) => {
   const supabase = req.app.get('supabase');
 
   const { data, error } = await supabase
@@ -60,7 +60,7 @@ router.get('/competenties', requireAuth, requireStudent, async (req, res) => {
 
 // GET /api/student/evaluaties
 // Geeft ook evaluatie_status mee zodat de frontend de juiste modus kan tonen
-router.get('/evaluaties', requireAuth, requireStudent, async (req, res) => {
+router.get('/evaluaties', requireAuth, requireStagementor, async (req, res) => {
   const supabase = req.app.get('supabase');
   const stagementorId = req.user.id;
 
@@ -89,7 +89,7 @@ router.get('/evaluaties', requireAuth, requireStudent, async (req, res) => {
 });
 
 // POST /api/student/evaluaties
-router.post('/evaluaties', requireAuth, requireStudent, async (req, res) => {
+router.post('/evaluaties', requireAuth, requireStagementor, async (req, res) => {
   const supabase = req.app.get('supabase');
   const stagementorId = req.user.id;
   const { competentie_id, type, score, feedback } = req.body;
@@ -161,7 +161,7 @@ router.post('/evaluaties', requireAuth, requireStudent, async (req, res) => {
 });
 
 // GET /api/student/documenten
-router.get('/documenten', requireAuth, requireStudent, async (req, res) => {
+router.get('/documenten', requireAuth, requireStagementor, async (req, res) => {
   const supabase = req.app.get('supabase');
   const studentId = req.user.id;
 

@@ -23,7 +23,7 @@
       <!-- Top bar -->
       <header class="topbar">
         <div class="topbar-user">{{ gebruikerNaam }}</div>
-        <img src="../assets/erasmus-logo.png" alt="Erasmus Hogeschool Brussel" class="topbar-logo" />
+        <img src="../../assets/erasmus-logo.png" alt="Erasmus Hogeschool Brussel" class="topbar-logo" />
       </header>
 
       <!-- Content -->
@@ -235,14 +235,13 @@
                 <!-- Nog niet ondertekend -->
                 <template v-else>
                   <p class="sign-intro">
-                    Door te ondertekenen bevestig je kennis genomen te hebben van de inhoud van dit stagevoorstel
-                    en ga je akkoord met de beschreven stageopdracht en -omstandigheden.
+                    Door dit aan te duiden bevestig je dat je het onderstaande bestand hebt gedownload, ondertekend, en terug hebt geupload.
                   </p>
 
                   <div class="sign-consent">
                     <label class="checkbox-label">
                       <input type="checkbox" v-model="akkoord" />
-                      <span>Ik heb het stagevoorstel gelezen en ga akkoord.</span>
+                      <span>Ik heb het stagevoorstel ondertekend en ga akkoord.</span>
                     </label>
                   </div>
 
@@ -254,7 +253,7 @@
                       :disabled="!akkoord || ondertekeningLoading"
                       @click="handleOndertekenen"
                     >
-                      {{ ondertekeningLoading ? 'Bezig...' : '✍ Ondertekenen' }}
+                      {{ ondertekeningLoading ? 'Bezig...' : 'Bevestig ondertekening' }}
                     </button>
                   </div>
                 </template>

@@ -311,10 +311,10 @@ router.get('/:stageId/download-pdf', verifyToken, async (req, res) => {
       console.log('Voorstel gevonden:', voorstel);
     }
 
-    // Haal studentgegevens op
+    // Haal studentgegevens op (inclusief opleiding naam via join)
     const { data: student, error: studentError } = await supabase
       .from('gebruikers')
-      .select('voornaam, achternaam, email, opleiding_id')
+      .select('voornaam, achternaam, email, opleiding_id, opleidingen!gebruikers_opleiding_id_fkey (naam)')
       .eq('id', stage.student_id)
       .single();
 
@@ -380,6 +380,9 @@ router.get('/:stageId/download-pdf', verifyToken, async (req, res) => {
     const berekenWeken = (start, eind) => (!start || !eind) ? '?' : Math.round((new Date(eind) - new Date(start)) / (1000 * 60 * 60 * 24 * 7));
     const parseTags = (raw) => raw ? raw.split(/[,\n]+/).map(s => s.trim()).filter(Boolean) : [];
 
+    // Resolved opleiding naam (via join) with fallback
+    const opleidingNaam = student?.opleidingen?.naam || '—';
+
     // Header
     doc.rect(0, 0, doc.page.width, 70).fill(blauw);
     doc.fillColor('#ffffff').fontSize(22).font('Helvetica-Bold').text('STAGE.BE', 50, 22);
@@ -388,20 +391,15 @@ router.get('/:stageId/download-pdf', verifyToken, async (req, res) => {
 
     // Student info
     let y = 90;
-    const studentNaam = `${student?.voornaam || ''} ${student?.achternaam || ''}`.trim() || 'Onbekende student';
-    const studentOpleiding = student?.opleiding_id || 'Geen opleiding opgegeven';
+    const studentNaam = `Stageovereenkomst ${student?.voornaam || ''} ${student?.achternaam || ''}`.trim() || 'Onbekende student';
     const studentEmail = student?.email || 'Geen e-mail opgegeven';
     
     doc.fontSize(18).font('Helvetica-Bold').fillColor(donker).text(studentNaam, 50, y);
     y += 22;
-    doc.fontSize(10).font('Helvetica').fillColor(grijs).text(studentOpleiding, 50, y);
+    doc.fontSize(10).font('Helvetica').fillColor(grijs).text(opleidingNaam, 50, y);
     y += 14;
     doc.fontSize(10).fillColor(grijs).text(studentEmail, 50, y);
 
-    // Status badge
-    doc.roundedRect(doc.page.width - 200, 90, 150, 24, 5).fill(blauw);
-    doc.fillColor('#ffffff').fontSize(9).font('Helvetica-Bold').text(stage.status || '—', doc.page.width - 200, 96, { width: 150, align: 'center' });
-    doc.fillColor(donker);
 
     y += 24;
     doc.moveTo(50, y).lineTo(doc.page.width - 50, y).strokeColor(lichtgrijs).lineWidth(1).stroke();
@@ -438,7 +436,7 @@ router.get('/:stageId/download-pdf', verifyToken, async (req, res) => {
     sectie('Gegevens student', () => {
       veld('Naam', `${student?.voornaam || ''} ${student?.achternaam || ''}`.trim() || '—');
       veld('E-mail', student?.email || '—');
-      veld('Opleiding', student?.opleiding_id || '—');
+      veld('Opleiding', opleidingNaam);
     });
 
     sectie('Gegevens docent', () => {
@@ -470,24 +468,34 @@ router.get('/:stageId/download-pdf', verifyToken, async (req, res) => {
       veld('Tools', parseTags(voorstelData.tools).join(', ') || '—');
     });
 
-    sectie('Ondertekeningsstatus', () => {
-      const partijen = [
-        { rol: 'Student',     naam: `${student?.voornaam || ''} ${student?.achternaam || ''}`.trim() || '—', ts: ondertekeningen.student },
-        { rol: 'Docent',      naam: docent  ? `${docent.voornaam} ${docent.achternaam}`   : '—', ts: ondertekeningen.docent },
-        { rol: 'Stagementor', naam: mentor  ? `${mentor.voornaam} ${mentor.achternaam}`   : '—', ts: ondertekeningen.stagementor },
-      ];
-      for (const p of partijen) {
-        if (y > doc.page.height - 80) { doc.addPage(); y = 50; }
-        doc.circle(68, y + 8, 8).fill(p.ts ? '#4caf50' : '#aaaaaa');
-        doc.fillColor('#ffffff').fontSize(9).font('Helvetica-Bold').text(p.ts ? '+' : '-', 63, y + 3);
-        doc.fillColor(grijs).fontSize(8).font('Helvetica-Bold').text(p.rol.toUpperCase(), 86, y);
-        doc.fillColor(donker).fontSize(10).font('Helvetica-Bold').text(p.naam || '—', 86, y + 10);
-        doc.fillColor(grijs).fontSize(8).font('Helvetica').text(formatHandtekening(p.ts), 86, y + 22);
-        y += 40;
-      }
-    });
+     
+    // ─── ONDERTEKENINGEN ────────────────────────────────────────────────────
+    {
+      const labels = ['Ondertekening docent', 'Ondertekening student', 'Ondertekening stagementor'];
+      const gap = 15;
+      const boxWidth = (doc.page.width - 100 - gap * (labels.length - 1)) / labels.length;
+      const boxHeight = 70;
+      const benodigdeRuimte = 26 + boxHeight + 20; // titelbalk + box + labelruimte
+ 
+      if (y + benodigdeRuimte > doc.page.height - 50) { doc.addPage(); y = 50; }
+ 
+      doc.rect(50, y, doc.page.width - 100, 26).fill(lichtgrijs);
+      doc.fillColor(donker).fontSize(11).font('Helvetica-Bold').text('Ondertekeningen', 58, y + 7);
+      y += 34;
+ 
+      const boxY = y;
+      labels.forEach((label, i) => {
+        const x = 50 + i * (boxWidth + gap);
+        doc.rect(x, boxY, boxWidth, boxHeight).strokeColor(lichtgrijs).lineWidth(1).stroke();
+        doc.fillColor(grijs).fontSize(8).font('Helvetica-Bold')
+          .text(label.toUpperCase(), x, boxY + boxHeight + 4, { width: boxWidth, align: 'center' });
+      });
+ 
+      y = boxY + boxHeight + 18;
+    }
+ 
 
-   
+
     // ─── FOOTER ──────────────────────────────────────────────────────────────
     // Check of er genoeg ruimte is voor de footer op de huidige pagina
     const footerHeight = 50;
