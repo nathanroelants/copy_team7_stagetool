@@ -469,6 +469,7 @@ html, body, #app {
 .col-score .optie-beschrijving {
   font-size: 0.88rem;
   font-weight: 500;
+  font-style: italic;
   color: #333;
   line-height: 1.5;
   flex: 1;
