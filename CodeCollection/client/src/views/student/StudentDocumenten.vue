@@ -29,20 +29,6 @@
         <div v-else-if="fout" class="status-msg error">{{ fout }}</div>
 
         <template v-else>
-          <div class="doc-lijst">
-            <div v-for="doc in docs" :key="doc.type" class="doc-card">
-              <div class="doc-info">
-                <div class="doc-naam">{{ doc.naam }}</div>
-                <div class="doc-meta">{{ doc.meta }}</div>
-                <div v-if="doc.datum" class="doc-datum">
-                  {{ new Date(doc.datum).toLocaleDateString('nl-BE') }}
-                </div>
-              </div>
-              <div class="doc-status" :class="doc.beschikbaar ? 'beschikbaar' : 'niet-beschikbaar'">
-                {{ doc.beschikbaar ? 'Beschikbaar' : 'Niet beschikbaar' }}
-              </div>
-            </div>
-          </div>
 
           <div v-if="stageId" class="eindevaluatie-kaart">
             <div class="doc-naam">Eindevaluatie PDF</div>
