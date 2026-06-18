@@ -82,10 +82,16 @@
               :key="competentie.id"
               class="rubriek-rij"
             >
-              <div class="col-criteria">
-                <span class="lo-badge">LO{{ index + 1 }}</span>
-                <span class="lo-naam">{{ competentie.naam }}</span>
-              </div>
+              <p class="optie-beschrijving">{{ getBeschrijving(competentie, optie.waarde) || optie.beschrijving }}</p>
+              <input
+                type="radio"
+                :name="'score-' + competentie.id"
+                :value="optie.waarde"
+                :checked="Number(getEvaluatie(competentie.id)?.score) === optie.waarde"
+                :disabled="opgeslagen[competentie.id]"
+                @change="setScore(competentie.id, optie.waarde)"
+              />
+            </div>
 
               <div
                 class="col-score"
@@ -167,6 +173,7 @@ const {
   opgeslagen,
   foutMelding,
   scoreOpties,
+  getBeschrijving,
   toggleCompetentie,
   getEvaluatie,
   getMentorEvaluatie,
@@ -488,6 +495,7 @@ html, body, #app {
 .col-score .optie-beschrijving {
   font-size: 0.88rem;
   font-weight: 500;
+  font-style: italic;
   color: #333;
   line-height: 1.5;
   flex: 1;

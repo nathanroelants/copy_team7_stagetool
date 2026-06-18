@@ -31,7 +31,7 @@ router.get('/competenties', requireAuth, requireStudent, async (req, res) => {
 
   const { data, error } = await supabase
     .from('competenties')
-    .select('id, naam, beschrijving, volgorde')
+    .select('*')
     .eq('actief', true)
     .order('volgorde', { ascending: true });
 
@@ -40,7 +40,22 @@ router.get('/competenties', requireAuth, requireStudent, async (req, res) => {
     return res.status(500).json({ error: 'Kon competenties niet ophalen' });
   }
 
-  res.json(data);
+  const competenties = (data || []).map(c => {
+    const vind = (n) => {
+      const key = Object.keys(c).find(
+        k => k.includes('beschrijving') && k.includes(String(n))
+      );
+      return key ? c[key] : null;
+    };
+    return {
+      ...c,
+      beschrijving_5: vind(5),
+      beschrijving_3: vind(3),
+      beschrijving_0: vind(0),
+    };
+  });
+
+  res.json(competenties);
 });
 
 // GET /api/student/evaluaties

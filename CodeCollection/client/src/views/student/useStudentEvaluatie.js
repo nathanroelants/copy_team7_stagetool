@@ -50,6 +50,13 @@ export function useStudentEvaluatie() {
     openCompetentie.value = openCompetentie.value === id ? null : id
   }
 
+  function getBeschrijving(competentie, score) {
+    if (!competentie || score === null || score === undefined) return null
+    const n = Number(score)
+    const tekst = competentie[`beschrijving_${n}`] ?? competentie[`${n}punten_beschrijving`]
+    return tekst && String(tekst).trim() ? tekst : null
+  }
+
   function getEvaluatie(competentieId) {
     return evaluaties.value.find(
       e => e.competentie_id === competentieId &&
@@ -203,6 +210,7 @@ export function useStudentEvaluatie() {
     foutMelding,
     scoreOpties,
     toggleCompetentie,
+    getBeschrijving,
     getEvaluatie,
     getMentorEvaluatie,
     setScore,
