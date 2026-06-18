@@ -77,7 +77,7 @@
               :class="{ geselecteerd: Number(getEvaluatie(competentie.id)?.score) === optie.waarde }"
               @click="!opgeslagen[competentie.id] && setScore(competentie.id, optie.waarde)"
             >
-              <p class="optie-beschrijving">{{ optie.beschrijving }}</p>
+              <p class="optie-beschrijving">{{ getBeschrijving(competentie, optie.waarde) || optie.beschrijving }}</p>
               <input
                 type="radio"
                 :name="'score-' + competentie.id"
@@ -143,6 +143,7 @@ const {
   opgeslagen,
   foutMelding,
   scoreOpties,
+  getBeschrijving,
   toggleCompetentie,
   getEvaluatie,
   getMentorEvaluatie,
@@ -439,6 +440,7 @@ html, body, #app {
 .col-score .optie-beschrijving {
   font-size: 0.88rem;
   font-weight: 500;
+  font-style: italic;
   color: #333;
   line-height: 1.5;
   flex: 1;
