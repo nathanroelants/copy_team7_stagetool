@@ -15,6 +15,7 @@
 </nav>
 
       <div class="sidebar-footer">
+        <button v-if="heeftMeerdereRollen" class="nav-item wissel-rol-btn" @click="router.push('/kies-rol')">Wissel rol</button>
         <button class="logout-btn" @click="handleLogout">Uitloggen</button>
       </div>
     </aside>
@@ -150,6 +151,7 @@ const form = ref({ ...initialForm })
 
 const user = JSON.parse(localStorage.getItem('user') || '{}')
 const gebruikerNaam = `${user.voornaam || ''} ${user.achternaam || user.naam || ''}`.trim() || 'Admin'
+const heeftMeerdereRollen = (user.rollen?.length ?? 0) > 1
 
 async function laadOpleidingen() {
   loading.value = true
@@ -265,17 +267,18 @@ onMounted(laadOpleidingen)
   display: flex;
   min-height: 100vh;
   font-family: Arial, Helvetica, sans-serif;
-  background: #f0f4f8;
+  background: #f5f7fa;
 }
 
 .sidebar {
   width: 180px;
-  background: #29a8e0;
+  background: white;
+  border-right: 1px solid #e5e8ec;
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
   position: sticky;
-  top: 0;            
+  top: 0;
   height: 100vh;
 }
 
@@ -298,26 +301,22 @@ onMounted(laadOpleidingen)
 .nav-item {
   display: block;
   text-decoration: none;
-  /* o resto do estilo permanece igual */
-}
-
-.nav-item {
   width: 100%;
-  background: #d9d9d9;
+  background: transparent;
   border: none;
   border-radius: 6px;
   padding: 0.75rem 1rem;
   font-size: 0.9rem;
   font-weight: 600;
-  color: #222;
+  color: #29a8e0;
   cursor: pointer;
   margin-bottom: 0.5rem;
-  text-align: center;
+  text-align: left;
+  transition: background 0.15s;
 }
 
-.nav-item.active {
-  background: white;
-}
+.nav-item:hover { background: #f0f7fc; }
+.nav-item.active { background: #29a8e0; color: white; }
 
 .sidebar-footer {
   padding: 1rem 0.75rem;
@@ -325,12 +324,23 @@ onMounted(laadOpleidingen)
 
 .logout-btn {
   width: 100%;
-  background: #d9d9d9;
+  background: #ffeaea;
+  color: #cc0000;
   border: none;
   border-radius: 6px;
   padding: 0.75rem 1rem;
   font-weight: 600;
   cursor: pointer;
+  transition: background 0.15s;
+}
+
+.logout-btn:hover { background: #ffdada; }
+
+.wissel-rol-btn {
+  background: white;
+  color: #29a8e0;
+  border: 1px solid #29a8e0;
+  margin-bottom: 0.5rem;
 }
 
 .main-content {
@@ -382,7 +392,8 @@ onMounted(laadOpleidingen)
 
 .opleiding-card {
   background: white;
-  border-radius: 8px;
+  border-radius: 10px;
+  border-top: 3px solid #29a8e0;
   margin-bottom: 1rem;
   box-shadow: 0 2px 6px rgba(0,0,0,0.04);
   overflow: hidden;
@@ -422,18 +433,19 @@ onMounted(laadOpleidingen)
 }
 
 .competentie-table th {
-  background: #f1f5f9;
+  background: #29a8e0;
+  color: white;
   text-align: left;
   padding: 0.55rem 0.8rem;
   font-size: 0.82rem;
   font-weight: 600;
-  color: #333;
 }
 
 .competentie-table td {
   padding: 0.55rem 0.8rem;
   font-size: 0.88rem;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid #f0f0f0;
+  color: #1a1a1a;
 }
 
 .acties { display: flex; gap: 0.5rem; }
@@ -447,15 +459,15 @@ onMounted(laadOpleidingen)
   cursor: pointer;
 }
 
-.btn-bewerken { background: #e0e0e0; color: #333; }
-.btn-bewerken:hover { background: #cfcfcf; }
-.btn-verwijderen { background: #f44336; color: white; }
+.btn-bewerken { background: #e8eef3; color: #29a8e0; border-radius: 6px; transition: background 0.15s; }
+.btn-bewerken:hover { background: #d8e2eb; }
+.btn-verwijderen { background: #f44336; color: white; transition: background 0.15s; }
 .btn-verwijderen:hover { background: #d33; }
 
 .badge {
-  padding: 0.22rem 0.55rem;
+  padding: 0.25rem 0.7rem;
   border-radius: 5px;
-  font-size: 0.75rem;
+  font-size: 0.78rem;
   font-weight: 700;
   color: white;
 }
@@ -473,11 +485,14 @@ onMounted(laadOpleidingen)
   color: white;
   border: none;
   padding: 0.55rem 1.1rem;
-  border-radius: 6px;
+  border-radius: 8px;
   font-weight: 600;
   cursor: pointer;
+  box-shadow: 0 2px 4px rgba(41,168,224,0.25);
+  transition: background 0.15s, box-shadow 0.15s, transform 0.05s;
 }
-.btn-primary:hover { background: #1d8cc4; }
+.btn-primary:hover { background: #1e90c0; box-shadow: 0 4px 8px rgba(41,168,224,0.35); }
+.btn-primary:active { transform: translateY(1px); }
 .btn-new { margin-top: 0.25rem; }
 
 .modal-overlay {
@@ -516,11 +531,20 @@ onMounted(laadOpleidingen)
 .form-group input,
 .form-group select,
 .form-group textarea {
-  padding: 0.55rem 0.7rem;
-  border: 1px solid #ccc;
-  border-radius: 5px;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid #d5dae0;
+  border-radius: 6px;
   font-size: 0.92rem;
   font-family: inherit;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  border-color: #29a8e0;
+  box-shadow: 0 0 0 3px rgba(41,168,224,0.12);
+  outline: none;
 }
 
 .checkbox-group label {
@@ -539,14 +563,17 @@ onMounted(laadOpleidingen)
 }
 
 .btn-cancel {
-  background: #d9d9d9;
-  color: #333;
+  background: #e8eef3;
+  color: #29a8e0;
   border: none;
   padding: 0.55rem 1.1rem;
   border-radius: 6px;
   font-weight: 600;
   cursor: pointer;
+  transition: background 0.15s;
 }
+
+.btn-cancel:hover { background: #d8e2eb; }
 
 .error-msg {
   background: #fdecea;

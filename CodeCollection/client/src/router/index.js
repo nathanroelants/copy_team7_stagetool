@@ -6,15 +6,19 @@ const routes = [
   { path: '/login', component: LoginView },
   { path: '/student', component: () => import('../views/student/MijnStageView.vue') },
   { path: '/studentlogboeken', component: () => import('../views/student/StudentLogboeken.vue') },
-  { path: '/student/documenten', component: () => import('../views/student/StudentLogboeken.vue') },
+  { path: '/student/documenten', component: () => import('../views/student/StudentDocumenten.vue') },
   { path: '/student/evaluatie', component: () => import('../views/student/StudentEvaluatieView.vue') },
   { path: '/docent', component: () => import('../views/docent/DocentStudenten.vue') },
+  { path: '/docent/logboeken/:studentId', component: () => import('../views/docent/DocentLogboeken.vue') },
+  { path: '/docent/evaluatie/:studentId', component: () => import('../views/docent/DocentEvaluatieView.vue') },
   { path: '/stagementor', component: () => import('../views/stagementor/StagementorStudenten.vue') },
-  { path: '/stagementorlogboeken', component: () => import('../views/stagementor/StagementorLogboeken.vue') },
+  { path: '/stagementor/evaluatie/:studentId', component: () => import('../views/stagementor/StagementorEvaluatieView.vue') },
+  { path: '/stagementorlogboeken/:studentId', component: () => import('../views/stagementor/StagementorLogboeken.vue') },
   { path: '/stagecommissie', component: () => import('../views/stagecommissie/StagecommissieStudenten.vue') },
   { path: '/stagecommissie/studenten/:stageId/voorstel', component: () => import('../views/stagecommissie/StagecommissieVoorstellen.vue') },
   { path: '/administratie', component: () => import('../views/administratie/AccountbeheerView.vue') },
   { path: '/administratie/competentiebeheer', component: () => import('../views/administratie/CompetentieBeheer.vue') },
+  { path: '/kies-rol', component: () => import('../views/KiesRolView.vue') },
   { path: '/:pathMatch(.*)*', redirect: '/' }
 ]
 

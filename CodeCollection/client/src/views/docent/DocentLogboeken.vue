@@ -7,13 +7,20 @@
       </div>
 
       <nav class="sidebar-nav">
-        <button class="nav-item" :class="{ active: pagina === 'logboek' }" @click="pagina = 'logboek'">Logboek</button>
-        <button class="nav-item disabled" disabled>Stagevoorstel</button>
-        <button class="nav-item disabled" disabled>Evaluatie</button>
-        <button class="nav-item disabled" disabled>Documenten</button>
+        <button class="nav-item nav-back" @click="router.push('/docent')">
+          ← Mijn studenten
+        </button>
+
+        <div class="nav-separator"></div>
+       
+        <button class="nav-item" :class="{ active: pagina === 'stageinfo' }"  @click="pagina = 'stageinfo'">Stageinfo</button>
+        <button class="nav-item" :class="{ active: pagina === 'logboek' }"    @click="pagina = 'logboek'">Logboek</button>
+        <button class="nav-item" :class="{ active: pagina === 'evaluatie' }"  @click="router.push(`/docent/evaluatie/${studentId}`)">Evaluatie</button>
+        <button class="nav-item" :class="{ active: pagina === 'documenten' }" @click="router.push(`/docent/evaluatie/${studentId}`)">Documenten</button>
       </nav>
 
       <div class="sidebar-footer">
+        <button v-if="heeftMeerdereRollen" class="nav-item wissel-rol-btn" @click="router.push('/kies-rol')">Wissel rol</button>
         <button class="logout-btn" @click="uitloggen">Uitloggen</button>
       </div>
     </aside>
@@ -21,144 +28,256 @@
     <main class="main-content">
 
       <header class="topbar">
-        <div class="topbar-links">
-          <div class="topbar-user">{{ docent.naam }}</div>
-          <div class="topbar-role">Docent — alleen-lezen</div>
-        </div>
+        <div class="topbar-user">{{ docent.naam }}</div>
         <img src="../../assets/erasmus-logo.png" alt="Erasmus Hogeschool Brussel" class="topbar-logo" />
       </header>
 
       <section class="content-area">
 
-        <div v-if="pagina === 'logboek'">
-          <div class="section-header">
-            <h2>Logboek van {{ student.naam }}</h2>
-            <p class="sectie-subtitel">Stageperiode: {{ student.startDatum }} – {{ student.eindDatum }} | {{ student.bedrijf }}</p>
-          </div>
+        <div v-if="loadingInfo" class="status-message">Gegevens laden...</div>
+        <div v-else-if="foutInfo" class="status-message error">{{ foutInfo }}</div>
 
-          <div class="readonly-banner">
-            🔒 U bekijkt dit logboek als docent. U kunt geen wijzigingen aanbrengen.
-          </div>
+        <template v-else>
 
-          <div class="student-selector">
-            <label>Student:</label>
-            <select v-model="geselecteerdeStudent">
-              <option v-for="s in studenten" :key="s" :value="s">{{ s }}</option>
-            </select>
-          </div>
+          <div v-if="pagina === 'logboek'">
+            <div class="section-header">
+              <h2>Logboek van {{ student.voornaam }} {{ student.achternaam }}</h2>
+              <p class="sectie-subtitel">
+                Stageperiode: {{ formatDatum(stage.start_datum) }} – {{ formatDatum(stage.eind_datum) }} | {{ stage.bedrijf || '—' }}
+              </p>
+            </div>
 
-          <div v-if="weken.length === 0" class="status-message">Nog geen dagen ingevoerd door de student.</div>
+            <div v-if="loadingLogboek" class="status-message">Logboek laden...</div>
+            <div v-else-if="weken.length === 0" class="status-message">Nog geen dagen ingevoerd door de student.</div>
 
-          <div v-for="week in weken" :key="week.nummer" class="week-kaart">
-            <div class="week-header">
-              <div class="week-titel">
-                Week {{ week.nummer }}
-                <span class="badge" :class="statusKleur(week.status)">{{ week.status }}</span>
+            <div v-for="week in weken" :key="week.nummer" class="week-kaart">
+              <div class="week-header">
+                <div class="week-titel">
+                  {{ week.nummer === 0 ? 'Voor stageperiode' : `Week ${week.nummer}` }}
+                  <span class="badge" :class="statusKleur(week.status)">{{ week.status }}</span>
+                </div>
               </div>
-              <span v-if="week.status === 'Ingediend'" class="readonly-hint">Enkel stagementor kan aftekenen</span>
-            </div>
 
-            <div v-if="week.dagen.length === 0" class="status-message">Student heeft deze week nog niet ingediend.</div>
+              <table class="dag-tabel">
+                <thead>
+                  <tr>
+                    <th>Datum</th>
+                    <th>Taken</th>
+                    <th>Uren</th>
+                    <th>Reflectie</th>
+                    <th>Leerpunten</th>
+                    <th>Leerdoelen</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="dag in week.dagen" :key="dag.id">
+                    <td class="col-datum">{{ formatDatum(dag.datum) }}</td>
+                    <td class="col-text">{{ truncate(dag.taak) }}</td>
+                    <td class="col-uren">{{ dag.uren }}</td>
+                    <td class="col-text">{{ truncate(dag.reflectie) }}</td>
+                    <td class="col-text">{{ truncate(dag.leerpunten) }}</td>
+                    <td class="col-leerdoelen">
+                      <span v-if="!dag.competenties || dag.competenties.length === 0" class="muted">—</span>
+                      <span v-else class="leerdoel-tag" v-for="c in dag.competenties" :key="c.id">
+                        {{ c.naam }}
+                      </span>
+                    </td>
+                    <td class="col-acties">
+                      <button class="knop-meer" @click="openDagDetail(dag)">Bekijk meer</button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
 
-            <table v-else class="dag-tabel">
-              <thead>
-                <tr>
-                  <th>Datum</th>
-                  <th>Taak</th>
-                  <th>Uren</th>
-                  <th>Leerdoelstelling</th>
-                  <th>Reflectie</th>
-                  <th>Leerpunten</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="dag in week.dagen" :key="dag.datum">
-                  <td>{{ dag.datum }}</td>
-                  <td>{{ dag.taak }}</td>
-                  <td>{{ dag.uren }}</td>
-                  <td>{{ dag.los }}</td>
-                  <td>{{ dag.reflectie }}</td>
-                  <td>{{ dag.leerpunten }}</td>
-                </tr>
-              </tbody>
-            </table>
-
-            <div v-if="week.dagen.length > 0" class="week-totaal">
-              Totaal: <strong>{{ week.dagen.reduce((s, d) => s + d.uren, 0) }} uren</strong>
+              <div class="week-totaal">
+                Totaal: <strong>{{ week.dagen.reduce((s, d) => s + Number(d.uren || 0), 0) }} uren</strong>
+              </div>
             </div>
           </div>
-        </div>
+
+          <!-- Stagevoorstel -->
+          <div v-if="pagina === 'stageinfo'">
+            <div class="section-header">
+              <h2>Stagevoorstel</h2>
+            </div>
+
+            <div v-if="loadingVoorstel" class="status-message">Laden...</div>
+            <div v-else-if="!stagevoorstel" class="status-message">Geen stagevoorstel gevonden.</div>
+
+            <div v-else class="info-kaart">
+              <div><strong>Bedrijf:</strong> {{ stagevoorstel.bedrijfsnaam || '—' }}</div>
+              <div><strong>Adres:</strong>
+                {{ stagevoorstel.straat }} {{ stagevoorstel.huisnummer }},
+                {{ stagevoorstel.gemeente }}, {{ stagevoorstel.land }}
+              </div>
+              <div><strong>Beschrijving:</strong> {{ stagevoorstel.beschrijving || '—' }}</div>
+              <div><strong>Technische skills:</strong> {{ stagevoorstel.technische_skills || '—' }}</div>
+              <div><strong>Tools:</strong> {{ stagevoorstel.tools || '—' }}</div>
+            </div>
+          </div>
+
+        </template>
 
       </section>
+
+      <!-- Modal van dag-detail -->
+      <div v-if="dagDetail" class="modal-overlay" @click.self="dagDetail = null">
+        <div class="modal">
+          <h3>{{ formatDatum(dagDetail.datum) }}</h3>
+
+          <div class="modal-section">
+            <strong>Taken</strong>
+            <div class="modal-text">{{ dagDetail.taak || '—' }}</div>
+          </div>
+
+          <div class="modal-section">
+            <strong>Uren</strong>
+            <div class="modal-text">{{ dagDetail.uren }}</div>
+          </div>
+
+          <div class="modal-section">
+            <strong>Reflectie</strong>
+            <div class="modal-text">{{ dagDetail.reflectie || '—' }}</div>
+          </div>
+
+          <div class="modal-section">
+            <strong>Leerpunten</strong>
+            <div class="modal-text">{{ dagDetail.leerpunten || '—' }}</div>
+          </div>
+
+          <div class="modal-section">
+            <strong>Leerdoelen</strong>
+            <div class="modal-text">
+              <span v-if="!dagDetail.competenties || dagDetail.competenties.length === 0" class="muted">Geen leerdoelen gekoppeld</span>
+              <span v-else class="leerdoel-tag" v-for="c in dagDetail.competenties" :key="c.id">
+                {{ c.naam }}
+              </span>
+            </div>
+          </div>
+
+          <div class="modal-actions">
+            <button class="knop-blauw" @click="dagDetail = null">Sluiten</button>
+          </div>
+        </div>
+      </div>
+
     </main>
   </div>
 </template>
 
-<script>
-import { ref, reactive } from 'vue'
+<script setup>
+import { ref, reactive, onMounted, watch } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 
-export default {
-  name: 'DocentLogboek',
-  setup() {
-    const pagina = ref('logboek')
+const router = useRouter()
+const route = useRoute()
 
-    const docent = reactive({
-      naam: 'Prof. De Smedt',
-    })
+const studentId = route.params.studentId
+const pagina = ref('logboek')
 
-    const geselecteerdeStudent = ref('Nathan De Smedt')
-    const studenten = ['Nathan De Smedt', 'Emma Claes', 'Lars Bogaert']
+const docent = reactive({ naam: '' })
+const student = reactive({ id: null, voornaam: '', achternaam: '', email: '', opleiding: '' })
+const stage = reactive({ start_datum: '', eind_datum: '', status: '', bedrijf: '' })
 
-    const student = reactive({
-      naam: 'Nathan De Smedt',
-      leergroep: '3 Informatica',
-      startDatum: '01/09/2025',
-      eindDatum: '31/01/2026',
-      bedrijf: 'TechCorp BV',
-      mentor: 'Mevr. Janssen',
-    })
+const weken = ref([])
+const stagevoorstel = ref(null)
 
-    const weken = reactive([
-      {
-        nummer: 1,
-        status: 'Ingediend',
-        dagen: [
-          { datum: '01/09/2025', taak: 'Introductie bedrijf', uren: 8, los: 'Kennismaking', reflectie: 'Goed ontvangen', leerpunten: 'Structuur bedrijf' },
-          { datum: '02/09/2025', taak: 'Opzetten omgeving', uren: 8, los: 'Technische setup', reflectie: 'Veel geleerd', leerpunten: 'Git workflow' },
-        ],
-      },
-      {
-        nummer: 2,
-        status: 'Afgetekend',
-        dagen: [
-          { datum: '08/09/2025', taak: 'Frontend taak', uren: 8, los: 'Vue componenten', reflectie: 'Vlot gegaan', leerpunten: 'Props en events' },
-        ],
-      },
-      {
-        nummer: 3,
-        status: 'Niet ingediend',
-        dagen: [],
-      },
-    ])
+const loadingInfo = ref(true)
+const loadingLogboek = ref(false)
+const loadingVoorstel = ref(false)
+const foutInfo = ref('')
+const dagDetail = ref(null)
 
-    function statusKleur(status) {
-      if (status === 'Afgetekend') return 'badge-groen'
-      if (status === 'Ingediend')  return 'badge-blauw'
-      return 'badge-grijs'
-    }
+const API_BASE = `/api/docent/student/${studentId}`
 
-    function uitloggen() {
-      if (confirm('Bent u zeker dat u wilt uitloggen?')) {
-        alert('U bent uitgelogd.')
-      }
-    }
-
-    return {
-      pagina, docent, student, studenten, geselecteerdeStudent,
-      weken, statusKleur, uitloggen,
-    }
-  },
+function truncate(text, max = 60) {
+  if (!text) return '—'
+  return text.length > max ? text.slice(0, max) + '...' : text
 }
+
+function openDagDetail(dag) {
+  dagDetail.value = dag
+}
+
+function authHeaders() {
+  return { Authorization: `Bearer ${localStorage.getItem('token')}` }
+}
+
+async function laadInfo() {
+  loadingInfo.value = true
+  foutInfo.value = ''
+  try {
+    const res = await fetch(`${API_BASE}/info`, { headers: authHeaders() })
+    const text = await res.text()
+    const data = text ? JSON.parse(text) : null
+    if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`)
+
+    Object.assign(student, data.student)
+    Object.assign(stage, data.stage)
+    docent.naam = data.docent?.naam || ''
+  } catch (err) {
+    foutInfo.value = err.message
+  } finally {
+    loadingInfo.value = false
+  }
+}
+
+async function laadLogboek() {
+  loadingLogboek.value = true
+  try {
+    const res = await fetch(`${API_BASE}/logboek`, { headers: authHeaders() })
+    const data = await res.json()
+    weken.value = data.sort((a, b) => b.nummer - a.nummer)
+  } catch (err) {
+    console.error(err)
+  } finally {
+    loadingLogboek.value = false
+  }
+}
+
+async function laadStagevoorstel() {
+  loadingVoorstel.value = true
+  try {
+    const res = await fetch(`${API_BASE}/stagevoorstel`, { headers: authHeaders() })
+    stagevoorstel.value = await res.json()
+  } catch (err) {
+    console.error(err)
+  } finally {
+    loadingVoorstel.value = false
+  }
+}
+
+watch(pagina, (nova) => {
+  if (nova === 'logboek' && weken.value.length === 0) laadLogboek()
+  if (nova === 'stageinfo' && stagevoorstel.value === null) laadStagevoorstel()
+}, { immediate: false })
+
+function statusKleur(status) {
+  const s = (status || '').toLowerCase()
+  if (s.includes('afgetekend') || s.includes('goedgekeurd')) return 'badge-groen'
+  if (s.includes('afgekeurd')) return 'badge-rood'
+  if (s.includes('ingediend')) return 'badge-blauw'
+  return 'badge-grijs'
+}
+
+function formatDatum(datum) {
+  if (!datum) return '—'
+  return new Date(datum).toLocaleDateString('nl-BE', { day: '2-digit', month: '2-digit', year: 'numeric' })
+}
+
+const heeftMeerdereRollen = (JSON.parse(localStorage.getItem('user') || '{}').rollen?.length ?? 0) > 1
+
+function uitloggen() {
+  localStorage.removeItem('token')
+  localStorage.removeItem('user')
+  router.push('/')
+}
+
+onMounted(async () => {
+  await laadInfo()
+  if (!foutInfo.value) await laadLogboek()
+})
 </script>
 
 <style scoped>
@@ -166,15 +285,19 @@ export default {
   display: flex;
   min-height: 100vh;
   font-family: Arial, Helvetica, sans-serif;
-  background: #f0f4f8;
+  background: #f5f7fa;
 }
 
 .sidebar {
   width: 180px;
-  background: #29a8e0;
+  background: white;
+  border-right: 1px solid #e5e8ec;
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
+  position: sticky;
+  top: 0;            
+  height: 100vh;
 }
 
 .sidebar-brand {
@@ -197,32 +320,45 @@ export default {
 .nav-item {
   width: 100%;
   text-align: left;
-  background: white;
+  background: transparent;
   border: none;
   border-radius: 6px;
   padding: 0.65rem 1rem;
   font-size: 0.9rem;
   font-weight: 600;
-  color: #222;
+  color: #29a8e0;
   cursor: pointer;
   margin-bottom: 0.5rem;
   transition: background 0.15s;
 }
 
-.nav-item:hover,
-.nav-item.active {
-  background: #f0f0f0;
+
+
+.nav-item:hover { background: #f0f7fc; }
+.nav-item.active { background: #29a8e0; color: white; }
+
+.nav-back {
+  background: #29a8e0;
+  color: white;
+  font-weight: 700;
+}
+
+.nav-back:hover { background: #1e90c0; }
+
+.nav-separator {
+  height: 1px;
+  background: #e5e8ec;
+  margin: 0.5rem 0 0.75rem;
 }
 
 .nav-item.disabled {
-  background: #e0e0e0;
-  color: #aaa;
+  background: transparent;
+  color: #bbb;
   cursor: not-allowed;
 }
 
-.nav-item.disabled:hover {
-  background: #e0e0e0;
-}
+.nav-item.disabled:hover { background: transparent; }
+
 
 .sidebar-footer {
   padding: 1rem 0.75rem;
@@ -230,20 +366,19 @@ export default {
 
 .logout-btn {
   width: 100%;
-  background: white;
+  background: #ffeaea;
+  color: #cc0000;
   border: none;
   border-radius: 6px;
   padding: 0.65rem 1rem;
   font-size: 0.9rem;
   font-weight: 600;
-  color: #222;
   cursor: pointer;
   transition: background 0.15s;
 }
 
-.logout-btn:hover {
-  background: #f0f0f0;
-}
+.logout-btn:hover { background: #ffdada; }
+.wissel-rol-btn { background: white; color: #29a8e0; border: 1px solid #29a8e0; margin-bottom: 0.5rem; }
 
 .main-content {
   flex: 1;
@@ -261,12 +396,6 @@ export default {
   border-bottom: 1px solid #e0e0e0;
 }
 
-.topbar-links {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
 .topbar-user {
   background: #e8e8e8;
   border-radius: 6px;
@@ -274,15 +403,6 @@ export default {
   font-size: 0.95rem;
   font-weight: 600;
   color: #222;
-}
-
-.topbar-role {
-  background: #29a8e0;
-  border-radius: 6px;
-  padding: 0.4rem 1rem;
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: #fff;
 }
 
 .topbar-logo {
@@ -296,73 +416,41 @@ export default {
 }
 
 .section-header {
-  margin-bottom: 1rem;
+  margin-bottom: 1.25rem;
 }
 
 .section-header h2 {
-  font-size: 1.3rem;
+  font-size: 1.4rem;
   font-weight: 700;
   color: #111;
-  margin: 0 0 0.2rem;
+  margin: 0 0 0.25rem;
 }
 
 .sectie-subtitel {
-  font-size: 0.82rem;
+  font-size: 0.85rem;
   color: #555;
   margin: 0;
-}
-
-.readonly-banner {
-  background: #FFF8E1;
-  border: 1px solid #FFE082;
-  border-radius: 6px;
-  padding: 8px 14px;
-  font-size: 12px;
-  color: #795548;
-  margin-bottom: 14px;
-}
-
-.readonly-hint {
-  font-size: 11px;
-  color: #aaa;
-  font-style: italic;
-}
-
-.student-selector {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  margin-bottom: 14px;
-}
-
-.student-selector label {
-  font-size: 12px;
-  color: #555;
-  font-weight: 600;
-}
-
-.student-selector select {
-  padding: 6px 10px;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  font-size: 12px;
-  background: #fff;
-  color: #333;
 }
 
 .status-message {
   color: #555;
   padding: 1rem 0;
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   font-style: italic;
+}
+
+.status-message.error {
+  color: #cc0000;
 }
 
 .week-kaart {
   background: white;
   border-radius: 10px;
+  border-top: 3px solid #29a8e0;
   padding: 1.25rem;
   margin-bottom: 1.25rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
 }
 
 .week-header {
@@ -381,6 +469,11 @@ export default {
   gap: 10px;
 }
 
+.week-acties {
+  display: flex;
+  gap: 8px;
+}
+
 .week-totaal {
   margin-top: 12px;
   font-size: 13px;
@@ -395,8 +488,8 @@ export default {
 }
 
 .dag-tabel th {
-  background: #f0f4ff;
-  color: #111;
+  background: #29a8e0;
+  color: white;
   padding: 8px 12px;
   text-align: left;
   font-weight: 600;
@@ -404,24 +497,202 @@ export default {
 
 .dag-tabel td {
   padding: 8px 12px;
-  border-bottom: 1px solid #eee;
-  color: #333;
+  border-bottom: 1px solid #f0f0f0;
+  color: #1a1a1a;
 }
 
 .dag-tabel tr:last-child td {
   border-bottom: none;
 }
 
+.info-kaart {
+  background: white;
+  border-radius: 10px;
+  border-top: 3px solid #29a8e0;
+  padding: 1.25rem 1.5rem;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-size: 14px;
+  color: #333;
+  margin-bottom: 1rem;
+  overflow: hidden;
+}
+
 .badge {
   display: inline-block;
-  padding: 0.3rem 0.75rem;
+  padding: 0.25rem 0.7rem;
   border-radius: 5px;
-  font-size: 0.82rem;
+  font-size: 0.78rem;
   font-weight: 700;
   white-space: nowrap;
 }
 
 .badge-groen { background: #4caf50; color: #fff; }
 .badge-blauw { background: #2196f3; color: #fff; }
+.badge-rood  { background: #e53935; color: #fff; }
 .badge-grijs  { background: #aaa;    color: #fff; }
+
+.knop-blauw {
+  background: #29a8e0;
+  color: white;
+  border: none;
+  padding: 0.55rem 1.1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: none;
+  box-shadow: 0 2px 4px rgba(41,168,224,0.25);
+  transition: background 0.15s, box-shadow 0.15s, transform 0.05s;
+}
+
+.knop-blauw:hover { background: #1e90c0; box-shadow: 0 4px 8px rgba(41,168,224,0.35); }
+.knop-blauw:active { transform: translateY(1px); }
+
+.knop-groen {
+  background: #4caf50;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.knop-groen:hover {
+  background: #388e3c;
+}
+
+.knop-rood {
+  background: #f44336;
+  color: white;
+  border: none;
+  padding: 0.55rem 1.1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition: background 0.15s;
+}
+
+.knop-rood:hover { background: #d33; }
+/* Tabela compacta com texto truncado */
+.dag-tabel {
+  table-layout: fixed;
+  width: 100%;
+}
+
+.col-datum { width: 100px; }
+.col-uren { width: 70px; text-align: center; }
+.col-text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+}
+.col-leerdoelen {
+  width: 160px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  padding: 8px 12px;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.col-acties { width: 120px; text-align: right; }
+
+.leerdoel-tag {
+  display: inline-block;
+  background: #e3f2fd;
+  color: #1565c0;
+  padding: 0.2rem 0.55rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.muted {
+  color: #999;
+  font-style: italic;
+  font-size: 0.85rem;
+}
+
+.knop-meer {
+  background: #29a8e0;
+  color: white;
+  border: none;
+  padding: 0.35rem 0.75rem;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.knop-meer:hover {
+  background: #1e90c0;
+}
+
+/* Modal */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal {
+  background: white;
+  border-radius: 10px;
+  padding: 1.5rem 2rem;
+  max-width: 600px;
+  width: 90%;
+  max-height: 85vh;
+  overflow-y: auto;
+}
+
+.modal h3 {
+  margin: 0 0 1rem;
+  color: #111;
+  font-size: 1.2rem;
+}
+
+.modal-section {
+  margin-bottom: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.modal-section strong {
+  font-size: 0.85rem;
+  color: #555;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.modal-text {
+  background: #f7f9fb;
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  color: #222;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 1rem;
+}
 </style>

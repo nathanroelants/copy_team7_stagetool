@@ -105,19 +105,19 @@ router.get('/studenten', requireAuth, requireDocent, async (req, res) => {
     }
 
     return {
-      id: stage.id,
-      voornaam: stage.student?.voornaam ?? '',
-      achternaam: stage.student?.achternaam ?? '',
-      email: stage.student?.email ?? '',
+      id:                   stage.id,
+      voornaam:             stage.student?.voornaam   ?? '',
+      achternaam:           stage.student?.achternaam ?? '',
+      email:                stage.student?.email      ?? '',
       opleiding: opleidingPerId[stage.student?.opleiding_id] ?? '',
-      bedrijf: stage.stagevoorstel?.bedrijfsnaam ?? '',
-      start_datum: stage.start_datum,
-      eind_datum: stage.eind_datum,
-      mentor_naam: stage.stagementor
+      bedrijf:              stage.stagevoorstel?.bedrijfsnaam ?? '',
+      start_datum:          stage.start_datum,
+      eind_datum:           stage.eind_datum,
+      mentor_naam:          stage.stagementor
         ? `${stage.stagementor.voornaam} ${stage.stagementor.achternaam}`.trim()
         : null,
       stagevoorstel_status: stage.status ?? 'Niet ingediend',
-      logboek_status: logboekStatus
+      logboek_status:       logboekStatus
     };
   });
 
@@ -190,39 +190,39 @@ router.get('/studenten/:stageId/voorstel', requireAuth, requireDocent, async (re
   // 3. Stel response samen
   res.json({
     student: {
-      id: stage.student?.id,
-      voornaam: stage.student?.voornaam ?? '',
-      achternaam: stage.student?.achternaam ?? '',
-      email: stage.student?.email ?? '',
-      opleiding: opleiding?.naam ?? '',
-      stagevoorstel_status: stage.status ?? ''
+      id:                   stage.student?.id,
+      voornaam:             stage.student?.voornaam   ?? '',
+      achternaam:           stage.student?.achternaam ?? '',
+      email:                stage.student?.email      ?? '',
+      opleiding:            opleiding?.naam           ?? '',
+      stagevoorstel_status: stage.status              ?? ''
     },
     stage: {
-      id: stage.id,
-      status: stage.status,
+      id:          stage.id,
+      status:      stage.status,
       start_datum: stage.start_datum,
-      eind_datum: stage.eind_datum
+      eind_datum:  stage.eind_datum
     },
     stagevoorstel: stage.stagevoorstel
       ? {
-        id: stage.stagevoorstel.id,
-        bedrijfsnaam: stage.stagevoorstel.bedrijfsnaam ?? '',
-        beschrijving: stage.stagevoorstel.beschrijving ?? '',
-        technische_skills: stage.stagevoorstel.technische_skills ?? '',
-        tools: stage.stagevoorstel.tools ?? '',
-        straat: stage.stagevoorstel.straat ?? '',
-        huisnummer: stage.stagevoorstel.huisnummer ?? '',
-        gemeente: stage.stagevoorstel.gemeente ?? '',
-        land: stage.stagevoorstel.land ?? ''
-      }
+          id:                stage.stagevoorstel.id,
+          bedrijfsnaam:      stage.stagevoorstel.bedrijfsnaam      ?? '',
+          beschrijving:      stage.stagevoorstel.beschrijving      ?? '',
+          technische_skills: stage.stagevoorstel.technische_skills ?? '',
+          tools:             stage.stagevoorstel.tools             ?? '',
+          straat:            stage.stagevoorstel.straat            ?? '',
+          huisnummer:        stage.stagevoorstel.huisnummer        ?? '',
+          gemeente:          stage.stagevoorstel.gemeente          ?? '',
+          land:              stage.stagevoorstel.land              ?? ''
+        }
       : null,
     mentor: stage.stagementor
       ? {
-        id: stage.stagementor.id,
-        voornaam: stage.stagementor.voornaam ?? '',
-        achternaam: stage.stagementor.achternaam ?? '',
-        email: stage.stagementor.email ?? ''
-      }
+          id:         stage.stagementor.id,
+          voornaam:   stage.stagementor.voornaam   ?? '',
+          achternaam: stage.stagementor.achternaam ?? '',
+          email:      stage.stagementor.email      ?? ''
+        }
       : {}
   });
 });
@@ -252,11 +252,11 @@ router.put(
       })
     }
 
-    const { data: stage, error: stageError } = await supabase
-      .from('stages')
-      .select('id, stagevoorstel_id, stagementor_id')
-      .eq('id', stageId)
-      .maybeSingle()
+  const { data: stage, error: stageError } = await supabase
+  .from('stages')
+  .select('id, stagevoorstel_id, stagementor_id')
+  .eq('id', stageId)
+  .maybeSingle()
 
 
     if (stageError || !stage) {
@@ -307,24 +307,24 @@ router.put(
 
 
     // Activeer stagementor bij goedkeuring stagevoorstel
-    if (
-      status === 'stagevoorstel geaccepteerd' &&
-      stage.stagementor_id
-    ) {
-      const { error: mentorError } = await supabase
-        .from('gebruikers')
-        .update({
-        })
-        .eq('id', stage.stagementor_id)
+if (
+  status === 'stagevoorstel geaccepteerd' &&
+  stage.stagementor_id
+) {
+  const { error: mentorError } = await supabase
+    .from('gebruikers')
+    .update({
+    })
+    .eq('id', stage.stagementor_id)
 
-      if (mentorError) {
-        console.error(mentorError)
+  if (mentorError) {
+    console.error(mentorError)
 
-        return res.status(500).json({
-          error: 'Stagevoorstel goedgekeurd, maar mentor kon niet geactiveerd worden'
-        })
-      }
-    }
+    return res.status(500).json({
+      error: 'Stagevoorstel goedgekeurd, maar mentor kon niet geactiveerd worden'
+    })
+  }
+}
   }
 );
 

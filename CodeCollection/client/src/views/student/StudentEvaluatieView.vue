@@ -5,21 +5,19 @@
       <div class="sidebar-brand">
         <span class="brand-text">STAGE.BE</span>
       </div>
-
       <nav class="sidebar-nav">
         <button class="nav-item" @click="router.push('/student')">Stagevoorstel</button>
         <button class="nav-item" @click="router.push('/studentlogboeken')">Logboeken</button>
         <button class="nav-item active">Evaluatie</button>
         <button class="nav-item" @click="router.push('/student/documenten')">Documenten</button>
       </nav>
-
       <div class="sidebar-footer">
+        <button v-if="heeftMeerdereRollen" class="nav-item wissel-rol-btn" @click="router.push('/kies-rol')">Wissel rol</button>
         <button class="logout-btn" @click="handleLogout">Uitloggen</button>
       </div>
     </aside>
 
     <main class="main-content">
-
       <header class="topbar">
         <div class="topbar-user">{{ gebruikerNaam }}</div>
         <img src="../../assets/erasmus-logo.png" alt="Erasmus Hogeschool Brussel" class="topbar-logo" />
@@ -27,98 +25,112 @@
 
       <section class="content-area">
 
-        <div class="tabs">
-          <button
-            :class="['tab-btn', { active: actieveTab === 'tussentijds' }]"
-            @click="actieveTab = 'tussentijds'"
-          >
-            Tussentijds
-          </button>
-          <button
-            :class="['tab-btn', { active: actieveTab === 'eindevaluatie' }, { geblokkeerd: !eindevaluatieOpen }]"
-            @click="eindevaluatieOpen && (actieveTab = 'eindevaluatie')"
-          >
-            Eindevaluatie
-          </button>
+        <!-- Geen evaluatie actief -->
+        <div v-if="evaluatieStatus === 'geen'" class="geblokkeerd-melding">
+          Er is momenteel geen evaluatie beschikbaar. Wacht tot de docent een fase activeert.
         </div>
 
-        <div v-if="actieveTab === 'eindevaluatie' && !eindevaluatieOpen" class="geblokkeerd-melding">
-          Eindevaluatie is nog niet beschikbaar. Wacht tot de docent dit activeert.
-        </div>
-
-        <div v-if="loading" class="status-message">Competenties laden...</div>
-        <div v-else-if="fout" class="status-message error">{{ fout }}</div>
-
-        <div v-else :class="['rubriek-tabel', { 'eindevaluatie-bg': actieveTab === 'eindevaluatie' }]">
-
-          <div class="rubriek-header">
-            <div class="col-criteria">Criteria</div>
-            <div class="col-score" v-for="optie in scoreOpties" :key="optie.waarde">
-              <span class="score-punten">{{ optie.waarde }} punten</span>
-              <span class="score-label">{{ optie.label }}</span>
-            </div>
-            <div class="col-zelfevaluatie">Zelfevaluatie</div>
+        <template v-else>
+          <!-- Tabs -->
+          <div class="tabs">
+            <button
+              v-if="tussentijdsZichtbaar"
+              :class="['tab-btn', { active: actieveTab === 'tussentijds' }]"
+              @click="actieveTab = 'tussentijds'"
+            >
+              Tussentijds
+            </button>
+            <button
+              :class="['tab-btn', { active: actieveTab === 'eindevaluatie' }, { geblokkeerd: !eindevaluatieZichtbaar }]"
+              @click="eindevaluatieZichtbaar && (actieveTab = 'eindevaluatie')"
+            >
+              Eindevaluatie
+            </button>
           </div>
 
-          <div
-            v-for="(competentie, index) in competenties"
-            :key="competentie.id"
-            class="rubriek-rij"
-          >
-            <div class="col-criteria">
-              <span class="lo-badge">LO{{ index + 1 }}</span>
-              <span class="lo-naam">{{ competentie.naam }}</span>
+          <!-- Statusmeldingen per situatie -->
+          <div v-if="actieveTab === 'tussentijds' && !tussentijdsBewerkbaar" class="geblokkeerd-melding">
+            De tussentijdse evaluatie kan niet meer bewerkt worden.
+          </div>
+          <div v-if="actieveTab === 'eindevaluatie' && !eindevaluatieZichtbaar" class="geblokkeerd-melding">
+            Eindevaluatie is nog niet beschikbaar. Wacht tot de docent dit activeert.
+          </div>
+          <div v-if="actieveTab === 'eindevaluatie' && eindevaluatieZichtbaar && !eindevaluatieBewerkbaar" class="geblokkeerd-melding">
+            De eindevaluatie kan niet meer bewerkt worden.
+          </div>
+
+          <div v-if="loading" class="status-message">Competenties laden...</div>
+          <div v-else-if="fout" class="status-message error">{{ fout }}</div>
+
+          <div v-else :class="['rubriek-tabel', { 'eindevaluatie-bg': actieveTab === 'eindevaluatie' }]">
+            <div class="rubriek-header">
+              <div class="col-criteria">Criteria</div>
+              <div class="col-score" v-for="optie in scoreOpties" :key="optie.waarde">
+                <span class="score-punten">{{ optie.waarde }} punten</span>
+                <span class="score-label">{{ optie.label }}</span>
+              </div>
+              <div class="col-zelfevaluatie">Zelfevaluatie</div>
             </div>
 
             <div
-              class="col-score"
-              v-for="optie in scoreOpties"
-              :key="optie.waarde"
-              :class="{ geselecteerd: Number(getEvaluatie(competentie.id)?.score) === optie.waarde }"
-              @click="!opgeslagen[competentie.id] && setScore(competentie.id, optie.waarde)"
+              v-for="(competentie, index) in competenties"
+              :key="competentie.id"
+              class="rubriek-rij"
             >
-              <p class="optie-beschrijving">{{ optie.beschrijving }}</p>
-              <input
-                type="radio"
-                :name="'score-' + competentie.id"
-                :value="optie.waarde"
-                :checked="Number(getEvaluatie(competentie.id)?.score) === optie.waarde"
-                :disabled="opgeslagen[competentie.id]"
-              @change="setScore(competentie.id, optie.waarde)"
-              />
-            </div>
+              <div class="col-criteria">
+                <span class="lo-badge">LO{{ index + 1 }}</span>
+                <span class="lo-naam">{{ competentie.naam }}</span>
+              </div>
 
-            <div class="col-zelfevaluatie">
-              <textarea
-                class="tekstvak"
-                placeholder="Jouw zelfevaluatie..."
-                :value="getEvaluatie(competentie.id)?.feedback || ''"
-                @input="setFeedback(competentie.id, $event.target.value)"
-                :disabled="opgeslagen[competentie.id]"
-              ></textarea>
-              <div class="opslaan-rij">
-                <button
-                  v-if="!opgeslagen[competentie.id]"
-                  class="opslaan-btn"
-                  @click="slaOp(competentie.id)"
-                  :disabled="bezig[competentie.id]"
-                >
-                  {{ bezig[competentie.id] ? 'Opslaan...' : 'Opslaan' }}
-                </button>
-                <button
-                  v-if="opgeslagen[competentie.id]"
-                  class="bewerken-btn"
-                  @click="opgeslagen[competentie.id] = false"
-                >
-                  Bewerken
-                </button>
-                <span v-if="opgeslagen[competentie.id]" class="opgeslagen-melding">✓ Opgeslagen</span>
-                <span v-if="foutMelding[competentie.id]" class="fout-melding">{{ foutMelding[competentie.id] }}</span>
+              <div
+                class="col-score"
+                v-for="optie in scoreOpties"
+                :key="optie.waarde"
+                :class="{ geselecteerd: Number(getEvaluatie(competentie.id)?.score) === optie.waarde }"
+                @click="huidigeBewerkbaar && !opgeslagen[`${competentie.id}_${actieveTab}`] && setScore(competentie.id, optie.waarde)"
+              >
+                <p class="optie-beschrijving">{{ optie.beschrijving }}</p>
+                <input
+                  type="radio"
+                  :name="'score-' + competentie.id"
+                  :value="optie.waarde"
+                  :checked="Number(getEvaluatie(competentie.id)?.score) === optie.waarde"
+                  :disabled="!huidigeBewerkbaar || opgeslagen[`${competentie.id}_${actieveTab}`]"
+                  @change="setScore(competentie.id, optie.waarde)"
+                />
+              </div>
+
+              <div class="col-zelfevaluatie">
+                <textarea
+                  class="tekstvak"
+                  placeholder="Jouw zelfevaluatie..."
+                  :value="getEvaluatie(competentie.id)?.feedback || ''"
+                  @input="setFeedback(competentie.id, $event.target.value)"
+                  :disabled="!huidigeBewerkbaar || opgeslagen[`${competentie.id}_${actieveTab}`]"
+                ></textarea>
+                <div class="opslaan-rij">
+                  <button
+                    v-if="huidigeBewerkbaar && !opgeslagen[`${competentie.id}_${actieveTab}`]"
+                    class="opslaan-btn"
+                    @click="slaOp(competentie.id)"
+                    :disabled="bezig[competentie.id]"
+                  >
+                    {{ bezig[competentie.id] ? 'Opslaan...' : 'Opslaan' }}
+                  </button>
+                  <button
+                    v-if="huidigeBewerkbaar && opgeslagen[`${competentie.id}_${actieveTab}`]"
+                    class="bewerken-btn"
+                    @click="opgeslagen[`${competentie.id}_${actieveTab}`] = false"
+                  >
+                    Bewerken
+                  </button>
+                  <span v-if="opgeslagen[`${competentie.id}_${actieveTab}`]" class="opgeslagen-melding">✓ Opgeslagen</span>
+                  <span v-if="foutMelding[competentie.id]" class="fout-melding">{{ foutMelding[competentie.id] }}</span>
+                </div>
               </div>
             </div>
-
           </div>
-        </div>
+        </template>
 
       </section>
     </main>
@@ -129,10 +141,16 @@
 import { useStudentEvaluatie } from './useStudentEvaluatie.js'
 import { useRouter } from 'vue-router'
 const router = useRouter()
+const heeftMeerdereRollen = (JSON.parse(localStorage.getItem('user') || '{}').rollen?.length ?? 0) > 1
 const {
   gebruikerNaam,
   actieveTab,
-  eindevaluatieOpen,
+  evaluatieStatus,
+  tussentijdsZichtbaar,
+  eindevaluatieZichtbaar,
+  tussentijdsBewerkbaar,
+  eindevaluatieBewerkbaar,
+  huidigeBewerkbaar,
   openCompetentie,
   competenties,
   evaluaties,
@@ -173,19 +191,20 @@ html, body, #app {
 .dashboard-layout {
   display: flex;
   min-height: 100vh;
-  background: #f0f4f8;
+  background: #f5f7fa;
 }
 
 /* ── Sidebar ── */
 .sidebar {
   width: 180px;
-  background: #29a8e0;
+  background: white;
+  border-right: 1px solid #e5e8ec;
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
   position: sticky;
-  top: 0;            
-  height: 100vh;     
+  top: 0;
+  height: 100vh;
 }
 
 .sidebar-brand {
@@ -211,26 +230,19 @@ html, body, #app {
 .nav-item {
   width: 100%;
   text-align: left;
-  background: white;
+  background: transparent;
   border: none;
   border-radius: 6px;
   padding: 0.65rem 1rem;
   font-size: 0.9rem;
   font-weight: 600;
-  color: #222;
+  color: #29a8e0;
   cursor: pointer;
   transition: background 0.15s;
 }
 
-.nav-item:hover,
-.nav-item.active {
-  background: #f0f0f0;
-}
-
-.nav-item.active {
-  background: #e0f0fb;
-  color: #1a7ab5;
-}
+.nav-item:hover { background: #f0f7fc; }
+.nav-item.active { background: #29a8e0; color: white; }
 
 .sidebar-footer {
   padding: 1rem 0.75rem;
@@ -238,18 +250,19 @@ html, body, #app {
 
 .logout-btn {
   width: 100%;
-  background: white;
+  background: #ffeaea;
+  color: #cc0000;
   border: none;
   border-radius: 6px;
   padding: 0.65rem 1rem;
   font-size: 0.9rem;
   font-weight: 600;
-  color: #222;
   cursor: pointer;
   transition: background 0.15s;
 }
 
-.logout-btn:hover { background: #f0f0f0; }
+.logout-btn:hover { background: #ffdada; }
+.wissel-rol-btn { background: white; color: #29a8e0; border: 1px solid #29a8e0; margin-bottom: 0.5rem; }
 
 /* ── Main ── */
 .main-content {
@@ -358,8 +371,17 @@ html, body, #app {
   background: white;
 }
 
-.eindevaluatie-bg {
-  background: #e8f4fb;
+.eindevaluatie-bg .col-score {
+  background: white;
+}
+
+.eindevaluatie-bg .col-score:hover {
+  background: #f0f4f8;
+}
+
+.eindevaluatie-bg .col-score.geselecteerd {
+  background: #d6eef9;
+  border-left: 3px solid #29a8e0;
 }
 
 .rubriek-header,
@@ -517,6 +539,10 @@ html, body, #app {
 .opslaan-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+.rubriek-header .col-score {
+  background: #29a8e0;
+  cursor: default;
 }
 
 .opgeslagen-melding {

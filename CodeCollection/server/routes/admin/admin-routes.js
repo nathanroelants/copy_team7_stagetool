@@ -13,7 +13,8 @@ function verifyAdmin(req, res, next) {
   const token = authHeader.replace('Bearer ', '');
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    if (decoded.rol !== 'administratie') {
+    const rollen = decoded.rollen || (decoded.rol ? [decoded.rol] : []);
+    if (!rollen.includes('administratie')) {
       return res.status(403).json({ error: 'Alleen administratie heeft toegang' });
     }
     req.user = decoded;
@@ -51,7 +52,8 @@ router.get('/gebruikers', verifyAdmin, async (req, res) => {
       gebruiker_opleidingen (
         opleiding_id,
         opleidingen ( id, naam )
-      )
+      ),
+      gebruiker_rollen ( rol )
     `)
     .order('id', { ascending: true });
 
@@ -63,10 +65,14 @@ router.get('/gebruikers', verifyAdmin, async (req, res) => {
     ...g,
     opleidingen: (g.gebruiker_opleidingen || [])
       .map(go => go.opleidingen)
-      .filter(Boolean)
+      .filter(Boolean),
+    rollen: (g.gebruiker_rollen || []).map(gr => gr.rol)
   }));
 
-  result.forEach(g => delete g.gebruiker_opleidingen);
+  result.forEach(g => {
+    delete g.gebruiker_opleidingen;
+    delete g.gebruiker_rollen;
+  });
 
   res.json(result);
 });
@@ -90,10 +96,14 @@ router.get('/opleidingen-lijst', verifyAdmin, async (req, res) => {
 // POST /api/admin/gebruikers
 router.post('/gebruikers', verifyAdmin, async (req, res) => {
   const supabase = req.app.get('supabase');
-  const { voornaam, achternaam, email, rol, opleiding_ids, wachtwoord } = req.body;
+  const { voornaam, achternaam, email, rollen, opleiding_ids, wachtwoord } = req.body;
 
-  if (!voornaam || !achternaam || !email || !rol || !wachtwoord) {
+  if (!voornaam || !achternaam || !email || !wachtwoord) {
     return res.status(400).json({ error: 'Verplichte velden ontbreken' });
+  }
+
+  if (!Array.isArray(rollen) || rollen.length === 0) {
+    return res.status(400).json({ error: 'Minstens één rol is verplicht' });
   }
 
   const passwordError = validatePassword(wachtwoord);
@@ -111,7 +121,8 @@ router.post('/gebruikers', verifyAdmin, async (req, res) => {
   const { data: gebruiker, error } = await supabase
     .from('gebruikers')
     .insert([{
-      voornaam, achternaam, email, rol,
+      voornaam, achternaam, email,
+      rol: rollen[0],
       wachtwoord_hash,
       actief: true
     }])
@@ -120,6 +131,16 @@ router.post('/gebruikers', verifyAdmin, async (req, res) => {
 
   if (error) {
     return res.status(500).json({ error: error.message });
+  }
+
+  // Rollen opslaan in gebruiker_rollen
+  const rollenRows = rollen.map(r => ({ gebruiker_id: gebruiker.id, rol: r }));
+  const { error: rollenError } = await supabase
+    .from('gebruiker_rollen')
+    .insert(rollenRows);
+
+  if (rollenError) {
+    return res.status(500).json({ error: rollenError.message });
   }
 
   if (Array.isArray(opleiding_ids) && opleiding_ids.length > 0) {
@@ -143,11 +164,18 @@ router.post('/gebruikers', verifyAdmin, async (req, res) => {
 router.put('/gebruikers/:id', verifyAdmin, async (req, res) => {
   const supabase = req.app.get('supabase');
   const id = req.params.id;
-  const { voornaam, achternaam, email, rol, opleiding_ids, actief, wachtwoord } = req.body;
+  const { voornaam, achternaam, email, rollen, opleiding_ids, actief, wachtwoord } = req.body;
 
-  const updateData = { voornaam, achternaam, email, rol, actief };
+  if (Array.isArray(rollen) && rollen.length === 0) {
+    return res.status(400).json({ error: 'Minstens één rol is verplicht' });
+  }
 
-  // Senha é opcional ao editar — só atualiza se for fornecida
+  const updateData = { voornaam, achternaam, email, actief };
+  if (Array.isArray(rollen) && rollen.length > 0) {
+    updateData.rol = rollen[0];
+  }
+
+  // Wachtwoord is optioneel bij bewerken — alleen aanpassen indien opgegeven
   if (wachtwoord && wachtwoord.trim() !== '') {
     const passwordError = validatePassword(wachtwoord);
     if (passwordError) {
@@ -157,6 +185,22 @@ router.put('/gebruikers/:id', verifyAdmin, async (req, res) => {
       updateData.wachtwoord_hash = await bcrypt.hash(wachtwoord, 10);
     } catch (err) {
       return res.status(500).json({ error: 'Fout bij hashen van wachtwoord' });
+    }
+
+    // Bepaal de rol: gebruik de rol uit de request, anders de huidige rol uit de database
+    let huidigeRol = rol;
+    if (!huidigeRol) {
+      const { data: huidigeGebruiker } = await supabase
+        .from('gebruikers')
+        .select('rol')
+        .eq('id', id)
+        .single();
+      huidigeRol = huidigeGebruiker?.rol;
+    }
+
+    // Een stagementor die inactief was, wordt automatisch geactiveerd bij een wachtwoordwijziging
+    if (huidigeRol === 'stagementor') {
+      updateData.actief = true;
     }
   }
 
@@ -169,6 +213,23 @@ router.put('/gebruikers/:id', verifyAdmin, async (req, res) => {
 
   if (error) {
     return res.status(500).json({ error: error.message });
+  }
+
+  // Rollen bijwerken via delete + insert
+  if (Array.isArray(rollen) && rollen.length > 0) {
+    await supabase
+      .from('gebruiker_rollen')
+      .delete()
+      .eq('gebruiker_id', id);
+
+    const rollenRows = rollen.map(r => ({ gebruiker_id: parseInt(id), rol: r }));
+    const { error: rollenError } = await supabase
+      .from('gebruiker_rollen')
+      .insert(rollenRows);
+
+    if (rollenError) {
+      return res.status(500).json({ error: rollenError.message });
+    }
   }
 
   if (Array.isArray(opleiding_ids)) {
