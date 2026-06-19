@@ -16,7 +16,7 @@
         <button class="nav-item" :class="{ active: pagina === 'stageinfo' }"  @click="pagina = 'stageinfo'">Stageinfo</button>
         <button class="nav-item" :class="{ active: pagina === 'logboek' }"    @click="pagina = 'logboek'">Logboek</button>
         <button class="nav-item" :class="{ active: pagina === 'evaluatie' }"  @click="router.push(`/docent/evaluatie/${studentId}`)">Evaluatie</button>
-        <button class="nav-item" :class="{ active: pagina === 'documenten' }" @click="router.push(`/docent/evaluatie/${studentId}`)">Documenten</button>
+        <button class="nav-item" :class="{ active: pagina === 'documenten' }" @click="pagina = 'documenten'">Documenten</button>
       </nav>
 
       <div class="sidebar-footer">
@@ -117,6 +117,47 @@
             </div>
           </div>
 
+          <!-- Documenten -->
+          <div v-if="pagina === 'documenten'">
+            <div class="section-header">
+              <h2>Documenten</h2>
+            </div>
+
+            <div class="info-kaart">
+              <div><strong>Eindevaluatie PDF</strong></div>
+              <div v-if="eindevaluatieFout" class="error-msg">{{ eindevaluatieFout }}</div>
+              <div v-if="eindevaluatieSucces" class="succes-msg">{{ eindevaluatieSucces }}</div>
+              <div class="knop-rij">
+                <button class="knop-blauw" :disabled="genereren" @click="genereerEindevaluatie">
+                  {{ genereren ? 'Genereren...' : 'Genereer / Opnieuw' }}
+                </button>
+                <button class="knop-blauw" :disabled="downloaden" @click="downloadEindevaluatie">
+                  {{ downloaden ? 'Downloaden...' : 'Downloaden' }}
+                </button>
+              </div>
+            </div>
+            <div class="info-kaart" style="margin-top: 1rem;">
+  <div style="display: flex; justify-content: space-between; align-items: center; gap: 1rem;">
+    <div>
+      <div style="font-weight: 700; font-size: 1rem; color: #111;">Tussentijdsevaluatie</div>
+      <div style="font-size: 0.85rem; color: #666; margin-top: 0.25rem;">
+        Genereer of download het tussentijdsevaluatie-document
+      </div>
+    </div>
+    <div style="display: flex; gap: 0.5rem;">
+      <button class="knop-blauw" @click="genereerTussentijdsevaluatie" :disabled="genererenTussen">
+        {{ genererenTussen ? 'Bezig...' : 'Genereer / Opnieuw' }}
+      </button>
+      <button class="knop-blauw" @click="downloadTussentijdsevaluatie" :disabled="downloadenTussen">
+        {{ downloadenTussen ? 'Bezig...' : 'Downloaden' }}
+      </button>
+    </div>
+  </div>
+  <div v-if="tussenFout" class="error-msg" style="margin-top: 0.75rem;">{{ tussenFout }}</div>
+  <div v-if="tussenSucces" style="margin-top: 0.75rem; color: #2e7d32; font-weight: 600;">{{ tussenSucces }}</div>
+</div>
+          </div>
+
         </template>
 
       </section>
@@ -189,7 +230,53 @@ const loadingVoorstel = ref(false)
 const foutInfo = ref('')
 const dagDetail = ref(null)
 
+const genereren = ref(false)
+const downloaden = ref(false)
+const eindevaluatieFout = ref('')
+const eindevaluatieSucces = ref('')
+
 const API_BASE = `/api/docent/student/${studentId}`
+
+const genererenTussen = ref(false)
+const downloadenTussen = ref(false)
+const tussenFout = ref('')
+const tussenSucces = ref('')
+
+async function genereerTussentijdsevaluatie() {
+  genererenTussen.value = true
+  tussenFout.value = ''
+  tussenSucces.value = ''
+  try {
+    const res = await fetch(`${API_BASE}/tussentijdsevaluatie/genereer`, {
+      method: 'POST',
+      headers: authHeaders()
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Fout bij genereren')
+    tussenSucces.value = 'Tussentijdsevaluatie succesvol gegenereerd.'
+  } catch (err) {
+    tussenFout.value = err.message
+  } finally {
+    genererenTussen.value = false
+  }
+}
+
+async function downloadTussentijdsevaluatie() {
+  downloadenTussen.value = true
+  tussenFout.value = ''
+  try {
+    const res = await fetch(`${API_BASE}/tussentijdsevaluatie/download`, {
+      headers: authHeaders()
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Fout bij downloaden')
+    window.open(data.url, '_blank')
+  } catch (err) {
+    tussenFout.value = err.message
+  } finally {
+    downloadenTussen.value = false
+  }
+}
 
 function truncate(text, max = 60) {
   if (!text) return '—'
@@ -251,7 +338,43 @@ async function laadStagevoorstel() {
 watch(pagina, (nova) => {
   if (nova === 'logboek' && weken.value.length === 0) laadLogboek()
   if (nova === 'stageinfo' && stagevoorstel.value === null) laadStagevoorstel()
+  if (nova === 'documenten') { eindevaluatieFout.value = ''; eindevaluatieSucces.value = '' }
 }, { immediate: false })
+
+async function genereerEindevaluatie() {
+  genereren.value = true
+  eindevaluatieFout.value = ''
+  eindevaluatieSucces.value = ''
+  try {
+    const res = await fetch(`${API_BASE}/eindevaluatie/genereer`, {
+      method: 'POST',
+      headers: authHeaders()
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`)
+    eindevaluatieSucces.value = 'Eindevaluatie succesvol gegenereerd.'
+  } catch (err) {
+    eindevaluatieFout.value = err.message
+  } finally {
+    genereren.value = false
+  }
+}
+
+async function downloadEindevaluatie() {
+  downloaden.value = true
+  eindevaluatieFout.value = ''
+  eindevaluatieSucces.value = ''
+  try {
+    const res = await fetch(`${API_BASE}/eindevaluatie/download`, { headers: authHeaders() })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`)
+    window.open(data.url, '_blank')
+  } catch (err) {
+    eindevaluatieFout.value = err.message
+  } finally {
+    downloaden.value = false
+  }
+}
 
 function statusKleur(status) {
   const s = (status || '').toLowerCase()
@@ -702,5 +825,21 @@ onMounted(async () => {
   display: flex;
   justify-content: flex-end;
   margin-top: 1rem;
+}
+
+.knop-rij {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.error-msg {
+  color: #cc0000;
+  font-size: 0.9rem;
+}
+
+.succes-msg {
+  color: #2e7d32;
+  font-size: 0.9rem;
 }
 </style>

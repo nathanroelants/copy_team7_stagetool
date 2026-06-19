@@ -153,26 +153,30 @@
               <h2>Documenten</h2>
             </div>
 
-            <div v-if="loadingDocs" class="status-message">Laden...</div>
-            <div v-else-if="documenten.length === 0" class="status-message">Geen documenten beschikbaar.</div>
-
-            <div v-else>
-              <div v-for="doc in documenten" :key="doc.type" class="document-rij">
-                <div class="doc-info">
-                  <div class="doc-naam">{{ doc.naam }}</div>
-                  <div class="doc-meta">
-                    {{ doc.meta }}
-                    <span v-if="doc.datum"> · {{ formatDatum(doc.datum) }}</span>
-                  </div>
-                </div>
-                <button
-                  v-if="doc.beschikbaar"
-                  class="knop-blauw"
-                  @click="openDocument(doc)"
-                >Bekijken</button>
-                <span v-else class="badge badge-grijs">Niet beschikbaar</span>
+            <div class="info-kaart">
+              <div><strong>Eindevaluatie PDF</strong></div>
+              <p class="sectie-subtitel">Download het eindevaluatie-document (alleen beschikbaar nadat de docent het heeft gegenereerd)</p>
+              <div v-if="eindevaluatieFout" class="error-msg">{{ eindevaluatieFout }}</div>
+              <div class="knop-rij">
+                <button class="knop-blauw" :disabled="downloaden" @click="downloadEindevaluatie">
+                  {{ downloaden ? 'Downloaden...' : 'Downloaden' }}
+                </button>
               </div>
             </div>
+            <div class="info-kaart" style="margin-top: 1rem;">
+  <div style="display: flex; justify-content: space-between; align-items: center; gap: 1rem;">
+    <div>
+      <div style="font-weight: 700; font-size: 1rem; color: #111;">Tussentijdsevaluatie</div>
+      <div style="font-size: 0.85rem; color: #666; margin-top: 0.25rem;">
+        Download het tussentijdsevaluatie-document (alleen beschikbaar nadat de docent het heeft gegenereerd)
+      </div>
+    </div>
+    <button class="knop-blauw" @click="downloadTussentijdsevaluatie" :disabled="downloadenTussen">
+      {{ downloadenTussen ? 'Bezig...' : 'Downloaden' }}
+    </button>
+  </div>
+  <div v-if="tussenFout" class="error-msg" style="margin-top: 0.75rem;">{{ tussenFout }}</div>
+</div>
           </div>
 
         </template>
@@ -242,17 +246,37 @@ const stage = reactive({ start_datum: '', eind_datum: '', status: '', bedrijf: '
 const weken = ref([])
 const stagevoorstel = ref(null)
 const evaluaties = ref([])
-const documenten = ref([])
 
 const loadingInfo = ref(true)
 const loadingLogboek = ref(false)
 const loadingVoorstel = ref(false)
 const loadingEval = ref(false)
-const loadingDocs = ref(false)
 const foutInfo = ref('')
 
 const API_BASE = `/api/stagementor/student/${studentId}`
 const dagDetail = ref(null)
+
+const downloaden = ref(false)
+const eindevaluatieFout = ref('')
+const downloadenTussen = ref(false)
+const tussenFout = ref('')
+
+async function downloadTussentijdsevaluatie() {
+  downloadenTussen.value = true
+  tussenFout.value = ''
+  try {
+    const res = await fetch(`${API_BASE}/tussentijdsevaluatie/download`, {
+      headers: authHeaders()
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Fout bij downloaden')
+    window.open(data.url, '_blank')
+  } catch (err) {
+    tussenFout.value = err.message
+  } finally {
+    downloadenTussen.value = false
+  }
+}
 
 function truncate(text, max = 60) {
   if (!text) return '—'
@@ -323,24 +347,27 @@ async function laadEvaluaties() {
   }
 }
 
-async function laadDocumenten() {
-  loadingDocs.value = true
-  try {
-    const res = await fetch(`${API_BASE}/documenten`, { headers: authHeaders() })
-    documenten.value = await res.json()
-  } catch (err) {
-    console.error(err)
-  } finally {
-    loadingDocs.value = false
-  }
-}
-
 watch(pagina, (nova) => {
   if (nova === 'logboek' && weken.value.length === 0) laadLogboek()
   if (nova === 'stageinfo' && stagevoorstel.value === null) laadStagevoorstel()
   if (nova === 'evaluatie' && evaluaties.value.length === 0) laadEvaluaties()
-  if (nova === 'documenten' && documenten.value.length === 0) laadDocumenten()
+  if (nova === 'documenten') eindevaluatieFout.value = ''
 }, { immediate: false })
+
+async function downloadEindevaluatie() {
+  downloaden.value = true
+  eindevaluatieFout.value = ''
+  try {
+    const res = await fetch(`${API_BASE}/eindevaluatie/download`, { headers: authHeaders() })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`)
+    window.open(data.url, '_blank')
+  } catch (err) {
+    eindevaluatieFout.value = err.message
+  } finally {
+    downloaden.value = false
+  }
+}
 
 function statusKleur(status) {
   const s = (status || '').toLowerCase()
@@ -389,11 +416,6 @@ async function afkeuren(week) {
 function formatDatum(datum) {
   if (!datum) return '—'
   return new Date(datum).toLocaleDateString('nl-BE', { day: '2-digit', month: '2-digit', year: 'numeric' })
-}
-
-function openDocument(doc) {
-  if (doc.type === 'stagevoorstel') pagina.value = 'stageinfo'
-  if (doc.type === 'eindevaluatie') pagina.value = 'evaluatie'
 }
 
 const heeftMeerdereRollen = (JSON.parse(localStorage.getItem('user') || '{}').rollen?.length ?? 0) > 1
@@ -846,5 +868,16 @@ onMounted(async () => {
   display: flex;
   justify-content: flex-end;
   margin-top: 1rem;
+}
+
+.knop-rij {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.error-msg {
+  color: #cc0000;
+  font-size: 0.9rem;
 }
 </style>

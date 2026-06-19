@@ -28,21 +28,25 @@
         <div v-if="loading" class="status-msg">Laden...</div>
         <div v-else-if="fout" class="status-msg error">{{ fout }}</div>
 
-        <div v-else class="doc-lijst">
-          <div v-for="doc in docs" :key="doc.type" class="doc-card">
-            <div class="doc-icon">{{ doc.type === 'stagevoorstel' ? '📄' : '📋' }}</div>
-            <div class="doc-info">
-              <div class="doc-naam">{{ doc.naam }}</div>
-              <div class="doc-meta">{{ doc.meta }}</div>
-              <div v-if="doc.datum" class="doc-datum">
-                {{ new Date(doc.datum).toLocaleDateString('nl-BE') }}
-              </div>
-            </div>
-            <div class="doc-status" :class="doc.beschikbaar ? 'beschikbaar' : 'niet-beschikbaar'">
-              {{ doc.beschikbaar ? 'Beschikbaar' : 'Niet beschikbaar' }}
-            </div>
+        <template v-else>
+
+          <div v-if="stageId" class="eindevaluatie-kaart">
+            <div class="doc-naam">Eindevaluatie PDF</div>
+            <p class="doc-meta">Download het eindevaluatie-document (beschikbaar nadat de docent het heeft gegenereerd)</p>
+            <div v-if="eindevaluatieFout" class="status-msg error">{{ eindevaluatieFout }}</div>
+            <button class="knop-download" :disabled="downloaden" @click="downloadEindevaluatie">
+              {{ downloaden ? 'Downloaden...' : 'Downloaden' }}
+            </button>
           </div>
-        </div>
+          <div v-if="stageId" class="eindevaluatie-kaart">
+  <div class="doc-naam">Tussentijdsevaluatie PDF</div>
+  <p class="doc-meta">Download het tussentijdsevaluatie-document (beschikbaar nadat de docent het heeft gegenereerd)</p>
+  <div v-if="tussenFout" class="status-msg error">{{ tussenFout }}</div>
+  <button class="knop-download" :disabled="downloadenTussen" @click="downloadTussentijdsevaluatie">
+    {{ downloadenTussen ? 'Downloaden...' : 'Downloaden' }}
+  </button>
+</div>
+        </template>
       </section>
     </main>
   </div>
@@ -58,8 +62,13 @@ const gebruikerNaam = `${user.voornaam || ''} ${user.achternaam || ''}`.trim() |
 const heeftMeerdereRollen = (user.rollen?.length ?? 0) > 1
 
 const docs = ref([])
+const stageId = ref(null)
 const loading = ref(true)
 const fout = ref('')
+const downloaden = ref(false)
+const eindevaluatieFout = ref('')
+const downloadenTussen = ref(false)
+const tussenFout = ref('')
 
 async function laadDocumenten() {
   try {
@@ -68,11 +77,45 @@ async function laadDocumenten() {
     })
     const data = await res.json()
     if (!res.ok) throw new Error(data.error)
-    docs.value = data
+    docs.value = data.docs
+    stageId.value = data.stage_id
   } catch (err) {
     fout.value = err.message
   } finally {
     loading.value = false
+  }
+}
+
+async function downloadEindevaluatie() {
+  downloaden.value = true
+  eindevaluatieFout.value = ''
+  try {
+    const res = await fetch(`/api/stagevoorstellen/${stageId.value}/eindevaluatie/download`, {
+      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`)
+    window.open(data.url, '_blank')
+  } catch (err) {
+    eindevaluatieFout.value = err.message
+  } finally {
+    downloaden.value = false
+  }
+}
+async function downloadTussentijdsevaluatie() {
+  downloadenTussen.value = true
+  tussenFout.value = ''
+  try {
+    const res = await fetch(`/api/stagevoorstellen/${stageId.value}/tussentijdsevaluatie/download`, {
+      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`)
+    window.open(data.url, '_blank')
+  } catch (err) {
+    tussenFout.value = err.message
+  } finally {
+    downloadenTussen.value = false
   }
 }
 
@@ -214,4 +257,33 @@ onMounted(laadDocumenten)
 
 .beschikbaar { background: #e6f7ee; color: #2e7d32; }
 .niet-beschikbaar { background: #f5f5f5; color: #999; }
+
+.eindevaluatie-kaart {
+  background: white;
+  border-radius: 10px;
+  border-top: 3px solid #29a8e0;
+  padding: 1.25rem 1.5rem;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-top: 0.75rem;
+}
+
+.knop-download {
+  background: #29a8e0;
+  color: white;
+  border: none;
+  padding: 0.55rem 1.1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+  align-self: flex-start;
+  box-shadow: 0 2px 4px rgba(41,168,224,0.25);
+  transition: background 0.15s;
+}
+
+.knop-download:hover { background: #1e90c0; }
+.knop-download:disabled { background: #aaa; cursor: not-allowed; }
 </style>

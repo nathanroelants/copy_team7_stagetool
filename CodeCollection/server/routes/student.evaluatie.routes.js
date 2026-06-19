@@ -233,7 +233,7 @@ router.get('/documenten', requireAuth, requireStudent, async (req, res) => {
     meta: eindEval ? `Score: ${eindEval.score ?? '—'}` : 'Nog niet beschikbaar'
   });
 
-  res.json(docs);
+  res.json({ stage_id: stage.id, docs });
 });
 
 export default router;
