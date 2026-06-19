@@ -259,7 +259,26 @@ router.get('/student/:studentId/stagevoorstel', requireAuth, requireDocent, asyn
     .maybeSingle();
 
   if (error) return res.status(500).json({ error: error.message });
-  res.json(data || null);
+
+  let mentor_voornaam = null;
+  let mentor_achternaam = null;
+  let mentor_email = null;
+
+  if (stage.stagementor_id) {
+    const { data: stagementor } = await supabase
+      .from('gebruikers')
+      .select('voornaam, achternaam, email')
+      .eq('id', stage.stagementor_id)
+      .maybeSingle();
+
+    if (stagementor) {
+      mentor_voornaam = stagementor.voornaam ?? null;
+      mentor_achternaam = stagementor.achternaam ?? null;
+      mentor_email = stagementor.email ?? null;
+    }
+  }
+
+  res.json(data ? { ...data, mentor_voornaam, mentor_achternaam, mentor_email } : null);
 });
 
 router.get('/student/:studentId/evaluaties', requireAuth, requireDocent, async (req, res) => {
@@ -515,7 +534,32 @@ router.get('/student/:studentId/tussentijdsevaluatie/download', requireAuth, req
 
   res.json({ url: data.signedUrl });
 });
+router.get('/student/:studentId/stagevoorstel/download-pdf', requireAuth, requireDocent, async (req, res) => {
+  const supabase = req.app.get('supabase')
+  const { studentId } = req.params
+  const docentId = req.user.id
 
+  const stage = await getStageVoorDocent(supabase, studentId, docentId)
+  if (!stage) return res.status(404).json({ error: 'Stage niet gevonden' })
+
+  try {
+    const token = req.headers.authorization.split(' ')[1]
+    const internalRes = await fetch(
+      `http://localhost:${process.env.PORT || 3000}/api/stagevoorstellen/${stage.id}/download-pdf`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    )
+    if (!internalRes.ok) {
+      const err = await internalRes.json()
+      return res.status(internalRes.status).json(err)
+    }
+    const buffer = Buffer.from(await internalRes.arrayBuffer())
+    res.setHeader('Content-Type', 'application/pdf')
+    res.setHeader('Content-Disposition', `attachment; filename="stagevoorstel_${stage.id}.pdf"`)
+    res.send(buffer)
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+});
 async function genereerEindevaluatiePdf({ student, opleiding, voorstel, docent, stagementor, stage, evaluaties }) {
   const eindEvals = evaluaties.filter(e => (e.type || '').toLowerCase() === 'eindevaluatie');
 
@@ -658,5 +702,6 @@ function formatDate(d) {
   if (!d) return '—';
   return new Date(d).toLocaleDateString('nl-BE', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
+
 
 export default router;

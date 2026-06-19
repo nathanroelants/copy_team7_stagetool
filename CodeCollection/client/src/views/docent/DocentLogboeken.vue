@@ -106,15 +106,19 @@
             <div v-else-if="!stagevoorstel" class="status-message">Geen stagevoorstel gevonden.</div>
 
             <div v-else class="info-kaart">
-              <div><strong>Bedrijf:</strong> {{ stagevoorstel.bedrijfsnaam || '—' }}</div>
-              <div><strong>Adres:</strong>
-                {{ stagevoorstel.straat }} {{ stagevoorstel.huisnummer }},
-                {{ stagevoorstel.gemeente }}, {{ stagevoorstel.land }}
-              </div>
-              <div><strong>Beschrijving:</strong> {{ stagevoorstel.beschrijving || '—' }}</div>
-              <div><strong>Technische skills:</strong> {{ stagevoorstel.technische_skills || '—' }}</div>
-              <div><strong>Tools:</strong> {{ stagevoorstel.tools || '—' }}</div>
-            </div>
+  <div><strong>Bedrijf:</strong> {{ stagevoorstel.bedrijfsnaam || '—' }}</div>
+  <div><strong>Adres:</strong>
+    {{ stagevoorstel.straat }} {{ stagevoorstel.huisnummer }},
+    {{ stagevoorstel.gemeente }}, {{ stagevoorstel.land }}
+  </div>
+  <div><strong>Beschrijving:</strong> {{ stagevoorstel.beschrijving || '—' }}</div>
+  <div><strong>Technische skills:</strong> {{ stagevoorstel.technische_skills || '—' }}</div>
+  <div><strong>Tools:</strong> {{ stagevoorstel.tools || '—' }}</div>
+  <div><strong>Stagementor:</strong>
+    {{ stagevoorstel.mentor_voornaam || '—' }} {{ stagevoorstel.mentor_achternaam || '' }}
+  </div>
+  <div><strong>E-mail stagementor:</strong> {{ stagevoorstel.mentor_email || '—' }}</div>
+</div>
           </div>
 
           <!-- Documenten -->
@@ -127,7 +131,7 @@
                         <div class="info-kaart" style="margin-top: 1rem;">
   <div style="display: flex; justify-content: space-between; align-items: center; gap: 1rem;">
     <div>
-      <div style="font-weight: 700; font-size: 1rem; color: #111;">Eindevaluatie</div>
+      <div style="font-weight: 700; font-size: 1rem; color: #111;">Eindevaluatie PDF</div>
       <div style="font-size: 0.85rem; color: #666; margin-top: 0.25rem;">
         Genereer of download de eindevaluatie
       </div>
@@ -149,7 +153,7 @@
             <div class="info-kaart" style="margin-top: 1rem;">
   <div style="display: flex; justify-content: space-between; align-items: center; gap: 1rem;">
     <div>
-      <div style="font-weight: 700; font-size: 1rem; color: #111;">Tussentijdsevaluatie</div>
+      <div style="font-weight: 700; font-size: 1rem; color: #111;">Tussentijdsevaluatie PDF</div>
       <div style="font-size: 0.85rem; color: #666; margin-top: 0.25rem;">
         Genereer of download de tussentijdse evaluatie
       </div>
@@ -167,7 +171,20 @@
   <div v-if="tussenSucces" style="margin-top: 0.75rem; color: #2e7d32; font-weight: 600;">{{ tussenSucces }}</div>
 </div>
 
-
+<div class="info-kaart" style="margin-top: 1rem;">
+  <div style="display: flex; justify-content: space-between; align-items: center; gap: 1rem;">
+    <div>
+      <div style="font-weight: 700; font-size: 1rem; color: #111;">Stagevoorstel PDF</div>
+      <div style="font-size: 0.85rem; color: #666; margin-top: 0.25rem;">
+        Download het ondertekende stagevoorstel van de student
+      </div>
+    </div>
+    <button class="knop-blauw" @click="downloadStagevoorstel" :disabled="downloadenVoorstel">
+      {{ downloadenVoorstel ? 'Bezig...' : 'Downloaden' }}
+    </button>
+  </div>
+  <div v-if="voorstelFout" class="error-msg" style="margin-top: 0.75rem;">{{ voorstelFout }}</div>
+</div>
 
 
           </div>
@@ -255,6 +272,36 @@ const genererenTussen = ref(false)
 const downloadenTussen = ref(false)
 const tussenFout = ref('')
 const tussenSucces = ref('')
+
+const downloadenVoorstel = ref(false)
+const voorstelFout = ref('')
+
+async function downloadStagevoorstel() {
+  downloadenVoorstel.value = true
+  voorstelFout.value = ''
+  try {
+    const res = await fetch(`${API_BASE}/stagevoorstel/download-pdf`, {
+      headers: authHeaders()
+    })
+    if (!res.ok) {
+      const data = await res.json()
+      throw new Error(data.error || 'Fout bij downloaden')
+    }
+    const blob = await res.blob()
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `stagevoorstel_${studentId}.pdf`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+  } catch (err) {
+    voorstelFout.value = err.message
+  } finally {
+    downloadenVoorstel.value = false
+  }
+}
 
 async function genereerTussentijdsevaluatie() {
   genererenTussen.value = true
