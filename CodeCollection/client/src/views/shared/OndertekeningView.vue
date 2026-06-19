@@ -23,7 +23,7 @@
       <!-- Top bar -->
       <header class="topbar">
         <div class="topbar-user">{{ gebruikerNaam }}</div>
-        <img src="../assets/erasmus-logo.png" alt="Erasmus Hogeschool Brussel" class="topbar-logo" />
+        <img src="../../assets/erasmus-logo.png" alt="Erasmus Hogeschool Brussel" class="topbar-logo" />
       </header>
 
       <!-- Content -->
@@ -45,12 +45,8 @@
             </div>
       
             <div class="page-header-actions">
-            <span :class="['badge', badgeKlasse(stage.status)]">
-              {{ stage.status || '—' }}
-            </span>
-            <button class="actie-btn btn-blauw" @click="downloadStagevoorstelPDF">
-              ⬇ Stagevoorstel downloaden
-            </button>
+
+     
           </div>
           </div>
 
@@ -235,14 +231,13 @@
                 <!-- Nog niet ondertekend -->
                 <template v-else>
                   <p class="sign-intro">
-                    Door te ondertekenen bevestig je kennis genomen te hebben van de inhoud van dit stagevoorstel
-                    en ga je akkoord met de beschreven stageopdracht en -omstandigheden.
+                    Door dit aan te duiden bevestig je dat je het onderstaande bestand hebt gedownload, ondertekend, en terug hebt geupload.
                   </p>
 
                   <div class="sign-consent">
                     <label class="checkbox-label">
                       <input type="checkbox" v-model="akkoord" />
-                      <span>Ik heb het stagevoorstel gelezen en ga akkoord.</span>
+                      <span>Ik heb het stagevoorstel ondertekend en ga akkoord.</span>
                     </label>
                   </div>
 
@@ -254,7 +249,7 @@
                       :disabled="!akkoord || ondertekeningLoading"
                       @click="handleOndertekenen"
                     >
-                      {{ ondertekeningLoading ? 'Bezig...' : '✍ Ondertekenen' }}
+                      {{ ondertekeningLoading ? 'Bezig...' : 'Bevestig ondertekening' }}
                     </button>
                   </div>
                 </template>
@@ -265,19 +260,15 @@
             <!-- ── NIEUW: Stageovereenkomst uploaden ── -->
             <div class="card card-wide">
               <div class="card-header">
-                <h2 class="card-title">📄 Stageovereenkomst</h2>
+                <h2 class="card-title">Stageovereenkomst</h2>
               </div>
               <div class="card-body">
 
                 <!-- Bestaand document -->
                 <div v-if="overeenkomst && !uploadActief" class="document-card">
-                  <div class="document-icon">📎</div>
+                
                   <div class="document-info">
                     <span class="document-name">{{ overeenkomst.bestandsnaam }}</span>
-                    <span class="document-meta">
-                      Geüpload op {{ formatDatum(overeenkomst.upload_datum) }}
-                      door {{ overeenkomst.geupload_door || '—' }}
-                    </span>
                   </div>
                   <div class="document-actions">
                     <button class="doc-btn doc-btn-download" @click="downloadOvereenkomst">
@@ -291,6 +282,7 @@
                       🔄 Vervangen
                     </button>
                   </div>
+                  
                 </div>
 
                 <!-- Geen document aanwezig -->
@@ -298,13 +290,18 @@
                   <div class="document-empty-icon">📂</div>
                   <p class="document-empty-text">Er is nog geen stageovereenkomst geüpload.</p>
                   <button v-if="magUploaden" class="actie-btn btn-blauw" @click="triggerUpload">
-                    📤 Overeenkomst uploaden
+                     Overeenkomst uploaden
                   </button>
                   <p v-else class="document-empty-hint">
                     De stageovereenkomst kan geüpload worden door de student, docent of stagementor.
                   </p>
                 </div>
-
+                <p>
+              <br>
+                </p>
+      <button class="doc-btn doc-btn-download" @click="downloadStagevoorstelPDF">
+                      Genereer nieuw stagevoorstel
+                    </button>
                 <!-- Upload zone -->
                 <div
                   v-if="uploadActief"
@@ -409,7 +406,7 @@ const ondertekeningen = ref({ student: null, docent: null, stagementor: null })
 const { loading: ondertekeningLoading, fout: foutOndertekening, onderteken } = UseOndertekening(props.rol)
 
 const user = JSON.parse(localStorage.getItem('user') || '{}')
-const gebruikerNaam = `${user.voornaam || ''} ${user.naam || ''}`.trim() || user.email || 'Gebruiker'
+const gebruikerNaam = `${user.voornaam || ''} ${user.achternaam || ''}`.trim() || user.email || 'Gebruiker'
 const token = localStorage.getItem('token')
 
 // ── NIEUW: overeenkomst state ──
@@ -720,28 +717,65 @@ onMounted(laadDetail)
 /* ── Sidebar ── */
 .sidebar {
   width: 180px;
-  background: #29a8e0;
+  background: white;
+  border-right: 1px solid #e5e8ec;
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
+  position: sticky;
+  top: 0;            
+  height: 100vh; 
 }
-.sidebar-brand { padding: 1.25rem 1rem; background: #1ec8f0; }
-.brand-text { font-size: 1.4rem; font-weight: 800; color: #fff; letter-spacing: 0.5px; }
-.sidebar-nav { flex: 1; padding: 1rem 0.75rem; }
-.nav-item {
-  width: 100%; text-align: left; background: white; border: none;
-  border-radius: 6px; padding: 0.65rem 1rem; font-size: 0.9rem;
-  font-weight: 600; color: #222; cursor: pointer; margin-bottom: 0.5rem; transition: background 0.15s;
+.sidebar-brand {
+  padding: 1.25rem 1rem;
+  background: #1ec8f0;
 }
-.nav-item:hover, .nav-item.active { background: #f0f0f0; }
-.sidebar-footer { padding: 1rem 0.75rem; }
-.logout-btn {
-  width: 100%; background: white; border: none; border-radius: 6px;
-  padding: 0.65rem 1rem; font-size: 0.9rem; font-weight: 600;
-  color: #222; cursor: pointer; transition: background 0.15s;
+.brand-text {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: 0.5px;
 }
-.logout-btn:hover { background: #f0f0f0; }
 
+.sidebar-nav {
+  flex: 1;
+  padding: 1rem 0.75rem;
+}
+.nav-item {
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  padding: 0.65rem 1rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #29a8e0;
+  cursor: pointer;
+  margin-bottom: 0.5rem;
+  transition: background 0.15s;
+}
+
+.nav-item:hover { background: #f0f7fc; }
+.nav-item.active { background: #29a8e0; color: white; }
+.sidebar-footer {
+  padding: 1rem 0.75rem;
+}
+
+.logout-btn {
+  width: 100%;
+  background: #ffeaea;
+  color: #cc0000;
+  border: none;
+  border-radius: 6px;
+  padding: 0.65rem 1rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.logout-btn:hover { background: #ffdada; }
 /* ── Main ── */
 .main-content { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
 

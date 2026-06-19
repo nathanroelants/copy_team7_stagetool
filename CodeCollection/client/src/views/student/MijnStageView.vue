@@ -14,28 +14,28 @@
           Stagevoorstel
         </button>
 
-        <button
-          v-if="stageStatus === 'stagevoorstel geaccepteerd' || stageStatus === 'lopend' || stageStatus === 'afgerond'"
-          class="nav-item"
-          @click="router.push('/studentlogboeken')"
-        >
-          Logboeken
-        </button>
+<button
+  v-if="studentOndertekend && (stageStatus === 'stagevoorstel geaccepteerd' || stageStatus === 'lopend' || stageStatus === 'afgerond')"
+  class="nav-item"
+  @click="router.push('/studentlogboeken')"
+>
+  Logboeken
+</button>
 
-        <button
-          v-if="stageStatus === 'stagevoorstel geaccepteerd' || stageStatus === 'lopend' || stageStatus === 'afgerond'"
-          class="nav-item"
-          @click="router.push('/student/evaluatie')"
-        >
-          Evaluatie
-        </button>
-                <button
-          v-if="stageStatus === 'stagevoorstel geaccepteerd' || stageStatus === 'lopend' || stageStatus === 'afgerond'"
-          class="nav-item"
-          @click="router.push('/student/documenten')"
-        >
-          Documenten
-        </button>
+<button
+  v-if="studentOndertekend && (stageStatus === 'stagevoorstel geaccepteerd' || stageStatus === 'lopend' || stageStatus === 'afgerond')"
+  class="nav-item"
+  @click="router.push('/student/evaluatie')"
+>
+  Evaluatie
+</button>
+<button
+  v-if="studentOndertekend && (stageStatus === 'stagevoorstel geaccepteerd' || stageStatus === 'lopend' || stageStatus === 'afgerond')"
+  class="nav-item"
+  @click="router.push('/student/documenten')"
+>
+  Documenten
+</button>
       </nav>
 
       <div class="sidebar-footer">
@@ -174,7 +174,16 @@
             <div v-if="stage.status === 'stagevoorstel geweigerd'" class="alert error">
               ❌ Je stagevoorstel is afgekeurd. Je kan een nieuw voorstel indienen.
             </div>
-
+             <div v-if="stage.status === 'stagevoorstel geaccepteerd' && !studentOndertekend" class="actions" style="margin-top: 1.5rem; justify-content: flex-start;">
+                <router-link
+                :to="`/student/stages/${stage.id}/ondertekenen`"
+                class="btn-submit"
+                style="text-decoration: none; display: inline-block;"
+                >
+                  Stageovereenkomst ondertekenen
+                </router-link>
+              </div>
+              <br>
             <h3>Gegevens bedrijf</h3>
             <div class="info-grid">
               <div class="info-item">
@@ -245,15 +254,7 @@
               </div>
 
               <!-- Voeg dit toe NA de laatste info-grid (werkadres), VOOR de feedback/actions divs -->
-              <div v-if="stage.status === 'stagevoorstel geaccepteerd'" class="actions" style="margin-top: 1.5rem; justify-content: flex-start;">
-                <router-link
-                :to="`/student/stages/${stage.id}/ondertekenen`"
-                class="btn-submit"
-                style="text-decoration: none; display: inline-block;"
-                >
-                  ✍ Stage ondertekenen
-                </router-link>
-              </div>
+ 
             </div>
 
             <div v-if="stage.status === 'stagevoorstel geweigerd' && info.feedback" class="feedback">
@@ -357,6 +358,9 @@ async function loadStage() {
     console.error(err)
   }
 }
+const studentOndertekend = computed(() => {
+  return stage.value?.stagevoorstellen?.student_ondertekend === true
+})
 
 async function handleSubmit() {
   loading.value = true

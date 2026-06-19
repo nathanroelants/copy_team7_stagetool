@@ -60,7 +60,8 @@ router.get('/studenten', requireAuth, requireStagementor, async (req, res) => {
       ),
       stagevoorstel:stagevoorstellen!stagevoorstel_id (
         id,
-        bedrijfsnaam
+        bedrijfsnaam,
+        mentor_ondertekend
       )
     `)
     .eq('stagementor_id', mentorId);
@@ -110,19 +111,20 @@ router.get('/studenten', requireAuth, requireStagementor, async (req, res) => {
         : `Week ${logboek.week_nummer} in afwachting`;
     }
 
-    return {
-      id:                   stage.student?.id,
-      stage_id:             stage.id,
-      voornaam:             stage.student?.voornaam   ?? '',
-      achternaam:           stage.student?.achternaam ?? '',
-      email:                stage.student?.email      ?? '',
-      opleiding:            opleidingPerStudent[stage.student?.id] ?? '',
-      bedrijf:              stage.stagevoorstel?.bedrijfsnaam ?? '',
-      start_datum:          stage.start_datum,
-      eind_datum:           stage.eind_datum,
-      stagevoorstel_status: stage.status ?? 'Niet ingediend',
-      logboek_status:       logboekStatus,
-    };
+return {
+  id:                   stage.student?.id,
+  stage_id:             stage.id,
+  voornaam:             stage.student?.voornaam   ?? '',
+  achternaam:           stage.student?.achternaam ?? '',
+  email:                stage.student?.email      ?? '',
+  opleiding:            opleidingPerStudent[stage.student?.id] ?? '',
+  bedrijf:              stage.stagevoorstel?.bedrijfsnaam ?? '',
+  start_datum:          stage.start_datum,
+  eind_datum:           stage.eind_datum,
+  stagevoorstel_status: stage.status ?? 'Niet ingediend',
+  logboek_status:       logboekStatus,
+  mentor_ondertekend:   stage.stagevoorstel?.mentor_ondertekend ?? false
+};
   });
 
   res.json(result);

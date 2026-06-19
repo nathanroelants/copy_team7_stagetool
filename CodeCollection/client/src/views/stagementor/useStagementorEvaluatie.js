@@ -1,32 +1,22 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 
-export function useStagementorEvaluatie() {
+export function useStagementorEvaluatie(studentId) {
   const router = useRouter()
   const user = JSON.parse(localStorage.getItem('user') || '{}')
   const gebruikerNaam = `${user.voornaam || ''} ${user.achternaam || ''}`.trim() || user.email || 'Stagementor'
 
-  // Huidige fase vanuit de backend
-  const evaluatieStatus = ref('geen') // 'geen' | 'tussentijds' | 'tussentijdse_afgelopen' | 'eindevaluatie' | 'stage_afgelopen'
-
-  // Actieve tab: begin op tussentijds, tenzij dat niet zichtbaar is
+  const evaluatieStatus = ref('geen')
   const actieveTab = ref('tussentijds')
 
-  // Afgeleid: wat is zichtbaar en wat is bewerkbaar?
   const tussentijdsZichtbaar = computed(() =>
     ['tussentijds', 'tussentijdse_afgelopen', 'eindevaluatie', 'stage_afgelopen'].includes(evaluatieStatus.value)
   )
   const eindevaluatieZichtbaar = computed(() =>
     ['eindevaluatie', 'stage_afgelopen'].includes(evaluatieStatus.value)
   )
-  const tussentijdsBewerkbaar = computed(() =>
-    evaluatieStatus.value === 'tussentijds'
-  )
-  const eindevaluatieBewerkbaar = computed(() =>
-    evaluatieStatus.value === 'eindevaluatie'
-  )
-
-  // Huidige tab is bewerkbaar?
+  const tussentijdsBewerkbaar = computed(() => evaluatieStatus.value === 'tussentijds')
+  const eindevaluatieBewerkbaar = computed(() => evaluatieStatus.value === 'eindevaluatie')
   const huidigeBewerkbaar = computed(() =>
     actieveTab.value === 'tussentijds' ? tussentijdsBewerkbaar.value : eindevaluatieBewerkbaar.value
   )
@@ -34,7 +24,7 @@ export function useStagementorEvaluatie() {
   const openCompetentie = ref(null)
   const competenties = ref([])
   const evaluaties = ref([])
-  const loading = ref(true)
+  const loading = ref(true)      // ✅ wordt nu correct gezet
   const fout = ref('')
   const bezig = ref({})
   const opgeslagen = ref({})
@@ -118,17 +108,15 @@ export function useStagementorEvaluatie() {
     }
     foutMelding.value[competentieId] = ''
     bezig.value[competentieId] = true
-    opgeslagen.value[competentieId] = false
+    opgeslagen.value[`${competentieId}_${actieveTab.value}`] = false
 
     try {
-      const token = localStorage.getItem('token')
+      const token = localStorage.getItem('token') // ✅ token hier gedeclareerd
       const response = await fetch('/api/stagementor/evaluaties', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({
+          student_id: studentId,
           competentie_id: competentieId,
           type: actieveTab.value,
           score: evaluatie.score,
@@ -146,25 +134,25 @@ export function useStagementorEvaluatie() {
   }
 
   async function laadData() {
-    loading.value = true
+    loading.value = true   // ✅ loading aan
     fout.value = ''
     try {
-      const token = localStorage.getItem('token')
+      const token = localStorage.getItem('token') // ✅ token gedeclareerd vóór gebruik
       const [compRes, evalRes] = await Promise.all([
         fetch('/api/stagementor/competenties', { headers: { Authorization: `Bearer ${token}` } }),
-        fetch('/api/stagementor/evaluaties', { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`/api/stagementor/evaluaties?student_id=${studentId}`, { headers: { Authorization: `Bearer ${token}` } }),
       ])
+
       const compData = await compRes.json()
       const evalData = await evalRes.json()
+
       if (!compRes.ok) throw new Error(compData.error || 'Fout bij laden competenties')
       if (!evalRes.ok) throw new Error(evalData.error || 'Fout bij laden evaluaties')
 
       competenties.value = compData
-      // Backend geeft nu { evaluatie_status, evaluaties } terug
       evaluatieStatus.value = evalData.evaluatie_status || 'geen'
       evaluaties.value = evalData.evaluaties || []
 
-      // Zet actieve tab op een zichtbare tab
       if (!tussentijdsZichtbaar.value && eindevaluatieZichtbaar.value) {
         actieveTab.value = 'eindevaluatie'
       } else {
@@ -177,9 +165,9 @@ export function useStagementorEvaluatie() {
         }
       }
     } catch (err) {
-      fout.value = err.message || 'Kon data niet laden.'
+      fout.value = err.message || 'Kon data niet laden.' // ✅ fout wordt getoond
     } finally {
-      loading.value = false
+      loading.value = false  // ✅ loading uit
     }
   }
 

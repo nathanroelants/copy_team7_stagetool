@@ -39,13 +39,14 @@
         </div>
 
         <div v-else class="student-list">
-  <div
-    v-for="student in studenten"
-    :key="student.id"
-    class="student-card"
-   @click="$router.push(`/stagementorlogboeken/${student.id}`)"
-    style="cursor: pointer;"
-  >
+<div
+  v-for="student in studenten"
+  :key="student.id"
+  class="student-card"
+  :class="{ disabled: !student.mentor_ondertekend }"
+  @click="openStudent(student)"
+  style="cursor: pointer;"
+>
     <div class="student-avatar">
       <div class="avatar-circle">
         {{ initialen(student.voornaam, student.achternaam) }}
@@ -80,13 +81,19 @@
           </span>
         </div>
       </div>
-      <div v-if="student.stagevoorstel_status === 'stagevoorstel geaccepteerd'" class="action-buttons">
+          <div
+            v-if="
+              student.stagevoorstel_status === 'stagevoorstel geaccepteerd' &&
+              !student.mentor_ondertekend
+            "
+            class="action-buttons"
+          >
         <router-link
           :to="`/mentor/stages/${student.stage_id}/ondertekenen`"
           class="btn-ondertekenen"
           @click.stop
         >
-          ✍ Stage ondertekenen
+          Stageovereenkomst ondertekenen
         </router-link>
       </div>
     </div>
@@ -108,7 +115,7 @@ const loading = ref(true)
 const fout = ref('')
 
 const user = JSON.parse(localStorage.getItem('user') || '{}')
-const gebruikerNaam = `${user.voornaam || ''} ${user.naam || ''}`.trim() || user.email || 'Stagementor'
+const gebruikerNaam = `${user.voornaam || ''} ${user.achternaam || ''}`.trim() || user.email || 'Stagementor'
 const heeftMeerdereRollen = (user.rollen?.length ?? 0) > 1
 
 function badgeKlasse(status) {
@@ -155,6 +162,11 @@ async function laadStudenten() {
   } finally {
     loading.value = false
   }
+}
+function openStudent(student) {
+  if (!student.mentor_ondertekend) return
+
+  router.push(`/stagementorlogboeken/${student.id}`)
 }
 
 function handleLogout() {
@@ -422,9 +434,21 @@ onMounted(laadStudenten)
   font-weight: 600;
   transition: background 0.2s;
 }
+.student-card.disabled {
+  opacity: 0.6;
+}
+
 
 .btn-ondertekenen:hover {
-  background: #1a8cbe;
+  background: #092ad2;
+}
+
+.student-card.disabled .btn-ondertekenen:hover {
+  opacity: 0.6;
+}
+.student-card.disabled .btn-ondertekenen {
+  background: #1100ff;
+  opacity: 1;
 }
 
 .badge-groen  { background: #4caf50; color: #fff; }

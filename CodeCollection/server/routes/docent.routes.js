@@ -54,7 +54,8 @@ router.get('/studenten', requireAuth, requireDocent, async (req, res) => {
       ),
       stagevoorstel:stagevoorstellen!stagevoorstel_id (
         id,
-        bedrijfsnaam
+        bedrijfsnaam,
+        docent_ondertekend
       )
     `)
     .eq('docent_id', docentId);
@@ -121,7 +122,8 @@ router.get('/studenten', requireAuth, requireDocent, async (req, res) => {
         ? `${stage.stagementor.voornaam} ${stage.stagementor.achternaam}`.trim()
         : null,
       stagevoorstel_status: stage.status ?? 'Niet ingediend',
-      logboek_status: logboekStatus
+      logboek_status: logboekStatus,
+      docent_ondertekend:   stage.stagevoorstel?.docent_ondertekend ?? false
     };
   });
 

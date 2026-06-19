@@ -275,8 +275,16 @@ function uitloggen() {
 }
 
 onMounted(async () => {
+  // Lees ?pagina= query parameter
+  if (route.query.pagina) {
+    pagina.value = route.query.pagina
+  }
+  
   await laadInfo()
-  if (!foutInfo.value) await laadLogboek()
+  if (!foutInfo.value) {
+    if (pagina.value === 'logboek') await laadLogboek()
+    if (pagina.value === 'stageinfo') await laadStagevoorstel()
+  }
 })
 </script>
 
