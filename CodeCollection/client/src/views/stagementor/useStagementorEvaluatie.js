@@ -138,10 +138,14 @@ export function useStagementorEvaluatie(studentId) {
     fout.value = ''
     try {
       const token = localStorage.getItem('token') // ✅ token gedeclareerd vóór gebruik
-      const [compRes, evalRes] = await Promise.all([
-        fetch('/api/stagementor/competenties', { headers: { Authorization: `Bearer ${token}` } }),
-        fetch(`/api/stagementor/evaluaties?student_id=${studentId}`, { headers: { Authorization: `Bearer ${token}` } }),
-      ])
+const [compRes, evalRes] = await Promise.all([
+  fetch(`/api/stagementor/competenties?student_id=${studentId}`, { // ✅ student_id toevoegen
+    headers: { Authorization: `Bearer ${token}` }
+  }),
+  fetch(`/api/stagementor/evaluaties?student_id=${studentId}`, {
+    headers: { Authorization: `Bearer ${token}` }
+  }),
+])
 
       const compData = await compRes.json()
       const evalData = await evalRes.json()

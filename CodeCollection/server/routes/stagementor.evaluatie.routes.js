@@ -26,13 +26,45 @@ function requireStagementor(req, res, next) {
 }
 
 // GET /api/stagementor/competenties
+// GET /api/stagementor/competenties?student_id=...
 router.get('/competenties', requireAuth, requireStagementor, async (req, res) => {
-  const supabase = req.app.get('supabase'); // ✅ was al correct hier
+  const supabase = req.app.get('supabase');
+  const studentId = req.query.student_id;
 
+  if (!studentId) {
+    return res.status(400).json({ error: 'student_id is verplicht' });
+  }
+
+  // Stap 1: haal de opleiding_id van de student op
+  // Eerst via gebruiker_opleidingen (koppeltabel), anders fallback naar gebruikers.opleiding_id
+  const { data: koppeling } = await supabase
+    .from('gebruiker_opleidingen')
+    .select('opleiding_id')
+    .eq('gebruiker_id', studentId)
+    .maybeSingle();
+
+  let opleidingId = koppeling?.opleiding_id;
+
+  if (!opleidingId) {
+    // Fallback: rechtstreeks op gebruikers tabel
+    const { data: gebruiker } = await supabase
+      .from('gebruikers')
+      .select('opleiding_id')
+      .eq('id', studentId)
+      .maybeSingle();
+    opleidingId = gebruiker?.opleiding_id;
+  }
+
+  if (!opleidingId) {
+    return res.status(404).json({ error: 'Geen opleiding gevonden voor deze student' });
+  }
+
+  // Stap 2: haal competenties op gefilterd op opleiding
   const { data, error } = await supabase
     .from('competenties')
     .select('*')
     .eq('actief', true)
+    .eq('opleiding_id', opleidingId)
     .order('volgorde', { ascending: true });
 
   if (error) {
