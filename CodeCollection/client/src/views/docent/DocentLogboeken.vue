@@ -136,6 +136,26 @@
                 </button>
               </div>
             </div>
+            <div class="info-kaart" style="margin-top: 1rem;">
+  <div style="display: flex; justify-content: space-between; align-items: center; gap: 1rem;">
+    <div>
+      <div style="font-weight: 700; font-size: 1rem; color: #111;">Tussentijdsevaluatie</div>
+      <div style="font-size: 0.85rem; color: #666; margin-top: 0.25rem;">
+        Genereer of download het tussentijdsevaluatie-document
+      </div>
+    </div>
+    <div style="display: flex; gap: 0.5rem;">
+      <button class="knop-blauw" @click="genereerTussentijdsevaluatie" :disabled="genererenTussen">
+        {{ genererenTussen ? 'Bezig...' : 'Genereer / Opnieuw' }}
+      </button>
+      <button class="knop-blauw" @click="downloadTussentijdsevaluatie" :disabled="downloadenTussen">
+        {{ downloadenTussen ? 'Bezig...' : 'Downloaden' }}
+      </button>
+    </div>
+  </div>
+  <div v-if="tussenFout" class="error-msg" style="margin-top: 0.75rem;">{{ tussenFout }}</div>
+  <div v-if="tussenSucces" style="margin-top: 0.75rem; color: #2e7d32; font-weight: 600;">{{ tussenSucces }}</div>
+</div>
           </div>
 
         </template>
@@ -216,6 +236,47 @@ const eindevaluatieFout = ref('')
 const eindevaluatieSucces = ref('')
 
 const API_BASE = `/api/docent/student/${studentId}`
+
+const genererenTussen = ref(false)
+const downloadenTussen = ref(false)
+const tussenFout = ref('')
+const tussenSucces = ref('')
+
+async function genereerTussentijdsevaluatie() {
+  genererenTussen.value = true
+  tussenFout.value = ''
+  tussenSucces.value = ''
+  try {
+    const res = await fetch(`${API_BASE}/tussentijdsevaluatie/genereer`, {
+      method: 'POST',
+      headers: authHeaders()
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Fout bij genereren')
+    tussenSucces.value = 'Tussentijdsevaluatie succesvol gegenereerd.'
+  } catch (err) {
+    tussenFout.value = err.message
+  } finally {
+    genererenTussen.value = false
+  }
+}
+
+async function downloadTussentijdsevaluatie() {
+  downloadenTussen.value = true
+  tussenFout.value = ''
+  try {
+    const res = await fetch(`${API_BASE}/tussentijdsevaluatie/download`, {
+      headers: authHeaders()
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Fout bij downloaden')
+    window.open(data.url, '_blank')
+  } catch (err) {
+    tussenFout.value = err.message
+  } finally {
+    downloadenTussen.value = false
+  }
+}
 
 function truncate(text, max = 60) {
   if (!text) return '—'

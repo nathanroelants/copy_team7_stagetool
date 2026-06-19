@@ -348,4 +348,25 @@ router.get('/student/:studentId/eindevaluatie/download', requireAuth, requireSta
   res.json({ url: data.signedUrl });
 });
 
+// ── GET /api/stagementor/student/:studentId/tussentijdsevaluatie/download ────
+router.get('/student/:studentId/tussentijdsevaluatie/download', requireAuth, requireStagementor, async (req, res) => {
+  const supabase = req.app.get('supabase');
+  const studentId = req.params.studentId;
+  const mentorId = req.user.id;
+
+  const stage = await getStageVoorMentor(supabase, studentId, mentorId);
+  if (!stage) return res.status(404).json({ error: 'Stage niet gevonden' });
+
+  const path = `Tussentijdsevaluatie/tussentijdsevaluatie_stage_${stage.id}.pdf`;
+  const { data, error } = await supabase.storage
+    .from('stagebestanden')
+    .createSignedUrl(path, 3600);
+
+  if (error || !data?.signedUrl) {
+    return res.status(404).json({ error: 'PDF nog niet beschikbaar.' });
+  }
+
+  res.json({ url: data.signedUrl });
+});
+
 export default router;

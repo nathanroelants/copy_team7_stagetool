@@ -38,6 +38,14 @@
               {{ downloaden ? 'Downloaden...' : 'Downloaden' }}
             </button>
           </div>
+          <div v-if="stageId" class="eindevaluatie-kaart">
+  <div class="doc-naam">Tussentijdsevaluatie PDF</div>
+  <p class="doc-meta">Download het tussentijdsevaluatie-document (beschikbaar nadat de docent het heeft gegenereerd)</p>
+  <div v-if="tussenFout" class="status-msg error">{{ tussenFout }}</div>
+  <button class="knop-download" :disabled="downloadenTussen" @click="downloadTussentijdsevaluatie">
+    {{ downloadenTussen ? 'Downloaden...' : 'Downloaden' }}
+  </button>
+</div>
         </template>
       </section>
     </main>
@@ -59,6 +67,8 @@ const loading = ref(true)
 const fout = ref('')
 const downloaden = ref(false)
 const eindevaluatieFout = ref('')
+const downloadenTussen = ref(false)
+const tussenFout = ref('')
 
 async function laadDocumenten() {
   try {
@@ -90,6 +100,22 @@ async function downloadEindevaluatie() {
     eindevaluatieFout.value = err.message
   } finally {
     downloaden.value = false
+  }
+}
+async function downloadTussentijdsevaluatie() {
+  downloadenTussen.value = true
+  tussenFout.value = ''
+  try {
+    const res = await fetch(`/api/stagevoorstellen/${stageId.value}/tussentijdsevaluatie/download`, {
+      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`)
+    window.open(data.url, '_blank')
+  } catch (err) {
+    tussenFout.value = err.message
+  } finally {
+    downloadenTussen.value = false
   }
 }
 

@@ -163,6 +163,20 @@
                 </button>
               </div>
             </div>
+            <div class="info-kaart" style="margin-top: 1rem;">
+  <div style="display: flex; justify-content: space-between; align-items: center; gap: 1rem;">
+    <div>
+      <div style="font-weight: 700; font-size: 1rem; color: #111;">Tussentijdsevaluatie</div>
+      <div style="font-size: 0.85rem; color: #666; margin-top: 0.25rem;">
+        Download het tussentijdsevaluatie-document (alleen beschikbaar nadat de docent het heeft gegenereerd)
+      </div>
+    </div>
+    <button class="knop-blauw" @click="downloadTussentijdsevaluatie" :disabled="downloadenTussen">
+      {{ downloadenTussen ? 'Bezig...' : 'Downloaden' }}
+    </button>
+  </div>
+  <div v-if="tussenFout" class="error-msg" style="margin-top: 0.75rem;">{{ tussenFout }}</div>
+</div>
           </div>
 
         </template>
@@ -244,6 +258,25 @@ const dagDetail = ref(null)
 
 const downloaden = ref(false)
 const eindevaluatieFout = ref('')
+const downloadenTussen = ref(false)
+const tussenFout = ref('')
+
+async function downloadTussentijdsevaluatie() {
+  downloadenTussen.value = true
+  tussenFout.value = ''
+  try {
+    const res = await fetch(`${API_BASE}/tussentijdsevaluatie/download`, {
+      headers: authHeaders()
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Fout bij downloaden')
+    window.open(data.url, '_blank')
+  } catch (err) {
+    tussenFout.value = err.message
+  } finally {
+    downloadenTussen.value = false
+  }
+}
 
 function truncate(text, max = 60) {
   if (!text) return '—'
