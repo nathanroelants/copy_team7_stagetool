@@ -147,36 +147,68 @@
             </div>
           </div>
 
-          <!-- Documenten -->
+           <!-- Documenten -->
           <div v-if="pagina === 'documenten'">
             <div class="section-header">
               <h2>Documenten</h2>
             </div>
 
-            <div class="info-kaart">
-              <div><strong>Eindevaluatie PDF</strong></div>
-              <p class="sectie-subtitel">Download het eindevaluatie-document (alleen beschikbaar nadat de docent het heeft gegenereerd)</p>
-              <div v-if="eindevaluatieFout" class="error-msg">{{ eindevaluatieFout }}</div>
-              <div class="knop-rij">
-                <button class="knop-blauw" :disabled="downloaden" @click="downloadEindevaluatie">
-                  {{ downloaden ? 'Downloaden...' : 'Downloaden' }}
-                </button>
-              </div>
-            </div>
+
+                        <div class="info-kaart" style="margin-top: 1rem;">
+  <div style="display: flex; justify-content: space-between; align-items: center; gap: 1rem;">
+    <div>
+      <div style="font-weight: 700; font-size: 1rem; color: #111;">Eindevaluatie PDF</div>
+      <div style="font-size: 0.85rem; color: #666; margin-top: 0.25rem;">
+        Download de eindevaluatie
+      </div>
+    </div>
+    <div style="display: flex; gap: 0.5rem;">
+ 
+      <button class="knop-blauw" @click="downloadEindevaluatie" :disabled="downloadenTussen">
+        {{ downloadenTussen ? 'Bezig...' : 'Downloaden' }}
+      </button>
+    </div>
+  </div>
+  <div v-if="tussenFout" class="error-msg" style="margin-top: 0.75rem;">{{ tussenFout }}</div>
+  <div v-if="tussenSucces" style="margin-top: 0.75rem; color: #2e7d32; font-weight: 600;">{{ tussenSucces }}</div>
+</div>
+
+
             <div class="info-kaart" style="margin-top: 1rem;">
   <div style="display: flex; justify-content: space-between; align-items: center; gap: 1rem;">
     <div>
-      <div style="font-weight: 700; font-size: 1rem; color: #111;">Tussentijdsevaluatie</div>
+      <div style="font-weight: 700; font-size: 1rem; color: #111;">Tussentijdsevaluatie PDF</div>
       <div style="font-size: 0.85rem; color: #666; margin-top: 0.25rem;">
-        Download het tussentijdsevaluatie-document (alleen beschikbaar nadat de docent het heeft gegenereerd)
+        Download de tussentijdse evaluatie
       </div>
     </div>
-    <button class="knop-blauw" @click="downloadTussentijdsevaluatie" :disabled="downloadenTussen">
-      {{ downloadenTussen ? 'Bezig...' : 'Downloaden' }}
-    </button>
+    <div style="display: flex; gap: 0.5rem;">
+ 
+      <button class="knop-blauw" @click="downloadTussentijdsevaluatie" :disabled="downloadenTussen">
+        {{ downloadenTussen ? 'Bezig...' : 'Downloaden' }}
+      </button>
+    </div>
   </div>
   <div v-if="tussenFout" class="error-msg" style="margin-top: 0.75rem;">{{ tussenFout }}</div>
+  <div v-if="tussenSucces" style="margin-top: 0.75rem; color: #2e7d32; font-weight: 600;">{{ tussenSucces }}</div>
 </div>
+
+<div class="info-kaart" style="margin-top: 1rem;">
+  <div style="display: flex; justify-content: space-between; align-items: center; gap: 1rem;">
+    <div>
+      <div style="font-weight: 700; font-size: 1rem; color: #111;">Stagevoorstel PDF</div>
+      <div style="font-size: 0.85rem; color: #666; margin-top: 0.25rem;">
+        Download het ondertekende stagevoorstel van de student
+      </div>
+    </div>
+    <button class="knop-blauw" @click="downloadStagevoorstel" :disabled="downloadenVoorstel">
+      {{ downloadenVoorstel ? 'Bezig...' : 'Downloaden' }}
+    </button>
+  </div>
+  <div v-if="voorstelFout" class="error-msg" style="margin-top: 0.75rem;">{{ voorstelFout }}</div>
+</div>
+
+
           </div>
 
         </template>
@@ -260,6 +292,35 @@ const downloaden = ref(false)
 const eindevaluatieFout = ref('')
 const downloadenTussen = ref(false)
 const tussenFout = ref('')
+const downloadenVoorstel = ref(false)
+const voorstelFout = ref('')
+
+async function downloadStagevoorstel() {
+  downloadenVoorstel.value = true
+  voorstelFout.value = ''
+  try {
+    const res = await fetch(`${API_BASE}/stagevoorstel/download-pdf`, {
+      headers: authHeaders()
+    })
+    if (!res.ok) {
+      const data = await res.json()
+      throw new Error(data.error || 'Fout bij downloaden')
+    }
+    const blob = await res.blob()
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `stagevoorstel_${studentId}.pdf`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+  } catch (err) {
+    voorstelFout.value = err.message
+  } finally {
+    downloadenVoorstel.value = false
+  }
+}
 
 async function downloadTussentijdsevaluatie() {
   downloadenTussen.value = true

@@ -30,22 +30,40 @@
 
         <template v-else>
 
-          <div v-if="stageId" class="eindevaluatie-kaart">
-            <div class="doc-naam">Eindevaluatie PDF</div>
-            <p class="doc-meta">Download het eindevaluatie-document (beschikbaar nadat de docent het heeft gegenereerd)</p>
-            <div v-if="eindevaluatieFout" class="status-msg error">{{ eindevaluatieFout }}</div>
-            <button class="knop-download" :disabled="downloaden" @click="downloadEindevaluatie">
-              {{ downloaden ? 'Downloaden...' : 'Downloaden' }}
-            </button>
-          </div>
-          <div v-if="stageId" class="eindevaluatie-kaart">
+
+ <div v-if="eindevaluatieBeschikbaar" class="eindevaluatie-kaart">
+  <div class="doc-naam">Eindevaluatie PDF</div>
+  <p class="doc-meta">Download het rapport van de eindevaluatie</p>
+  <div v-if="eindevaluatieFout" class="status-msg error">{{ eindevaluatieFout }}</div>
+  <button class="knop-download" :disabled="downloaden" @click="downloadEindevaluatie">
+    {{ downloaden ? 'Downloaden...' : 'Downloaden' }}
+  </button>
+</div>
+
+<div v-if="tussenBeschikbaar" class="eindevaluatie-kaart">
   <div class="doc-naam">Tussentijdsevaluatie PDF</div>
-  <p class="doc-meta">Download het tussentijdsevaluatie-document (beschikbaar nadat de docent het heeft gegenereerd)</p>
+  <p class="doc-meta">Download het rapport van de tussentijdse evaluatie</p>
   <div v-if="tussenFout" class="status-msg error">{{ tussenFout }}</div>
   <button class="knop-download" :disabled="downloadenTussen" @click="downloadTussentijdsevaluatie">
     {{ downloadenTussen ? 'Downloaden...' : 'Downloaden' }}
   </button>
 </div>
+
+
+
+          <div v-if="stageVoorstelDoc" class="eindevaluatie-kaart">
+  <div class="doc-naam">Stagevoorstel PDF</div>
+  <p class="doc-meta">Download de stageovereenkomst</p>
+  <button
+    v-if="stageVoorstelDoc.beschikbaar"
+    class="knop-download"
+    @click="downloadDocument(stageVoorstelDoc)"
+  >
+    Downloaden
+  </button>
+  <p v-else class="doc-meta" style="color: #999;">Nog niet beschikbaar</p>
+</div>
+
         </template>
       </section>
     </main>
@@ -60,6 +78,7 @@ const router = useRouter()
 const user = JSON.parse(localStorage.getItem('user') || '{}')
 const gebruikerNaam = `${user.voornaam || ''} ${user.achternaam || ''}`.trim() || user.email || 'Student'
 const heeftMeerdereRollen = (user.rollen?.length ?? 0) > 1
+const stageVoorstelDoc = ref(null)
 
 const docs = ref([])
 const stageId = ref(null)
@@ -69,22 +88,113 @@ const downloaden = ref(false)
 const eindevaluatieFout = ref('')
 const downloadenTussen = ref(false)
 const tussenFout = ref('')
+const eindevaluatieBeschikbaar = ref(false)
+const tussenBeschikbaar = ref(false)
+
+async function checkEvaluaties() {
+  if (!stageId.value) return
+
+  const token = localStorage.getItem('token')
+
+  // Check eindevaluatie
+  try {
+    const res = await fetch(`/api/stagevoorstellen/${stageId.value}/eindevaluatie/download`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    eindevaluatieBeschikbaar.value = res.ok
+  } catch {
+    eindevaluatieBeschikbaar.value = false
+  }
+
+  // Check tussentijdsevaluatie
+  try {
+    const res = await fetch(`/api/stagevoorstellen/${stageId.value}/tussentijdsevaluatie/download`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    tussenBeschikbaar.value = res.ok
+  } catch {
+    tussenBeschikbaar.value = false
+  }
+}
 
 async function laadDocumenten() {
   try {
-    const res = await fetch('/api/student/documenten', {
+    const res = await fetch('/api/stagevoorstellen/student/documenten', {
       headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
     })
     const data = await res.json()
     if (!res.ok) throw new Error(data.error)
-    docs.value = data.docs
-    stageId.value = data.stage_id
+ docs.value = data.docs
+stageId.value = data.stage_id
+stageVoorstelDoc.value = data.docs.find(d => d.type === 'stagevoorstel') || null
+await checkEvaluaties()
+  
   } catch (err) {
     fout.value = err.message
   } finally {
     loading.value = false
   }
 }
+
+async function downloadDocument(doc) {
+ try {
+   const token = localStorage.getItem('token')
+   
+   console.log(`📥 Downloaden van stagevoorstel ${doc.stageId}`)
+   
+   // Gebruik dezelfde endpoint als in de ondertekening pagina
+   const response = await fetch(`/api/stagevoorstellen/${doc.stageId}/download-pdf`, {
+     headers: {
+       Authorization: `Bearer ${token}`
+     }
+   })
+   
+   if (!response.ok) {
+     const errorText = await response.text()
+     console.error('❌ Server error:', response.status, errorText)
+     throw new Error(`Download mislukt (${response.status})`)
+   }
+   
+   const blob = await response.blob()
+   const url = URL.createObjectURL(blob)
+   const link = document.createElement('a')
+   link.href = url
+   link.download = `stagevoorstel_${doc.stageId}.pdf`
+   document.body.appendChild(link)
+   link.click()
+   document.body.removeChild(link)
+   URL.revokeObjectURL(url)
+   
+   console.log('✅ Download succesvol')
+ } catch (error) {
+   console.error('❌ Download fout:', error)
+   alert(`Er is een fout opgetreden bij het downloaden: ${error.message}`)
+ }
+}
+ 
+
+ 
+function badgeKlasse(status) {
+ if (!status) return ''
+ const s = status.toLowerCase()
+ if (s.includes('geaccepteerd') || s.includes('lopend') || s.includes('afgerond')) return 'badge-groen'
+ if (s.includes('geweigerd') || s.includes('afgekeurd')) return 'badge-rood'
+ if (s.includes('aanpassingen')) return 'badge-oranje'
+ return 'badge-geel' // ingediend / in afwachting
+}
+ 
+function badgeLabel(status) {
+ if (!status) return ''
+ const s = status.toLowerCase()
+ if (s.includes('geaccepteerd') || s.includes('lopend') || s.includes('afgerond')) return '✅ Goedgekeurd'
+ if (s.includes('geweigerd') || s.includes('afgekeurd')) return '❌ Afgekeurd'
+ if (s.includes('aanpassingen')) return '✏️ Aanpassingen vereist'
+ return '⏳ In afwachting'
+}
+ 
+ 
+ 
+ 
 
 async function downloadEindevaluatie() {
   downloaden.value = true
@@ -157,32 +267,37 @@ onMounted(laadDocumenten)
   font-size: 1.4rem;
   font-weight: 800;
   color: #fff;
+  letter-spacing: 0.5px;
 }
 
 .sidebar-nav {
   flex: 1;
   padding: 1rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
 .nav-item {
   width: 100%;
+  text-align: left;
   background: transparent;
   border: none;
   border-radius: 6px;
-  padding: 0.75rem 1rem;
+  padding: 0.65rem 1rem;
   font-size: 0.9rem;
   font-weight: 600;
   color: #29a8e0;
   cursor: pointer;
-  margin-bottom: 0.5rem;
-  text-align: left;
   transition: background 0.15s;
 }
 
 .nav-item:hover { background: #f0f7fc; }
 .nav-item.active { background: #29a8e0; color: white; }
 
-.sidebar-footer { padding: 1rem 0.75rem; }
+.sidebar-footer {
+  padding: 1rem 0.75rem;
+}
 
 .logout-btn {
   width: 100%;
@@ -190,13 +305,16 @@ onMounted(laadDocumenten)
   color: #cc0000;
   border: none;
   border-radius: 6px;
-  padding: 0.75rem 1rem;
+  padding: 0.65rem 1rem;
+  font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
   transition: background 0.15s;
 }
 
 .logout-btn:hover { background: #ffdada; }
+.wissel-rol-btn { background: white; color: #29a8e0; border: 1px solid #29a8e0; margin-bottom: 0.5rem; }
+
 .wissel-rol-btn { background: white; color: #29a8e0; border: 1px solid #29a8e0; margin-bottom: 0.5rem; }
 
 .main-content { flex: 1; display: flex; flex-direction: column; }
@@ -210,14 +328,20 @@ onMounted(laadDocumenten)
   border-bottom: 1px solid #e0e0e0;
 }
 
-.topbar-logo { height: 36px; object-fit: contain; }
-
 .topbar-user {
   background: #e8e8e8;
   border-radius: 6px;
   padding: 0.4rem 1rem;
+  font-size: 0.95rem;
   font-weight: 600;
+  color: #222;
 }
+
+.topbar-logo {
+  height: 36px;
+  object-fit: contain;
+}
+
 
 .content-area { padding: 1.5rem 2rem; }
 

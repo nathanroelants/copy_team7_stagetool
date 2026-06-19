@@ -12,7 +12,11 @@
   <router-link to="/administratie/competentiebeheer" class="nav-item" :class="{ active: true }">
     Competentiebeheer
   </router-link>
+          <button class="nav-item" @click="router.push('/administratie/stagebeheer')">
+          Stagebeheer
+        </button>
 </nav>
+
 
       <div class="sidebar-footer">
         <button v-if="heeftMeerdereRollen" class="nav-item wissel-rol-btn" @click="router.push('/kies-rol')">Wissel rol</button>
