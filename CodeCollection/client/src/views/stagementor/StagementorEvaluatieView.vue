@@ -167,7 +167,7 @@ const {
   opgeslagen,
   foutMelding,
   scoreOpties,
-   getBeschrijving,
+  getBeschrijving,
   toggleCompetentie,
   getEvaluatie,
   getMentorEvaluatie,
@@ -175,7 +175,7 @@ const {
   setFeedback,
   slaOp,
   handleLogout,
-} = useStagementorEvaluatie()
+} = useStagementorEvaluatie(studentId)
 </script>
 
 <style>

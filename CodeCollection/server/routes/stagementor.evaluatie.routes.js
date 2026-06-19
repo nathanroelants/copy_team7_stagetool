@@ -25,9 +25,9 @@ function requireStagementor(req, res, next) {
   next();
 }
 
-// GET /api/student/competenties
+// GET /api/stagementor/competenties
 router.get('/competenties', requireAuth, requireStagementor, async (req, res) => {
-  const supabase = req.app.get('supabase');
+  const supabase = req.app.get('supabase'); // ✅ was al correct hier
 
   const { data, error } = await supabase
     .from('competenties')
@@ -40,7 +40,7 @@ router.get('/competenties', requireAuth, requireStagementor, async (req, res) =>
     return res.status(500).json({ error: 'Kon competenties niet ophalen' });
   }
 
-    const competenties = (data || []).map(c => {
+  const competenties = (data || []).map(c => {
     const vind = (n) => {
       const key = Object.keys(c).find(
         k => k.includes('beschrijving') && k.includes(String(n))
@@ -58,16 +58,20 @@ router.get('/competenties', requireAuth, requireStagementor, async (req, res) =>
   res.json(competenties);
 });
 
-// GET /api/student/evaluaties
-// Geeft ook evaluatie_status mee zodat de frontend de juiste modus kan tonen
+// GET /api/stagementor/evaluaties?student_id=...
 router.get('/evaluaties', requireAuth, requireStagementor, async (req, res) => {
-  const supabase = req.app.get('supabase');
-  const stagementorId = req.user.id;
+  const supabase = req.app.get('supabase'); // ✅ toegevoegd
+  const studentId = req.query.student_id;
+
+  if (!studentId) {
+    return res.status(400).json({ error: 'student_id is verplicht' });
+  }
 
   const { data: stage, error: stageError } = await supabase
     .from('stages')
     .select('id, evaluatie_status')
-    .eq('stagementor_id', stagementorId)
+    .eq('student_id', studentId)
+    .eq('stagementor_id', req.user.id) // ✅ beveiligingscheck
     .single();
 
   if (stageError || !stage) {
@@ -84,31 +88,30 @@ router.get('/evaluaties', requireAuth, requireStagementor, async (req, res) => {
     return res.status(500).json({ error: 'Kon evaluaties niet ophalen' });
   }
 
-  // evaluatie_status meesturen zodat de frontend de juiste modus toont
   res.json({ evaluatie_status: stage.evaluatie_status, evaluaties: data });
 });
 
-// POST /api/student/evaluaties
+// POST /api/stagementor/evaluaties
 router.post('/evaluaties', requireAuth, requireStagementor, async (req, res) => {
-  const supabase = req.app.get('supabase');
-  const stagementorId = req.user.id;
-  const { competentie_id, type, score, feedback } = req.body;
+  const supabase = req.app.get('supabase'); // ✅ toegevoegd
+  const stagementorId = req.user.id;        // ✅ gedeclareerd vanuit token
+  const { student_id, competentie_id, type, score, feedback } = req.body;
 
-  if (!competentie_id || !type || !feedback) {
-    return res.status(400).json({ error: 'competentie_id, type en feedback zijn verplicht' });
+  if (!student_id || !competentie_id || !type || !feedback) {
+    return res.status(400).json({ error: 'student_id, competentie_id, type en feedback zijn verplicht' });
   }
 
   const { data: stage, error: stageError } = await supabase
     .from('stages')
     .select('id, evaluatie_status')
-    .eq('stagementor_id', stagementorId)
+    .eq('student_id', student_id)
+    .eq('stagementor_id', stagementorId) // ✅ beveiligingscheck
     .single();
 
   if (stageError || !stage) {
     return res.status(404).json({ error: 'Geen stage gevonden voor deze student' });
   }
 
-  // Schrijftoegang bewaken op basis van evaluatie_status
   const status = stage.evaluatie_status;
   const schrijfToegestaan =
     (type === 'tussentijds' && status === 'tussentijds') ||
@@ -123,21 +126,21 @@ router.post('/evaluaties', requireAuth, requireStagementor, async (req, res) => 
     .select('id')
     .eq('stage_id', stage.id)
     .eq('competentie_id', competentie_id)
-    .eq('beoordelaar_id', stagementorId)
+    .eq('beoordelaar_id', stagementorId) // ✅ nu correct gedeclareerd
     .eq('type', type)
-    .single();
+    .maybeSingle(); // ✅ maybeSingle i.p.v. single, zodat null geen error gooit
 
-  let result, error;
+  let result, dbError;
 
   if (bestaande) {
-    ({ data: result, error } = await supabase
+    ({ data: result, error: dbError } = await supabase
       .from('evaluaties')
       .update({ score, feedback, bijgewerkt_op: new Date() })
       .eq('id', bestaande.id)
       .select()
       .single());
   } else {
-    ({ data: result, error } = await supabase
+    ({ data: result, error: dbError } = await supabase
       .from('evaluaties')
       .insert({
         stage_id: stage.id,
@@ -152,63 +155,12 @@ router.post('/evaluaties', requireAuth, requireStagementor, async (req, res) => 
       .single());
   }
 
-  if (error) {
-    console.error('Fout bij opslaan evaluatie:', error);
+  if (dbError) {
+    console.error('Fout bij opslaan evaluatie:', dbError);
     return res.status(500).json({ error: 'Kon evaluatie niet opslaan' });
   }
 
   res.json(result);
-});
-
-// GET /api/student/documenten
-router.get('/documenten', requireAuth, requireStagementor, async (req, res) => {
-  const supabase = req.app.get('supabase');
-  const studentId = req.user.id;
-
-  const { data: stage, error: stageError } = await supabase
-    .from('stages')
-    .select('id, stagevoorstel_id')
-    .eq('student_id', studentId)
-    .single();
-
-  if (stageError || !stage) {
-    return res.status(404).json({ error: 'Geen stage gevonden' });
-  }
-
-  const docs = [];
-
-  const { data: voorstel } = await supabase
-    .from('stagevoorstellen')
-    .select('id, bedrijfsnaam, indieningsdatum, ondertekend')
-    .eq('id', stage.stagevoorstel_id)
-    .maybeSingle();
-
-  if (voorstel) {
-    docs.push({
-      type: 'stagevoorstel',
-      naam: `Stagevoorstel - ${voorstel.bedrijfsnaam || 'onbekend bedrijf'}`,
-      datum: voorstel.indieningsdatum,
-      beschikbaar: true,
-      meta: voorstel.ondertekend ? 'Ondertekend' : 'Niet ondertekend'
-    });
-  }
-
-  const { data: eindEval } = await supabase
-    .from('evaluaties')
-    .select('id, score, aangemaakt_op')
-    .eq('stage_id', stage.id)
-    .eq('type', 'eind')
-    .maybeSingle();
-
-  docs.push({
-    type: 'eindevaluatie',
-    naam: 'Eindevaluatie',
-    datum: eindEval?.aangemaakt_op ?? null,
-    beschikbaar: !!eindEval,
-    meta: eindEval ? `Score: ${eindEval.score ?? '—'}` : 'Nog niet beschikbaar'
-  });
-
-  res.json(docs);
 });
 
 export default router;
