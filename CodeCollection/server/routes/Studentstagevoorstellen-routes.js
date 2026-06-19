@@ -32,6 +32,37 @@ function verifyToken(req, res, next) {
 function generatePassword() {
   return Math.random().toString(36).slice(-10);
 }
+// ⬆️ Dit moet de EERSTE route zijn in het bestand, vóór router.get('/:stageId/...')
+router.get('/student/documenten', verifyToken, async (req, res) => {
+  const supabase = req.app.get('supabase')
+
+  const { data: stages, error } = await supabase
+    .from('stages')
+    .select(`id, status, stagevoorstellen (bedrijfsnaam, indieningsdatum)`)
+    .eq('student_id', req.user.id)
+    .order('aangemaakt_op', { ascending: false })
+
+  if (error) return res.status(500).json({ error: error.message })
+
+  const docs = []
+  const stage = stages?.[0]
+
+  if (stage) {
+    const voorstel = stage.stagevoorstellen
+    const geaccepteerd = ['stagevoorstel geaccepteerd', 'lopend', 'afgerond'].includes(stage.status)
+    docs.push({
+      type: 'stagevoorstel',
+      naam: 'Stagevoorstel',
+      meta: voorstel?.bedrijfsnaam || '—',
+      datum: voorstel?.indieningsdatum || null,
+      beschikbaar: geaccepteerd,
+      stageId: stage.id,
+      status: stage.status
+    })
+  }
+
+  res.json({ docs, stage_id: stage?.id || null })
+})
 
 // GET /api/stagevoorstellen/mijn
 router.get('/mijn', verifyToken, async (req, res) => {
