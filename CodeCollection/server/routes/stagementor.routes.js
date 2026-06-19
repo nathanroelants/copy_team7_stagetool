@@ -370,5 +370,31 @@ router.get('/student/:studentId/tussentijdsevaluatie/download', requireAuth, req
 
   res.json({ url: data.signedUrl });
 });
+router.get('/student/:studentId/stagevoorstel/download-pdf', requireAuth, requireStagementor, async (req, res) => {
+  const supabase = req.app.get('supabase')
+  const { studentId } = req.params
+  const docentId = req.user.id
+
+  const stage = await getStageVoorMentor(supabase, studentId, docentId)
+  if (!stage) return res.status(404).json({ error: 'Stage niet gevonden' })
+
+  try {
+    const token = req.headers.authorization.split(' ')[1]
+    const internalRes = await fetch(
+      `http://localhost:${process.env.PORT || 3000}/api/stagevoorstellen/${stage.id}/download-pdf`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    )
+    if (!internalRes.ok) {
+      const err = await internalRes.json()
+      return res.status(internalRes.status).json(err)
+    }
+    const buffer = Buffer.from(await internalRes.arrayBuffer())
+    res.setHeader('Content-Type', 'application/pdf')
+    res.setHeader('Content-Disposition', `attachment; filename="stagevoorstel_${stage.id}.pdf"`)
+    res.send(buffer)
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+});
 
 export default router;
