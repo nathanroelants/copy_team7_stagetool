@@ -72,6 +72,7 @@
 
 <script setup>
 import { ref } from 'vue'
+import { onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
@@ -81,6 +82,22 @@ const password = ref('')
 const showPassword = ref(false)
 const loading = ref(false)
 const errorMessage = ref('')
+onMounted(async () => {
+  const user = JSON.parse(localStorage.getItem('user'))
+  const token = localStorage.getItem('token')
+
+  const res = await fetch(`/api/stages/student/${user.id}`, {
+    headers: { Authorization: `Bearer ${token}` }
+  })
+
+  if (!res.ok) return
+
+  const stage = await res.json()
+
+if (stage?.stagevoorstel?.student_ondertekend) {
+  router.replace('/studentlogboeken')
+}
+})
 
 function redirectByRol(rol) {
   const routes = {
@@ -109,20 +126,33 @@ async function handleLogin() {
 
     const data = await response.json()
 
-    if (!response.ok) {
-      throw new Error(data.error || 'Inloggen mislukt')
-    }
-
-    if (!data.token || !data.user) {
-      throw new Error('Onverwacht antwoord van de server')
-    }
+    if (!response.ok) throw new Error(data.error || 'Inloggen mislukt')
+    if (!data.token || !data.user) throw new Error('Onverwacht antwoord van de server')
 
     localStorage.setItem('token', data.token)
     localStorage.setItem('user', JSON.stringify(data.user))
 
     const rollen = data.user.rollen || [data.user.rol]
+
     if (rollen.length > 1) {
       router.push('/kies-rol')
+    } else if (rollen[0] === 'student') {
+
+      // Check of student al ondertekend heeft
+      const stageRes = await fetch(`/api/auth/student/${data.user.id}`, {
+  headers: { Authorization: `Bearer ${data.token}` }
+})
+
+      if (stageRes.ok) {
+        const stage = await stageRes.json()
+        if (stage?.stagevoorstel?.student_ondertekend) {
+          router.push('/studentlogboeken')
+        } else {
+          router.push('/student')
+        }
+      } else {
+        router.push('/student')
+      }
     } else {
       redirectByRol(rollen[0])
     }

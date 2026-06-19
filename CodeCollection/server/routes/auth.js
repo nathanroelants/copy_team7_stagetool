@@ -9,6 +9,30 @@ router.get('/test', (req, res) => {
   res.json({ ok: true });
 });
 
+// GET /api/stages/student/:studentId
+router.get('/student/:studentId', async (req, res) => {
+  const supabase = req.app.get('supabase')
+
+  const { data, error } = await supabase
+    .from('stages')
+    .select(`
+      *,
+      stagevoorstel:stagevoorstellen(
+        student_ondertekend,
+        docent_ondertekend,
+        mentor_ondertekend
+      )
+    `)
+    .eq('student_id', req.params.studentId)
+    .order('aangemaakt_op', { ascending: false })
+    .limit(1)
+    .single()
+
+  if (error || !data) return res.status(404).json({ error: 'Geen stage gevonden' })
+
+  res.json(data)
+})
+
 router.post('/login', async (req, res) => {
   const { email, password } = req.body;
 
