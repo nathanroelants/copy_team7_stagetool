@@ -142,10 +142,16 @@ export function useDocentEvaluatie(studentId) {
     fout.value = ''
     try {
       const token = localStorage.getItem('token')
-      const [compRes, evalRes] = await Promise.all([
-        fetch('/api/docent/competenties', { cache: 'no-store', headers: { Authorization: `Bearer ${token}` } }),
-        fetch(`/api/docent/evaluaties/${studentId}`, { cache: 'no-store', headers: { Authorization: `Bearer ${token}` } }),
-      ])
+     const [compRes, evalRes] = await Promise.all([
+  fetch(`/api/docent/competenties/${studentId}`, { // ✅ studentId in de URL
+    cache: 'no-store',
+    headers: { Authorization: `Bearer ${token}` }
+  }),
+  fetch(`/api/docent/evaluaties/${studentId}`, {
+    cache: 'no-store',
+    headers: { Authorization: `Bearer ${token}` }
+  }),
+])
       const compData = await compRes.json()
       const evalData = await evalRes.json()
       if (!compRes.ok) throw new Error(compData.error || 'Fout bij laden competenties')

@@ -28,11 +28,36 @@ function requireStudent(req, res, next) {
 // GET /api/student/competenties
 router.get('/competenties', requireAuth, requireStudent, async (req, res) => {
   const supabase = req.app.get('supabase');
+  const studentId = req.user.id; // ✅ student is ingelogd, id komt uit token
 
+  // Stap 1: haal opleiding_id op via gebruiker_opleidingen, fallback naar gebruikers
+  const { data: koppeling } = await supabase
+    .from('gebruiker_opleidingen')
+    .select('opleiding_id')
+    .eq('gebruiker_id', studentId)
+    .maybeSingle();
+
+  let opleidingId = koppeling?.opleiding_id;
+
+  if (!opleidingId) {
+    const { data: gebruiker } = await supabase
+      .from('gebruikers')
+      .select('opleiding_id')
+      .eq('id', studentId)
+      .maybeSingle();
+    opleidingId = gebruiker?.opleiding_id;
+  }
+
+  if (!opleidingId) {
+    return res.status(404).json({ error: 'Geen opleiding gevonden voor deze student' });
+  }
+
+  // Stap 2: competenties gefilterd op opleiding
   const { data, error } = await supabase
     .from('competenties')
     .select('*')
     .eq('actief', true)
+    .eq('opleiding_id', opleidingId)
     .order('volgorde', { ascending: true });
 
   if (error) {
@@ -125,7 +150,7 @@ router.post('/evaluaties', requireAuth, requireStudent, async (req, res) => {
     .eq('competentie_id', competentie_id)
     .eq('beoordelaar_id', studentId)
     .eq('type', type)
-    .single();
+    .maybeSingle();
 
   let result, error;
 
