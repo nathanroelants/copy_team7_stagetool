@@ -40,7 +40,7 @@
 
         <div v-else class="student-list">
 <div
-  v-for="student in studenten"
+  v-for="student in gesorteerdeStudenten"
   :key="student.id"
   class="student-card"
   :class="{ disabled: !student.mentor_ondertekend }"
@@ -69,25 +69,20 @@
 
       <div class="badge-row">
         <div class="badge-group">
-          <span class="badge-label">Stagevoorstel</span>
-          <span :class="['badge', badgeKlasse(student.stagevoorstel_status)]">
-            {{ student.stagevoorstel_status || '—' }}
-          </span>
-        </div>
-        <div class="badge-group">
           <span class="badge-label">Logboek</span>
           <span :class="['badge', logboekBadgeKlasse(student.logboek_status)]">
             {{ student.logboek_status || '—' }}
           </span>
         </div>
       </div>
-          <div
-            v-if="
-              student.stagevoorstel_status === 'stagevoorstel geaccepteerd' &&
-              !student.mentor_ondertekend
-            "
-            class="action-buttons"
-          >
+
+      <div
+        v-if="
+          student.stagevoorstel_status === 'stagevoorstel geaccepteerd' &&
+          !student.mentor_ondertekend
+        "
+        class="action-buttons"
+      >
         <router-link
           :to="`/mentor/stages/${student.stage_id}/ondertekenen`"
           class="btn-ondertekenen"
@@ -105,7 +100,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
@@ -118,14 +113,21 @@ const user = JSON.parse(localStorage.getItem('user') || '{}')
 const gebruikerNaam = `${user.voornaam || ''} ${user.achternaam || ''}`.trim() || user.email || 'Stagementor'
 const heeftMeerdereRollen = (user.rollen?.length ?? 0) > 1
 
-function badgeKlasse(status) {
-  if (!status) return 'badge-grijs'
-  const s = status.toLowerCase()
-  if (s.includes('goedgekeurd') || s.includes('geaccepteerd') || s.includes('afgetekend')) return 'badge-groen'
-  if (s.includes('ingediend')) return 'badge-geel'
-  if (s.includes('geweigerd') || s.includes('aanpassingen')) return 'badge-rood'
-  if (s.includes('lopend')) return 'badge-blauw'
-  return 'badge-grijs'
+// Studenten die nog ondertekend moeten worden (knop zichtbaar) bovenaan,
+// reeds ondertekende studenten onderaan.
+const gesorteerdeStudenten = computed(() => {
+  return [...studenten.value].sort((a, b) => {
+    const aMoetOndertekenen = moetNogOndertekenen(a) ? 0 : 1
+    const bMoetOndertekenen = moetNogOndertekenen(b) ? 0 : 1
+    return aMoetOndertekenen - bMoetOndertekenen
+  })
+})
+
+function moetNogOndertekenen(student) {
+  return (
+    student.stagevoorstel_status === 'stagevoorstel geaccepteerd' &&
+    !student.mentor_ondertekend
+  )
 }
 
 function logboekBadgeKlasse(status) {
@@ -133,7 +135,7 @@ function logboekBadgeKlasse(status) {
   const s = status.toLowerCase()
   if (s.includes('afgetekend')) return 'badge-groen'
   if (s.includes('afwachting')) return 'badge-geel'
-  if (s.includes('niet ingediend')) return 'badge-grijs'
+  if (s.includes('niet ingediend')) return 'badge-rood'
   return 'badge-grijs'
 }
 

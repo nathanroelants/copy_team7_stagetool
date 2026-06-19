@@ -1,32 +1,32 @@
 <template>
   <div class="dashboard-layout">
-
+ 
     <!-- Sidebar -->
     <aside class="sidebar">
       <div class="sidebar-brand">
         <span class="brand-text">STAGE.BE</span>
-
+ 
       </div>
-
+ 
       <nav class="sidebar-nav">
         <button class="nav-item active">Mijn studenten</button>
       </nav>
-
+ 
       <div class="sidebar-footer">
         <button v-if="heeftMeerdereRollen" class="nav-item wissel-rol-btn" @click="router.push('/kies-rol')">Wissel rol</button>
         <button class="logout-btn" @click="handleLogout">Uitloggen</button>
       </div>
     </aside>
-
+ 
     <!-- Main content -->
     <main class="main-content">
-
+ 
       <!-- Top bar -->
       <header class="topbar">
         <div class="topbar-user">{{ gebruikerNaam }}</div>
         <img src="../../assets/erasmus-logo.png" alt="Erasmus Hogeschool Brussel" class="topbar-logo" />
       </header>
-
+ 
       <!-- Student list -->
       <section class="content-area">
         <div class="section-header">
@@ -35,17 +35,17 @@
             {{ studenten.length }} studenten zijn momenteel toegewezen aan jou dit semester
           </p>
         </div>
-
+ 
         <div v-if="loading" class="status-message">Studenten laden...</div>
         <div v-else-if="fout" class="status-message error"> {{ fout }}</div>
-
+ 
         <div v-else-if="studenten.length === 0" class="status-message">
           Geen studenten toegewezen dit semester.
         </div>
-
+ 
         <div v-else class="student-list">
 <div
-  v-for="student in studenten"
+  v-for="student in gesorteerdeStudenten"
   :key="student.id"
   class="student-card"
   :class="{ disabled: !student.docent_ondertekend }"
@@ -57,7 +57,7 @@
                 {{ initialen(student.voornaam, student.achternaam) }}
               </div>
             </div>
-
+ 
             <div class="student-info">
               <div class="student-name">{{ student.voornaam }} {{ student.achternaam }}</div>
               <div class="student-opleiding">
@@ -71,14 +71,8 @@
                   🏢 Stagementor: {{ student.mentor_naam }}
                 </span>
               </div>
-
+ 
               <div class="badge-row">
-                <div class="badge-group">
-                  <span class="badge-label">Stagevoorstel</span>
-                  <span :class="['badge', badgeKlasse(student.stagevoorstel_status)]">
-                    {{ student.stagevoorstel_status || '—' }}
-                  </span>
-                </div>
                 <div class="badge-group">
                   <span class="badge-label">Logboek</span>
                   <span :class="['badge', badgeKlasse(student.logboek_status)]">
@@ -86,21 +80,22 @@
                   </span>
                 </div>
               </div>
-                        <div
-            v-if="
-              student.stagevoorstel_status === 'stagevoorstel geaccepteerd' &&
-              !student.docent_ondertekend
-            "
-            class="action-buttons"
-          >
-        <router-link
-          :to="`/docent/studenten/${student.stage_id}/ondertekenen`"
-          class="btn-ondertekenen"
-          @click.stop
-        >
-          Stageovereenkomst ondertekenen
-        </router-link>
-      </div>
+ 
+              <div
+                v-if="
+                  student.stagevoorstel_status === 'stagevoorstel geaccepteerd' &&
+                  !student.docent_ondertekend
+                "
+                class="action-buttons"
+              >
+                <router-link
+                  :to="`/docent/studenten/${student.stage_id}/ondertekenen`"
+                  class="btn-ondertekenen"
+                  @click.stop
+                >
+                  Stageovereenkomst ondertekenen
+                </router-link>
+              </div>
             </div>
           </div>
         </div>
@@ -108,41 +103,67 @@
     </main>
   </div>
 </template>
-
+ 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-
+ 
 const router = useRouter()
-
+ 
 const studenten = ref([])
 const loading = ref(true)
 const fout = ref('')
-
+ 
 const user = JSON.parse(localStorage.getItem('user') || '{}')
 const gebruikerNaam = `${user.voornaam || ''} ${user.achternaam || ''}`.trim() || user.email || 'Docent'
 const heeftMeerdereRollen = (user.rollen?.length ?? 0) > 1
-
+ 
+// Studenten die nog ondertekend moeten worden (knop zichtbaar) bovenaan,
+// reeds ondertekende studenten onderaan.
+const gesorteerdeStudenten = computed(() => {
+  return [...studenten.value].sort((a, b) => {
+    const aMoetOndertekenen = moetNogOndertekenen(a) ? 0 : 1
+    const bMoetOndertekenen = moetNogOndertekenen(b) ? 0 : 1
+    return aMoetOndertekenen - bMoetOndertekenen
+  })
+})
+ 
+function moetNogOndertekenen(student) {
+  return (
+    student.stagevoorstel_status === 'stagevoorstel geaccepteerd' &&
+    !student.docent_ondertekend
+  )
+}
+ 
 // Badge kleurklasse op basis van statustekst
 function badgeKlasse(status) {
   if (!status) return 'badge-grijs'
   const s = status.toLowerCase()
-  if (s.includes('goedgekeurd') || s.includes('afgerond') || s.includes('afgetekend')) return 'badge-groen'
-  if (s.includes('open') || s.includes('afwachting')) return 'badge-geel'
-  if (s.includes('niet') || s.includes('afgekeurd') || s.includes('ingediend') === false) return 'badge-rood'
-  if (s.includes('ingediend')) return 'badge-blauw'
+ 
+  if (s.includes('geaccepteerd') || s.includes('goedgekeurd') || s.includes('afgerond') || s.includes('afgetekend')) {
+    return 'badge-groen'
+  }
+  if (s.includes('afgekeurd') || s.includes('niet ingediend') || s.includes('niet')) {
+    return 'badge-rood'
+  }
+  if (s.includes('open') || s.includes('afwachting')) {
+    return 'badge-geel'
+  }
+  if (s.includes('ingediend')) {
+    return 'badge-blauw'
+  }
   return 'badge-grijs'
 }
-
+ 
 function initialen(voornaam, achternaam) {
   return `${(voornaam || '')[0] || ''}${(achternaam || '')[0] || ''}`.toUpperCase()
 }
-
+ 
 function formatDatum(datum) {
   if (!datum) return '?'
   return new Date(datum).toLocaleDateString('nl-BE', { day: '2-digit', month: '2-digit', year: 'numeric' })
 }
-
+ 
 async function laadStudenten() {
   loading.value = true
   fout.value = ''
@@ -160,7 +181,7 @@ async function laadStudenten() {
     loading.value = false
   }
 }
-
+ 
 function handleLogout() {
   localStorage.removeItem('token')
   localStorage.removeItem('user')
@@ -168,13 +189,13 @@ function handleLogout() {
 }
 function openStudent(student) {
   if (!student.docent_ondertekend) return
-
+ 
   router.push(`/docent/logboeken/${student.id}`)
 }
-
+ 
 onMounted(laadStudenten)
 </script>
-
+ 
 <style scoped>
 /* ── Layout ── */
 .dashboard-layout {
@@ -183,7 +204,7 @@ onMounted(laadStudenten)
   font-family: Arial, Helvetica, sans-serif;
   background: #f5f7fa;
 }
-
+ 
 /* ── Sidebar ── */
 .sidebar {
   width: 180px;
@@ -196,24 +217,24 @@ onMounted(laadStudenten)
   top: 0;
   height: 100vh;
 }
-
+ 
 .sidebar-brand {
   padding: 1.25rem 1rem;
   background: #1ec8f0;
 }
-
+ 
 .brand-text {
   font-size: 1.4rem;
   font-weight: 800;
   color: #fff;
   letter-spacing: 0.5px;
 }
-
+ 
 .sidebar-nav {
   flex: 1;
   padding: 1rem 0.75rem;
 }
-
+ 
 .nav-item {
   width: 100%;
   text-align: left;
@@ -228,14 +249,14 @@ onMounted(laadStudenten)
   margin-bottom: 0.5rem;
   transition: background 0.15s;
 }
-
+ 
 .nav-item:hover { background: #f0f7fc; }
 .nav-item.active { background: #29a8e0; color: white; }
-
+ 
 .sidebar-footer {
   padding: 1rem 0.75rem;
 }
-
+ 
 .logout-btn {
   width: 100%;
   background: #ffeaea;
@@ -248,10 +269,10 @@ onMounted(laadStudenten)
   cursor: pointer;
   transition: background 0.15s;
 }
-
+ 
 .logout-btn:hover { background: #ffdada; }
 .wissel-rol-btn { background: white; color: #29a8e0; border: 1px solid #29a8e0; margin-bottom: 0.5rem; }
-
+ 
 /* ── Main ── */
 .main-content {
   flex: 1;
@@ -259,7 +280,7 @@ onMounted(laadStudenten)
   flex-direction: column;
   overflow: hidden;
 }
-
+ 
 /* ── Topbar ── */
 .topbar {
   background: white;
@@ -269,7 +290,7 @@ onMounted(laadStudenten)
   justify-content: space-between;
   border-bottom: 1px solid #e0e0e0;
 }
-
+ 
 .topbar-user {
   background: #e8e8e8;
   border-radius: 6px;
@@ -278,52 +299,52 @@ onMounted(laadStudenten)
   font-weight: 600;
   color: #222;
 }
-
+ 
 .topbar-logo {
   height: 36px;
   object-fit: contain;
 }
-
+ 
 /* ── Content ── */
 .content-area {
   padding: 1.5rem 2rem;
   overflow-y: auto;
 }
-
+ 
 .section-header {
   margin-bottom: 1.25rem;
 }
-
+ 
 .section-header h2 {
   font-size: 1.4rem;
   font-weight: 700;
   color: #111;
   margin: 0 0 0.25rem;
 }
-
+ 
 .subtitle {
   color: #555;
   font-size: 0.9rem;
   margin: 0;
 }
-
+ 
 .status-message {
   color: #555;
   padding: 1rem 0;
   font-size: 0.95rem;
 }
-
+ 
 .status-message.error {
   color: #cc0000;
 }
-
+ 
 /* ── Student cards ── */
 .student-list {
   display: flex;
   flex-direction: column;
   gap: 0.85rem;
 }
-
+ 
 .student-card {
   background: white;
   border-radius: 10px;
@@ -335,7 +356,7 @@ onMounted(laadStudenten)
   align-items: flex-start;
   overflow: hidden;
 }
-
+ 
 .avatar-circle {
   width: 48px;
   height: 48px;
@@ -349,25 +370,25 @@ onMounted(laadStudenten)
   justify-content: center;
   flex-shrink: 0;
 }
-
+ 
 .student-info {
   flex: 1;
   min-width: 0;
 }
-
+ 
 .student-name {
   font-size: 1rem;
   font-weight: 700;
   color: #111;
   margin-bottom: 0.15rem;
 }
-
+ 
 .student-opleiding {
   font-size: 0.85rem;
   color: #444;
   margin-bottom: 0.3rem;
 }
-
+ 
 .student-meta {
   display: flex;
   flex-wrap: wrap;
@@ -376,26 +397,26 @@ onMounted(laadStudenten)
   color: #555;
   margin-bottom: 0.65rem;
 }
-
+ 
 .meta-item {
   display: flex;
   align-items: center;
   gap: 0.25rem;
 }
-
+ 
 /* ── Badges ── */
 .badge-row {
   display: flex;
   flex-wrap: wrap;
   gap: 1.25rem;
 }
-
+ 
 .badge-group {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
 }
-
+ 
 .badge-label {
   font-size: 0.72rem;
   font-weight: 600;
@@ -403,7 +424,7 @@ onMounted(laadStudenten)
   text-transform: uppercase;
   letter-spacing: 0.3px;
 }
-
+ 
 .badge {
   display: inline-block;
   padding: 0.25rem 0.7rem;
@@ -412,18 +433,26 @@ onMounted(laadStudenten)
   font-weight: 700;
   white-space: nowrap;
 }
-
+ 
 .badge-groen  { background: #4caf50; color: #fff; }
 .badge-geel   { background: #f9c72f; color: #333; }
 .badge-rood   { background: #f44336; color: #fff; }
 .badge-blauw  { background: #2196f3; color: #fff; }
 .badge-grijs  { background: #aaa;    color: #fff; }
-
+ 
+.student-card.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.student-card.disabled:hover {
+  cursor: not-allowed;
+}
+ 
 /* Signing button for docent */
 .action-buttons {
   margin-top: 0.75rem;
 }
-
+ 
 .btn-ondertekenen {
   display: inline-block;
   background: #29a8e0;
@@ -437,37 +466,15 @@ onMounted(laadStudenten)
   border: none;
   cursor: pointer;
 }
-
+ 
 .btn-ondertekenen:hover {
   background: #1a8cbe;
   transform: translateY(-1px);
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
-
+ 
 .btn-ondertekenen:active {
   transform: translateY(0);
 }
-
-.student-card.disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-.student-card.disabled:hover {
-  cursor:none;
-}
-
-
-
-.btn-ondertekenen:hover {
-  background: #092ad2;
-}
-
-.student-card.disabled .btn-ondertekenen:hover {
-  opacity: 0.6;
-}
-.student-card.disabled .btn-ondertekenen {
-  background: #1100ff;
-  opacity: 1;
-}
-
+ 
 </style>
