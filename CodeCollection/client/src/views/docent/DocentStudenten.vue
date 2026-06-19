@@ -468,13 +468,14 @@ onMounted(laadStudenten)
 }
  
 .btn-ondertekenen:hover {
-  background: #1a8cbe;
-  transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  background: #092ad2;
 }
- 
-.btn-ondertekenen:active {
-  transform: translateY(0);
+
+.student-card.disabled .btn-ondertekenen:hover {
+  opacity: 0.6;
 }
- 
+.student-card.disabled .btn-ondertekenen {
+  background: #1100ff;
+  opacity: 1;
+}
 </style>
