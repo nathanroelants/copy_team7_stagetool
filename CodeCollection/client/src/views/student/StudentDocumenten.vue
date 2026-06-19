@@ -31,22 +31,26 @@
         <template v-else>
 
 
-          <div v-if="stageId" class="eindevaluatie-kaart">
-            <div class="doc-naam">Eindevaluatie PDF</div>
-            <p class="doc-meta">Download het eindevaluatie-document (beschikbaar nadat de docent het heeft gegenereerd)</p>
-            <div v-if="eindevaluatieFout" class="status-msg error">{{ eindevaluatieFout }}</div>
-            <button class="knop-download" :disabled="downloaden" @click="downloadEindevaluatie">
-              {{ downloaden ? 'Downloaden...' : 'Downloaden' }}
-            </button>
-          </div>
-          <div v-if="stageId" class="eindevaluatie-kaart">
+ <div v-if="eindevaluatieBeschikbaar" class="eindevaluatie-kaart">
+  <div class="doc-naam">Eindevaluatie PDF</div>
+  <p class="doc-meta">Download het rapport van de eindevaluatie</p>
+  <div v-if="eindevaluatieFout" class="status-msg error">{{ eindevaluatieFout }}</div>
+  <button class="knop-download" :disabled="downloaden" @click="downloadEindevaluatie">
+    {{ downloaden ? 'Downloaden...' : 'Downloaden' }}
+  </button>
+</div>
+
+<div v-if="tussenBeschikbaar" class="eindevaluatie-kaart">
   <div class="doc-naam">Tussentijdsevaluatie PDF</div>
-  <p class="doc-meta">Download het tussentijdsevaluatie-document (beschikbaar nadat de docent het heeft gegenereerd)</p>
+  <p class="doc-meta">Download het rapport van de tussentijdse evaluatie</p>
   <div v-if="tussenFout" class="status-msg error">{{ tussenFout }}</div>
   <button class="knop-download" :disabled="downloadenTussen" @click="downloadTussentijdsevaluatie">
     {{ downloadenTussen ? 'Downloaden...' : 'Downloaden' }}
   </button>
 </div>
+
+
+
           <div v-if="stageVoorstelDoc" class="eindevaluatie-kaart">
   <div class="doc-naam">Stagevoorstel PDF</div>
   <p class="doc-meta">Download de stageovereenkomst</p>
@@ -84,6 +88,34 @@ const downloaden = ref(false)
 const eindevaluatieFout = ref('')
 const downloadenTussen = ref(false)
 const tussenFout = ref('')
+const eindevaluatieBeschikbaar = ref(false)
+const tussenBeschikbaar = ref(false)
+
+async function checkEvaluaties() {
+  if (!stageId.value) return
+
+  const token = localStorage.getItem('token')
+
+  // Check eindevaluatie
+  try {
+    const res = await fetch(`/api/stagevoorstellen/${stageId.value}/eindevaluatie/download`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    eindevaluatieBeschikbaar.value = res.ok
+  } catch {
+    eindevaluatieBeschikbaar.value = false
+  }
+
+  // Check tussentijdsevaluatie
+  try {
+    const res = await fetch(`/api/stagevoorstellen/${stageId.value}/tussentijdsevaluatie/download`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    tussenBeschikbaar.value = res.ok
+  } catch {
+    tussenBeschikbaar.value = false
+  }
+}
 
 async function laadDocumenten() {
   try {
@@ -92,9 +124,10 @@ async function laadDocumenten() {
     })
     const data = await res.json()
     if (!res.ok) throw new Error(data.error)
-    docs.value = data.docs
+ docs.value = data.docs
 stageId.value = data.stage_id
 stageVoorstelDoc.value = data.docs.find(d => d.type === 'stagevoorstel') || null
+await checkEvaluaties()
   
   } catch (err) {
     fout.value = err.message
