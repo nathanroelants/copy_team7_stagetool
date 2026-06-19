@@ -63,7 +63,7 @@ frontend.
 cd CodeCollection/server
 npm install
 # maak een .env-bestand aan (zie Omgevingsvariabelen)
-npm start          # start op http://localhost:3000
+npm run dev          # start op http://localhost:3000
 ```
 
 ### 2. Frontend
@@ -91,26 +91,7 @@ Maak in `CodeCollection/server` een bestand `.env` met:
 | `JWT_SECRET` | Geheime sleutel voor het ondertekenen van JWT-tokens |
 | `PORT` | (optioneel) Poort voor de backend, standaard `3000` |
 
-Voorbeeld:
-
-```env
-SUPABASE_URL=https://xxxx.supabase.co
-SUPABASE_SERVICE_KEY=eyJhbGciOi...
-JWT_SECRET=een-lange-willekeurige-string
-PORT=3000
-```
-
 > Commit je `.env` nooit naar git — die bevat geheime sleutels.
-
-## Rollen & authenticatie
-
-- Bij het inloggen (`POST /api/auth/login`) worden de rollen van de gebruiker
-  uit de tabel `gebruiker_rollen` gehaald en in het JWT-token gezet als
-  `rollen`-array.
-- Heeft een gebruiker meerdere rollen, dan komt die op een rol-kiezen-pagina
-  terecht; bij één rol gaat die direct naar de juiste omgeving.
-- De backend beschermt routes met middleware die controleert of de juiste rol in
-  de `rollen`-array zit.
 
 ## API-overzicht
 
