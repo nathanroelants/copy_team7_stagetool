@@ -13,7 +13,7 @@
 
     <div class="nav-separator"></div>
 
-    <button class="nav-item" @click="router.push(`/docent/logboeken/${route.params.studentId}`)">Stageinfo</button>
+    <button class="nav-item" @click="router.push(`/docent/logboeken/${route.params.studentId}?pagina=stageinfo`)">Stageinfo</button>
     <button class="nav-item" @click="router.push(`/docent/logboeken/${route.params.studentId}`)">Logboek</button>
     <button class="nav-item active">Evaluatie</button>
     <button class="nav-item disabled" disabled>Documenten</button>
