@@ -48,7 +48,7 @@ router.get('/gebruikers', verifyAdmin, async (req, res) => {
   const { data, error } = await supabase
     .from('gebruikers')
     .select(`
-      id, voornaam, achternaam, email, rol, actief, aangemaakt_op,
+      id, voornaam, achternaam, email, actief, aangemaakt_op,
       gebruiker_opleidingen (
         opleiding_id,
         opleidingen ( id, naam )
@@ -122,7 +122,6 @@ router.post('/gebruikers', verifyAdmin, async (req, res) => {
     .from('gebruikers')
     .insert([{
       voornaam, achternaam, email,
-      rol: rollen[0],
       wachtwoord_hash,
       actief: true
     }])
@@ -171,9 +170,6 @@ router.put('/gebruikers/:id', verifyAdmin, async (req, res) => {
   }
 
   const updateData = { voornaam, achternaam, email, actief };
-  if (Array.isArray(rollen) && rollen.length > 0) {
-    updateData.rol = rollen[0];
-  }
 
   // Wachtwoord is optioneel bij bewerken — alleen aanpassen indien opgegeven
   if (wachtwoord && wachtwoord.trim() !== '') {
@@ -187,19 +183,18 @@ router.put('/gebruikers/:id', verifyAdmin, async (req, res) => {
       return res.status(500).json({ error: 'Fout bij hashen van wachtwoord' });
     }
 
-    // Bepaal de rol: gebruik de rol uit de request, anders de huidige rol uit de database
-    let huidigeRol = rol;
-    if (!huidigeRol) {
-      const { data: huidigeGebruiker } = await supabase
-        .from('gebruikers')
+    // Bepaal de rollen: gebruik de rollen uit de request, anders de huidige rollen uit de database
+    let huidigeRollen = Array.isArray(rollen) && rollen.length > 0 ? rollen : null;
+    if (!huidigeRollen) {
+      const { data: huidigeRollenRows } = await supabase
+        .from('gebruiker_rollen')
         .select('rol')
-        .eq('id', id)
-        .single();
-      huidigeRol = huidigeGebruiker?.rol;
+        .eq('gebruiker_id', id);
+      huidigeRollen = (huidigeRollenRows || []).map(r => r.rol);
     }
 
     // Een stagementor die inactief was, wordt automatisch geactiveerd bij een wachtwoordwijziging
-    if (huidigeRol === 'stagementor') {
+    if (huidigeRollen.includes('stagementor')) {
       updateData.actief = true;
     }
   }

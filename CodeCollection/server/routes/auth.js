@@ -51,7 +51,7 @@ router.post('/login', async (req, res) => {
     .eq('gebruiker_id', gebruiker.id);
 
   const rollen = (rollenData || []).map(r => r.rol);
-  const eersteRol = rollen.length > 0 ? rollen[0] : gebruiker.rol;
+  const eersteRol = rollen.length > 0 ? rollen[0] : null;
 
   const token = jwt.sign(
     { id: gebruiker.id, email: gebruiker.email, rol: eersteRol, rollen },
