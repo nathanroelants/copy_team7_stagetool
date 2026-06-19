@@ -39,7 +39,7 @@
 
         <div v-else class="student-list">
           <div
-            v-for="student in studenten"
+            v-for="student in gesorteerdeStudenten"
             :key="student.id"
             class="student-card"
             @click="$router.push(`/stagecommissie/studenten/${student.id}/voorstel`)"
@@ -82,7 +82,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
@@ -94,6 +94,21 @@ const fout = ref('')
 const user = JSON.parse(localStorage.getItem('user') || '{}')
 const gebruikerNaam = `${user.voornaam || ''} ${user.naam || ''}`.trim() || user.email || 'Docent'
 const heeftMeerdereRollen = (user.rollen?.length ?? 0) > 1
+
+// Ingediende (nog te beoordelen) stagevoorstellen bovenaan,
+// geaccepteerde stagevoorstellen onderaan.
+const gesorteerdeStudenten = computed(() => {
+  return [...studenten.value].sort((a, b) => {
+    const aGeaccepteerd = isGeaccepteerd(a.stagevoorstel_status) ? 1 : 0
+    const bGeaccepteerd = isGeaccepteerd(b.stagevoorstel_status) ? 1 : 0
+    return aGeaccepteerd - bGeaccepteerd
+  })
+})
+
+function isGeaccepteerd(status) {
+  if (!status) return false
+  return status.toLowerCase().includes('geaccepteerd')
+}
 
 // Badge kleurklasse op basis van statustekst
 function badgeKlasse(status) {
