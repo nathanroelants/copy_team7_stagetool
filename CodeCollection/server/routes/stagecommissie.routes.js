@@ -347,10 +347,10 @@ router.put(
 
     const { data: docent, error: docentError } = await supabase
       .from('gebruikers')
-      .select('id')
+      .select('id, gebruiker_rollen!inner(rol)')
       .eq('voornaam', voornaam.trim())
       .eq('achternaam', achternaam.trim())
-      .eq('rol', 'docent')
+      .eq('gebruiker_rollen.rol', 'docent')
       .maybeSingle()
 
     if (docentError) {

@@ -12,6 +12,9 @@
         <button class="nav-item" @click="router.push('/administratie/competentiebeheer')">
           Competentiebeheer
         </button>
+        <button class="nav-item" @click="router.push('/administratie/stagebeheer')">
+          Stagebeheer
+        </button>
         <button v-if="heeftMeerdereRollen" class="nav-item wissel-rol-btn" @click="router.push('/kies-rol')">
           Wissel rol
         </button>

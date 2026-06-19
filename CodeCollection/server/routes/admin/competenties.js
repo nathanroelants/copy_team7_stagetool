@@ -10,7 +10,8 @@ function verifyAdmin(req, res, next) {
   const token = authHeader.replace('Bearer ', '');
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    if (decoded.rol !== 'administratie') {
+    const rollen = decoded.rollen || (decoded.rol ? [decoded.rol] : []);
+    if (!rollen.includes('administratie')) {
       return res.status(403).json({ error: 'Alleen administratie heeft toegang' });
     }
     req.user = decoded;

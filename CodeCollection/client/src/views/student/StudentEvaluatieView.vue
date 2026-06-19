@@ -25,8 +25,10 @@
 
       <section class="content-area">
 
-        <!-- Geen evaluatie actief -->
-        <div v-if="evaluatieStatus === 'geen'" class="geblokkeerd-melding">
+        <!-- Laden / fout / geen evaluatie -->
+        <div v-if="loading" class="evaluaties-laden">Evaluaties laden...</div>
+        <div v-else-if="fout" class="status-message error">{{ fout }}</div>
+        <div v-else-if="evaluatieStatus === 'geen'" class="geblokkeerd-melding">
           Er is momenteel geen evaluatie beschikbaar. Wacht tot de docent een fase activeert.
         </div>
 
@@ -59,10 +61,7 @@
             De eindevaluatie kan niet meer bewerkt worden.
           </div>
 
-          <div v-if="loading" class="status-message">Competenties laden...</div>
-          <div v-else-if="fout" class="status-message error">{{ fout }}</div>
-
-          <div v-else :class="['rubriek-tabel', { 'eindevaluatie-bg': actieveTab === 'eindevaluatie' }]">
+          <div :class="['rubriek-tabel', { 'eindevaluatie-bg': actieveTab === 'eindevaluatie' }]">
             <div class="rubriek-header">
               <div class="col-criteria">Criteria</div>
               <div class="col-score" v-for="optie in scoreOpties" :key="optie.waarde">
@@ -362,6 +361,14 @@ html, body, #app {
 }
 
 .status-message.error { color: #e53935; }
+
+.evaluaties-laden {
+  font-size: 0.85rem;
+  color: #888;
+  font-style: italic;
+  padding: 0.4rem 0;
+  text-align: left;
+}
 
 /* ── Rubriek tabel ── */
 .rubriek-tabel {

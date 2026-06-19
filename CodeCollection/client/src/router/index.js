@@ -21,6 +21,7 @@ const routes = [
   { path: '/mentor/stages/:stageId/ondertekenen',    component: () => import('../views/shared/OndertekeningView.vue'), props: { rol: 'stagementor' } },
   { path: '/administratie', component: () => import('../views/administratie/AccountbeheerView.vue') },
   { path: '/administratie/competentiebeheer', component: () => import('../views/administratie/CompetentieBeheer.vue') },
+  { path: '/administratie/stagebeheer', component: () => import('../views/administratie/StageBeheerView.vue') },
   { path: '/kies-rol', component: () => import('../views/KiesRolView.vue') },
   { path: '/:pathMatch(.*)*', redirect: '/' }
 ]

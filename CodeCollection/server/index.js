@@ -14,6 +14,7 @@ import stagevoorstellenRoutes from './routes/Studentstagevoorstellen-routes.js';
 import studentlogboekenRoutes from './routes/logboek.routes.js';
 import adminRoutes from './routes/admin/admin-routes.js';
 import competentiesRoutes from './routes/admin/competenties.js';
+import stagebeheerRoutes from './routes/admin/stagebeheer.js';
 
 dotenv.config();
 
@@ -42,6 +43,7 @@ app.use('/api/student', studentEvaluatieRoutes);
 app.use('/api/stagevoorstellen', stagevoorstellenRoutes);
 app.use('/api/studentlogboeken', studentlogboekenRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/admin', stagebeheerRoutes);
 app.use('/api/admin', competentiesRoutes);
 
 
